@@ -31,13 +31,8 @@ function PrivateRoute({ children }) {
     return <Navigate to="/login" />;
   }
 
-  // If email not verified, redirect to verification (unless already there)
-  if (!payload.emailVerified && !location.pathname.startsWith('/onboarding/verify-email')) {
-    return <Navigate to="/onboarding/verify-email" />;
-  }
-
-  // If email verified but onboarding not completed, redirect to connect store
-  if (payload.emailVerified && !payload.onboardingCompleted && !location.pathname.startsWith('/onboarding')) {
+  // If onboarding not completed, redirect to connect store
+  if (!payload.onboardingCompleted && !location.pathname.startsWith('/onboarding')) {
     return <Navigate to="/onboarding/connect-store" />;
   }
 
