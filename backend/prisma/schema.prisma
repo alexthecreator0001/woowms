@@ -1,0 +1,335 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth ────────────────────────────────────────────
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(STAFF)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  STAFF
+  PICKER
+}
+
+// ─── WooCommerce Store ───────────────────────────────
+
+model Store {
+  id             Int      @id @default(autoincrement())
+  name           String
+  url            String
+  consumerKey    String   @map("consumer_key")
+  consumerSecret String   @map("consumer_secret")
+  webhookSecret  String?  @map("webhook_secret")
+  isActive       Boolean  @default(true) @map("is_active")
+  lastSyncAt     DateTime? @map("last_sync_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  orders   Order[]
+  products Product[]
+
+  @@map("stores")
+}
+
+// ─── Orders ──────────────────────────────────────────
+
+model Order {
+  id              Int          @id @default(autoincrement())
+  wooId           Int          @map("woo_id")
+  storeId         Int          @map("store_id")
+  store           Store        @relation(fields: [storeId], references: [id])
+  orderNumber     String       @map("order_number")
+  status          OrderStatus  @default(PENDING)
+  wooStatus       String       @map("woo_status")
+  customerName    String       @map("customer_name")
+  customerEmail   String       @map("customer_email")
+  shippingAddress Json         @map("shipping_address")
+  billingAddress  Json         @map("billing_address")
+  total           Decimal      @db.Decimal(10, 2)
+  currency        String       @default("USD")
+  notes           String?
+  priority        Int          @default(0)
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  wooCreatedAt    DateTime     @map("woo_created_at")
+
+  items       OrderItem[]
+  shipments   Shipment[]
+  pickLists   PickList[]
+
+  @@unique([wooId, storeId])
+  @@index([status])
+  @@index([wooCreatedAt])
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  AWAITING_PICK
+  PICKING
+  PICKED
+  PACKING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  ON_HOLD
+}
+
+model OrderItem {
+  id          Int     @id @default(autoincrement())
+  orderId     Int     @map("order_id")
+  order       Order   @relation(fields: [orderId], references: [id])
+  productId   Int?    @map("product_id")
+  product     Product? @relation(fields: [productId], references: [id])
+  wooProductId Int    @map("woo_product_id")
+  sku         String?
+  name        String
+  quantity    Int
+  pickedQty   Int     @default(0) @map("picked_qty")
+  price       Decimal @db.Decimal(10, 2)
+
+  @@map("order_items")
+}
+
+// ─── Products / Inventory ────────────────────────────
+
+model Product {
+  id            Int      @id @default(autoincrement())
+  wooId         Int      @map("woo_id")
+  storeId       Int      @map("store_id")
+  store         Store    @relation(fields: [storeId], references: [id])
+  sku           String?
+  name          String
+  description   String?
+  weight        Decimal? @db.Decimal(8, 3)
+  length        Decimal? @db.Decimal(8, 2)
+  width         Decimal? @db.Decimal(8, 2)
+  height        Decimal? @db.Decimal(8, 2)
+  price         Decimal  @db.Decimal(10, 2)
+  stockQty      Int      @default(0) @map("stock_qty")
+  reservedQty   Int      @default(0) @map("reserved_qty")
+  lowStockThreshold Int  @default(5) @map("low_stock_threshold")
+  imageUrl      String?  @map("image_url")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  orderItems    OrderItem[]
+  stockLocations StockLocation[]
+  stockMovements StockMovement[]
+
+  @@unique([wooId, storeId])
+  @@index([sku])
+  @@map("products")
+}
+
+// ─── Warehouse ───────────────────────────────────────
+
+model Warehouse {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String?
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  zones Zone[]
+
+  @@map("warehouses")
+}
+
+model Zone {
+  id          Int      @id @default(autoincrement())
+  warehouseId Int      @map("warehouse_id")
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  name        String
+  type        ZoneType @default(STORAGE)
+  description String?
+
+  bins Bin[]
+
+  @@map("zones")
+}
+
+enum ZoneType {
+  RECEIVING
+  STORAGE
+  PICKING
+  PACKING
+  SHIPPING
+  RETURNS
+}
+
+model Bin {
+  id       Int    @id @default(autoincrement())
+  zoneId   Int    @map("zone_id")
+  zone     Zone   @relation(fields: [zoneId], references: [id])
+  label    String @unique
+  row      String?
+  shelf    String?
+  position String?
+  capacity Int?
+  isActive Boolean @default(true) @map("is_active")
+
+  stockLocations StockLocation[]
+
+  @@map("bins")
+}
+
+model StockLocation {
+  id        Int     @id @default(autoincrement())
+  productId Int     @map("product_id")
+  product   Product @relation(fields: [productId], references: [id])
+  binId     Int     @map("bin_id")
+  bin       Bin     @relation(fields: [binId], references: [id])
+  quantity  Int     @default(0)
+
+  @@unique([productId, binId])
+  @@map("stock_locations")
+}
+
+model StockMovement {
+  id          Int          @id @default(autoincrement())
+  productId   Int          @map("product_id")
+  product     Product      @relation(fields: [productId], references: [id])
+  type        MovementType
+  quantity    Int
+  fromBin     String?      @map("from_bin")
+  toBin       String?      @map("to_bin")
+  reason      String?
+  reference   String?
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  @@index([productId])
+  @@index([createdAt])
+  @@map("stock_movements")
+}
+
+enum MovementType {
+  RECEIVED
+  PICKED
+  TRANSFERRED
+  ADJUSTED
+  RETURNED
+  DAMAGED
+}
+
+// ─── Picking ─────────────────────────────────────────
+
+model PickList {
+  id        Int          @id @default(autoincrement())
+  orderId   Int          @map("order_id")
+  order     Order        @relation(fields: [orderId], references: [id])
+  assignedTo String?     @map("assigned_to")
+  status    PickStatus   @default(PENDING)
+  startedAt DateTime?    @map("started_at")
+  completedAt DateTime?  @map("completed_at")
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  items PickListItem[]
+
+  @@map("pick_lists")
+}
+
+enum PickStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model PickListItem {
+  id         Int      @id @default(autoincrement())
+  pickListId Int      @map("pick_list_id")
+  pickList   PickList @relation(fields: [pickListId], references: [id])
+  sku        String
+  productName String  @map("product_name")
+  binLabel   String   @map("bin_label")
+  quantity   Int
+  pickedQty  Int      @default(0) @map("picked_qty")
+  isPicked   Boolean  @default(false) @map("is_picked")
+
+  @@map("pick_list_items")
+}
+
+// ─── Shipping ────────────────────────────────────────
+
+model Shipment {
+  id            Int      @id @default(autoincrement())
+  orderId       Int      @map("order_id")
+  order         Order    @relation(fields: [orderId], references: [id])
+  carrier       String?
+  trackingNumber String? @map("tracking_number")
+  trackingUrl   String?  @map("tracking_url")
+  labelUrl      String?  @map("label_url")
+  weight        Decimal? @db.Decimal(8, 3)
+  status        ShipmentStatus @default(PENDING)
+  shippedAt     DateTime? @map("shipped_at")
+  deliveredAt   DateTime? @map("delivered_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("shipments")
+}
+
+enum ShipmentStatus {
+  PENDING
+  LABEL_CREATED
+  SHIPPED
+  IN_TRANSIT
+  DELIVERED
+  RETURNED
+}
+
+// ─── Receiving / Purchase Orders ─────────────────────
+
+model PurchaseOrder {
+  id           Int      @id @default(autoincrement())
+  poNumber     String   @unique @map("po_number")
+  supplier     String
+  status       POStatus @default(DRAFT)
+  expectedDate DateTime? @map("expected_date")
+  receivedDate DateTime? @map("received_date")
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  items PurchaseOrderItem[]
+
+  @@map("purchase_orders")
+}
+
+enum POStatus {
+  DRAFT
+  ORDERED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+model PurchaseOrderItem {
+  id              Int           @id @default(autoincrement())
+  purchaseOrderId Int           @map("purchase_order_id")
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  sku             String
+  productName     String        @map("product_name")
+  orderedQty      Int           @map("ordered_qty")
+  receivedQty     Int           @default(0) @map("received_qty")
+  unitCost        Decimal?      @db.Decimal(10, 2) @map("unit_cost")
+
+  @@map("purchase_order_items")
+}
