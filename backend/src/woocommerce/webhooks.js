@@ -1,48 +1,46 @@
 import crypto from 'crypto';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import { syncOrders } from './sync.js';
 
-const prisma = new PrismaClient();
-
-export function verifyWebhook(secret) {
-  return (req, res, next) => {
-    const signature = req.headers['x-wc-webhook-signature'];
-    if (!signature) {
-      return res.status(401).json({ error: true, message: 'No webhook signature' });
-    }
-
-    const hash = crypto
-      .createHmac('sha256', secret)
-      .update(JSON.stringify(req.body))
-      .digest('base64');
-
-    if (hash !== signature) {
-      return res.status(401).json({ error: true, message: 'Invalid webhook signature' });
-    }
-
-    next();
-  };
-}
-
-export async function handleOrderWebhook(req, res) {
-  const topic = req.headers['x-wc-webhook-topic'];
-  const payload = req.body;
-
-  console.log(`[WEBHOOK] Received ${topic} for order #${payload.id}`);
+/**
+ * Per-store webhook handler.
+ * Route: POST /api/webhooks/woocommerce/:storeId
+ * No JWT auth — uses HMAC signature verification instead.
+ */
+export async function handleStoreWebhook(req, res) {
+  const storeId = parseInt(req.params.storeId);
 
   try {
-    // Find which store this came from based on the source URL
-    const store = await prisma.store.findFirst({ where: { isActive: true } });
-    if (!store) {
-      return res.status(200).json({ received: true, message: 'No active store' });
+    const store = await prisma.store.findUnique({ where: { id: storeId } });
+    if (!store || !store.isActive) {
+      return res.status(404).json({ error: true, message: 'Store not found' });
     }
 
-    // Quick single-order sync
+    // Verify HMAC signature
+    if (store.webhookSecret) {
+      const signature = req.headers['x-wc-webhook-signature'];
+      if (!signature) {
+        return res.status(401).json({ error: true, message: 'No webhook signature' });
+      }
+
+      const hash = crypto
+        .createHmac('sha256', store.webhookSecret)
+        .update(JSON.stringify(req.body))
+        .digest('base64');
+
+      if (hash !== signature) {
+        return res.status(401).json({ error: true, message: 'Invalid webhook signature' });
+      }
+    }
+
+    const topic = req.headers['x-wc-webhook-topic'];
+    console.log(`[WEBHOOK] Store #${storeId}: received ${topic}`);
+
     await syncOrders(store);
 
     res.status(200).json({ received: true });
   } catch (err) {
-    console.error('[WEBHOOK] Error processing:', err);
+    console.error(`[WEBHOOK] Store #${storeId} error:`, err);
     res.status(200).json({ received: true, error: err.message });
   }
 }

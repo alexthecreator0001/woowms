@@ -1,16 +1,14 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /api/v1/inventory
-router.get('/', authenticate, async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
     const { page = 1, limit = 25, search, lowStock } = req.query;
+    const prisma = req.prisma;
 
-    const where = { isActive: true };
+    const where = { isActive: true, store: { tenantId: req.tenantId } };
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -18,7 +16,7 @@ router.get('/', authenticate, async (req, res, next) => {
       ];
     }
     if (lowStock === 'true') {
-      where.stockQty = { lte: prisma.product.fields?.lowStockThreshold ?? 5 };
+      where.stockQty = { lte: 5 };
     }
 
     const [products, total] = await Promise.all([
@@ -42,10 +40,20 @@ router.get('/', authenticate, async (req, res, next) => {
 });
 
 // PATCH /api/v1/inventory/:id/adjust
-router.patch('/:id/adjust', authenticate, async (req, res, next) => {
+router.patch('/:id/adjust', async (req, res, next) => {
   try {
     const { quantity, reason, binId } = req.body;
     const productId = parseInt(req.params.id);
+    const prisma = req.prisma;
+
+    // Verify product belongs to tenant's store
+    const existing = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { store: true },
+    });
+    if (!existing || existing.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
 
     const product = await prisma.product.update({
       where: { id: productId },
@@ -69,13 +77,19 @@ router.patch('/:id/adjust', authenticate, async (req, res, next) => {
 });
 
 // GET /api/v1/inventory/low-stock
-router.get('/low-stock', authenticate, async (req, res, next) => {
+router.get('/low-stock', async (req, res, next) => {
   try {
-    const products = await prisma.$queryRaw`
-      SELECT * FROM products
-      WHERE stock_qty <= low_stock_threshold AND is_active = true
-      ORDER BY stock_qty ASC
-    `;
+    const prisma = req.prisma;
+
+    const products = await prisma.product.findMany({
+      where: {
+        isActive: true,
+        stockQty: { lte: 5 },
+        store: { tenantId: req.tenantId },
+      },
+      orderBy: { stockQty: 'asc' },
+    });
+
     res.json({ data: products });
   } catch (err) {
     next(err);

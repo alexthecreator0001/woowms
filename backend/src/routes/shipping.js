@@ -1,14 +1,21 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // POST /api/v1/shipping
-router.post('/', authenticate, async (req, res, next) => {
+router.post('/', async (req, res, next) => {
   try {
     const { orderId, carrier, trackingNumber, trackingUrl, weight } = req.body;
+    const prisma = req.prisma;
+
+    // Verify order belongs to tenant
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { store: true },
+    });
+    if (!order || order.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Order not found', code: 'NOT_FOUND' });
+    }
 
     const shipment = await prisma.shipment.create({
       data: { orderId, carrier, trackingNumber, trackingUrl, weight },
@@ -26,9 +33,11 @@ router.post('/', authenticate, async (req, res, next) => {
 });
 
 // GET /api/v1/shipping
-router.get('/', authenticate, async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
+    const prisma = req.prisma;
     const shipments = await prisma.shipment.findMany({
+      where: { order: { store: { tenantId: req.tenantId } } },
       include: { order: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -39,9 +48,11 @@ router.get('/', authenticate, async (req, res, next) => {
 });
 
 // PATCH /api/v1/shipping/:id
-router.patch('/:id', authenticate, async (req, res, next) => {
+router.patch('/:id', async (req, res, next) => {
   try {
     const { status, trackingNumber, trackingUrl } = req.body;
+    const prisma = req.prisma;
+
     const data = {};
     if (status) data.status = status;
     if (trackingNumber) data.trackingNumber = trackingNumber;

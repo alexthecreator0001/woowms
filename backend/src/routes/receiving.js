@@ -1,14 +1,11 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /api/v1/receiving
-router.get('/', authenticate, async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
-    const purchaseOrders = await prisma.purchaseOrder.findMany({
+    const purchaseOrders = await req.prisma.purchaseOrder.findMany({
       include: { items: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -19,11 +16,11 @@ router.get('/', authenticate, async (req, res, next) => {
 });
 
 // POST /api/v1/receiving
-router.post('/', authenticate, async (req, res, next) => {
+router.post('/', async (req, res, next) => {
   try {
     const { poNumber, supplier, expectedDate, notes, items } = req.body;
 
-    const po = await prisma.purchaseOrder.create({
+    const po = await req.prisma.purchaseOrder.create({
       data: {
         poNumber,
         supplier,
@@ -41,10 +38,17 @@ router.post('/', authenticate, async (req, res, next) => {
 });
 
 // PATCH /api/v1/receiving/:id/receive — Receive items against a PO
-router.patch('/:id/receive', authenticate, async (req, res, next) => {
+router.patch('/:id/receive', async (req, res, next) => {
   try {
     const { items } = req.body; // [{ itemId, receivedQty, binId }]
     const poId = parseInt(req.params.id);
+    const prisma = req.prisma;
+
+    // Verify PO belongs to tenant
+    const existingPo = await prisma.purchaseOrder.findUnique({ where: { id: poId } });
+    if (!existingPo) {
+      return res.status(404).json({ error: true, message: 'Purchase order not found', code: 'NOT_FOUND' });
+    }
 
     for (const item of items) {
       await prisma.purchaseOrderItem.update({
@@ -54,7 +58,9 @@ router.patch('/:id/receive', authenticate, async (req, res, next) => {
 
       // Find product by SKU and update stock
       const poItem = await prisma.purchaseOrderItem.findUnique({ where: { id: item.itemId } });
-      const product = await prisma.product.findFirst({ where: { sku: poItem.sku } });
+      const product = await prisma.product.findFirst({
+        where: { sku: poItem.sku, store: { tenantId: req.tenantId } },
+      });
 
       if (product) {
         await prisma.product.update({

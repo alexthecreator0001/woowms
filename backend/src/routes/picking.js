@@ -1,21 +1,19 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // POST /api/v1/picking/generate — Generate pick list for an order
-router.post('/generate', authenticate, async (req, res, next) => {
+router.post('/generate', async (req, res, next) => {
   try {
     const { orderId } = req.body;
+    const prisma = req.prisma;
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { items: { include: { product: { include: { stockLocations: { include: { bin: true } } } } } } },
+      include: { store: true, items: { include: { product: { include: { stockLocations: { include: { bin: true } } } } } } },
     });
 
-    if (!order) {
+    if (!order || order.store.tenantId !== req.tenantId) {
       return res.status(404).json({ error: true, message: 'Order not found', code: 'NOT_FOUND' });
     }
 
@@ -50,10 +48,12 @@ router.post('/generate', authenticate, async (req, res, next) => {
 });
 
 // GET /api/v1/picking
-router.get('/', authenticate, async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
     const { status } = req.query;
-    const where = {};
+    const prisma = req.prisma;
+
+    const where = { order: { store: { tenantId: req.tenantId } } };
     if (status) where.status = status;
 
     const pickLists = await prisma.pickList.findMany({
@@ -68,9 +68,10 @@ router.get('/', authenticate, async (req, res, next) => {
 });
 
 // PATCH /api/v1/picking/:id/pick-item
-router.patch('/:id/pick-item', authenticate, async (req, res, next) => {
+router.patch('/:id/pick-item', async (req, res, next) => {
   try {
     const { itemId, pickedQty } = req.body;
+    const prisma = req.prisma;
 
     const item = await prisma.pickListItem.update({
       where: { id: itemId },

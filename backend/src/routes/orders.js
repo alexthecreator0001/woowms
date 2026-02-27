@@ -1,14 +1,12 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /api/v1/orders
-router.get('/', authenticate, async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
     const { status, page = 1, limit = 25, search } = req.query;
+    const prisma = req.prisma;
 
     const where = {};
     if (status) where.status = status;
@@ -19,6 +17,9 @@ router.get('/', authenticate, async (req, res, next) => {
         { customerEmail: { contains: search, mode: 'insensitive' } },
       ];
     }
+
+    // Scope orders to tenant's stores
+    where.store = { tenantId: req.tenantId };
 
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
@@ -41,14 +42,15 @@ router.get('/', authenticate, async (req, res, next) => {
 });
 
 // GET /api/v1/orders/:id
-router.get('/:id', authenticate, async (req, res, next) => {
+router.get('/:id', async (req, res, next) => {
   try {
+    const prisma = req.prisma;
     const order = await prisma.order.findUnique({
       where: { id: parseInt(req.params.id) },
-      include: { items: { include: { product: true } }, shipments: true, pickLists: { include: { items: true } } },
+      include: { items: { include: { product: true } }, shipments: true, pickLists: { include: { items: true } }, store: true },
     });
 
-    if (!order) {
+    if (!order || order.store.tenantId !== req.tenantId) {
       return res.status(404).json({ error: true, message: 'Order not found', code: 'NOT_FOUND' });
     }
 
@@ -59,9 +61,20 @@ router.get('/:id', authenticate, async (req, res, next) => {
 });
 
 // PATCH /api/v1/orders/:id/status
-router.patch('/:id/status', authenticate, async (req, res, next) => {
+router.patch('/:id/status', async (req, res, next) => {
   try {
+    const prisma = req.prisma;
     const { status } = req.body;
+
+    // Verify ownership
+    const existing = await prisma.order.findUnique({
+      where: { id: parseInt(req.params.id) },
+      include: { store: true },
+    });
+    if (!existing || existing.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Order not found', code: 'NOT_FOUND' });
+    }
+
     const order = await prisma.order.update({
       where: { id: parseInt(req.params.id) },
       data: { status },

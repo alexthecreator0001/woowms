@@ -15,13 +15,6 @@ const config = {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   },
 
-  woocommerce: {
-    url: process.env.WC_URL,
-    consumerKey: process.env.WC_CONSUMER_KEY,
-    consumerSecret: process.env.WC_CONSUMER_SECRET,
-    webhookSecret: process.env.WC_WEBHOOK_SECRET,
-  },
-
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
 };
 

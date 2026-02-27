@@ -1,14 +1,12 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { authenticate, authorize } from '../middleware/auth.js';
+import { authorize } from '../middleware/auth.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /api/v1/warehouse
-router.get('/', authenticate, async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
-    const warehouses = await prisma.warehouse.findMany({
+    const warehouses = await req.prisma.warehouse.findMany({
       include: { zones: { include: { bins: true } } },
     });
     res.json({ data: warehouses });
@@ -18,10 +16,10 @@ router.get('/', authenticate, async (req, res, next) => {
 });
 
 // POST /api/v1/warehouse
-router.post('/', authenticate, authorize('ADMIN', 'MANAGER'), async (req, res, next) => {
+router.post('/', authorize('ADMIN', 'MANAGER'), async (req, res, next) => {
   try {
     const { name, address, isDefault } = req.body;
-    const warehouse = await prisma.warehouse.create({
+    const warehouse = await req.prisma.warehouse.create({
       data: { name, address, isDefault },
     });
     res.status(201).json({ data: warehouse });
@@ -31,10 +29,17 @@ router.post('/', authenticate, authorize('ADMIN', 'MANAGER'), async (req, res, n
 });
 
 // POST /api/v1/warehouse/:id/zones
-router.post('/:id/zones', authenticate, authorize('ADMIN', 'MANAGER'), async (req, res, next) => {
+router.post('/:id/zones', authorize('ADMIN', 'MANAGER'), async (req, res, next) => {
   try {
     const { name, type, description } = req.body;
-    const zone = await prisma.zone.create({
+
+    // Verify warehouse belongs to tenant
+    const warehouse = await req.prisma.warehouse.findUnique({ where: { id: parseInt(req.params.id) } });
+    if (!warehouse) {
+      return res.status(404).json({ error: true, message: 'Warehouse not found', code: 'NOT_FOUND' });
+    }
+
+    const zone = await req.prisma.zone.create({
       data: { warehouseId: parseInt(req.params.id), name, type, description },
     });
     res.status(201).json({ data: zone });
@@ -44,10 +49,10 @@ router.post('/:id/zones', authenticate, authorize('ADMIN', 'MANAGER'), async (re
 });
 
 // POST /api/v1/warehouse/zones/:zoneId/bins
-router.post('/zones/:zoneId/bins', authenticate, authorize('ADMIN', 'MANAGER'), async (req, res, next) => {
+router.post('/zones/:zoneId/bins', authorize('ADMIN', 'MANAGER'), async (req, res, next) => {
   try {
     const { label, row, shelf, position, capacity } = req.body;
-    const bin = await prisma.bin.create({
+    const bin = await req.prisma.bin.create({
       data: { zoneId: parseInt(req.params.zoneId), label, row, shelf, position, capacity },
     });
     res.status(201).json({ data: bin });

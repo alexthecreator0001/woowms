@@ -6,12 +6,24 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding database...');
 
+  // Create default tenant
+  const tenant = await prisma.tenant.upsert({
+    where: { slug: 'default' },
+    update: {},
+    create: {
+      name: 'Default Company',
+      slug: 'default',
+    },
+  });
+  console.log(`Created tenant: ${tenant.name} (id: ${tenant.id})`);
+
   // Create admin user
   const hashedPassword = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@woowms.local' },
     update: {},
     create: {
+      tenantId: tenant.id,
       email: 'admin@woowms.local',
       password: hashedPassword,
       name: 'Admin',
@@ -23,6 +35,7 @@ async function main() {
   // Create default warehouse
   const warehouse = await prisma.warehouse.create({
     data: {
+      tenantId: tenant.id,
       name: 'Main Warehouse',
       address: 'Default Location',
       isDefault: true,

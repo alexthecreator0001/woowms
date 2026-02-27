@@ -8,6 +8,7 @@ const navItems = [
   { path: '/picking', label: 'Picking' },
   { path: '/shipping', label: 'Shipping' },
   { path: '/receiving', label: 'Receiving' },
+  { path: '/settings', label: 'Settings' },
 ];
 
 export default function Layout({ children }) {
