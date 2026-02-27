@@ -67,6 +67,6 @@ cron.schedule('*/5 * * * *', async () => {
 
 // Start server
 app.listen(config.port, () => {
-  console.log(`[WooWMS] Backend running on port ${config.port}`);
-  console.log(`[WooWMS] Environment: ${config.nodeEnv}`);
+  console.log(`[PickNPack] Backend running on port ${config.port}`);
+  console.log(`[PickNPack] Environment: ${config.nodeEnv}`);
 });

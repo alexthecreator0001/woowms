@@ -112,7 +112,7 @@ export default function Dashboard() {
       {storeCount === 0 && (
         <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-zinc-900 to-zinc-800 p-8 text-white">
           <div className="absolute -right-10 -top-10 h-60 w-60 rounded-full bg-primary/20 blur-3xl" />
-          <h3 className="relative text-xl font-semibold">Welcome to WooWMS</h3>
+          <h3 className="relative text-xl font-semibold">Welcome to PickNPack</h3>
           <p className="relative mt-2 max-w-md text-[15px] text-white/60">
             Connect your first WooCommerce store to start syncing orders and managing your warehouse inventory.
           </p>

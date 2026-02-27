@@ -152,7 +152,7 @@ export default function VerifyEmail() {
               ? 'Redirecting to next step...'
               : (
                 <>
-                  We sent a 6-digit code to{' '}
+                  We've sent a 6-digit code to{' '}
                   <span className="font-medium text-foreground">{userEmail}</span>
                 </>
               )

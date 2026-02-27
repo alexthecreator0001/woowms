@@ -70,12 +70,12 @@ export default function Layout({ children }) {
           )}
         >
           <div className="relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary shadow-sm">
-            <span className="text-xs font-bold text-white">W</span>
+            <span className="text-xs font-bold text-white">P</span>
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold tracking-tight">WooWMS</p>
-              <p className="truncate text-[11px] text-muted-foreground">Warehouse Manager</p>
+              <p className="truncate text-sm font-semibold tracking-tight">PickNPack</p>
+              <p className="truncate text-[11px] text-muted-foreground">picknpack.io</p>
             </div>
           )}
         </div>

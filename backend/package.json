@@ -1,6 +1,6 @@
 {
-  "name": "woowms-backend",
-  "version": "1.1.0",
+  "name": "picknpack-backend",
+  "version": "1.2.0",
   "type": "module",
   "scripts": {
     "dev": "nodemon src/index.js",

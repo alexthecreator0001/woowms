@@ -1,7 +1,16 @@
 # Changelog
 
-All notable changes to WooWMS will be documented in this file.
+All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [1.5.0] - 2026-02-28
+
+### Changed
+- Rebrand from WooWMS to **PickNPack** (picknpack.io)
+- Updated all UI text, page titles, sidebar branding, email templates
+- Package names changed to picknpack-frontend and picknpack-backend
+- Sidebar logo: "P" icon with "PickNPack" brand text
+- Seed admin email changed to admin@picknpack.io
 
 ## [1.4.0] - 2026-02-28
 

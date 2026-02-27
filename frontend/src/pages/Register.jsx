@@ -35,7 +35,7 @@ export default function Register() {
             <div className="h-3 w-3 rounded-full bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.5)]" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Start managing your warehouse with WooWMS</p>
+          <p className="mt-1 text-sm text-muted-foreground">Start managing your warehouse with PickNPack</p>
         </div>
 
         {/* Card */}
