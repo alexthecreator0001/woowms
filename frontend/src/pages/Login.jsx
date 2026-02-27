@@ -17,7 +17,14 @@ export default function Login() {
     try {
       const { data } = await api.post('/auth/login', { email, password });
       localStorage.setItem('token', data.data.token);
-      navigate('/');
+      const user = data.data.user;
+      if (!user.emailVerified) {
+        navigate('/onboarding/verify-email');
+      } else if (!user.onboardingCompleted) {
+        navigate('/onboarding/connect-store');
+      } else {
+        navigate('/');
+      }
     } catch {
       setError('Invalid email or password');
     } finally {

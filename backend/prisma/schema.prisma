@@ -27,15 +27,19 @@ model Tenant {
 // ─── Auth ────────────────────────────────────────────
 
 model User {
-  id        Int      @id @default(autoincrement())
-  tenantId  Int      @map("tenant_id")
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  email     String   @unique
-  password  String
-  name      String
-  role      Role     @default(STAFF)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                        Int       @id @default(autoincrement())
+  tenantId                  Int       @map("tenant_id")
+  tenant                    Tenant    @relation(fields: [tenantId], references: [id])
+  email                     String    @unique
+  password                  String
+  name                      String
+  role                      Role      @default(STAFF)
+  emailVerified             Boolean   @default(false) @map("email_verified")
+  verificationCode          String?   @map("verification_code")
+  verificationCodeExpiresAt DateTime? @map("verification_code_expires_at")
+  onboardingCompleted       Boolean   @default(false) @map("onboarding_completed")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
 
   @@index([tenantId])
   @@map("users")

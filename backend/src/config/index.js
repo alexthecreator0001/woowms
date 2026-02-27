@@ -16,6 +16,9 @@ const config = {
   },
 
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+
+  resendApiKey: process.env.RESEND_API_KEY || '',
+  emailFrom: process.env.EMAIL_FROM || 'WooWMS <onboarding@resend.dev>',
 };
 
 export default config;

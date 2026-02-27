@@ -3,6 +3,28 @@
 All notable changes to WooWMS will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.4.0] - 2026-02-28
+
+### Added
+- Email verification onboarding flow with 6-digit code
+- Resend API integration for transactional emails
+- Verification code endpoint: POST /auth/send-verification
+- Email verify endpoint: POST /auth/verify-email
+- Onboarding complete endpoint: POST /auth/complete-onboarding
+- User model: emailVerified, verificationCode, verificationCodeExpiresAt, onboardingCompleted fields
+- Frontend: /onboarding/verify-email page with individual digit inputs, auto-submit, paste support
+- Frontend: /onboarding/connect-store page with WooCommerce credentials form and skip option
+- Step indicator component in onboarding flow
+- Smart routing: unverified users redirected to onboarding, verified users go to dashboard
+- Resend cooldown (60s) for verification codes, 10-minute code expiry
+- Database migration for email verification fields
+
+### Changed
+- Register flow now redirects to email verification instead of dashboard
+- Login flow checks emailVerified and onboardingCompleted status for proper redirect
+- JWT token now includes emailVerified and onboardingCompleted claims
+- Auth /me endpoint returns verification and onboarding status
+
 ## [1.3.0] - 2026-02-28
 
 ### Changed
