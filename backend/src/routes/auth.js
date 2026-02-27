@@ -55,9 +55,6 @@ router.post('/register', async (req, res, next) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const code = generateCode();
-    const codeExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
     // Create tenant + admin user in a single transaction
     const { tenant, user } = await prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.create({
@@ -71,17 +68,11 @@ router.post('/register', async (req, res, next) => {
           password: hashedPassword,
           name,
           role: 'ADMIN',
-          verificationCode: code,
-          verificationCodeExpiresAt: codeExpiry,
+          emailVerified: true,
         },
       });
 
       return { tenant, user };
-    });
-
-    // Send verification email (non-blocking — don't fail registration if email fails)
-    sendVerificationEmail(email, code).catch((err) => {
-      console.error('[Auth] Failed to send verification email:', err.message);
     });
 
     const token = generateToken(user, tenant.id);
@@ -89,7 +80,7 @@ router.post('/register', async (req, res, next) => {
     res.status(201).json({
       data: {
         token,
-        user: { id: user.id, email: user.email, name: user.name, role: user.role, emailVerified: false, onboardingCompleted: false },
+        user: { id: user.id, email: user.email, name: user.name, role: user.role, emailVerified: true, onboardingCompleted: false },
         tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
       },
     });

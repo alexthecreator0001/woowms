@@ -18,7 +18,7 @@ export default function Register() {
     try {
       const { data } = await api.post('/auth/register', form);
       localStorage.setItem('token', data.data.token);
-      navigate('/onboarding/verify-email');
+      navigate('/onboarding/connect-store');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {

@@ -3,6 +3,12 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.1] - 2026-02-28
+
+### Changed
+- Disabled email verification on registration — users go straight to Connect Store step
+- Email verification endpoints remain in code for future re-enablement
+
 ## [1.5.0] - 2026-02-28
 
 ### Changed
