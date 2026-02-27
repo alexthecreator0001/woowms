@@ -3,21 +3,22 @@
 All notable changes to WooWMS will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [1.1.0] - 2026-02-28
+## [1.2.0] - 2026-02-28
 
 ### Changed
-- Complete UI redesign with Apple-inspired design system
-- New sidebar with lucide-react icons, brand dot, frosted glass style
-- Dashboard: stat cards with colored icons, quick actions grid, recent orders feed, quick stats panel
-- Premium typography with Inter font, refined spacing, smooth transitions
-- New color system with semantic variables (success, warning, danger, purple)
+- Full shadcn/ui design system with Tailwind CSS
+- Sidebar: clean card-style with lucide icons, active state uses primary/10 tint
+- Dashboard: stat cards, quick actions, recent orders, quick stats — all shadcn styled
+- Login & Register pages: centered card layout with brand icon, loading spinners, error alerts
+- CSS variables follow shadcn convention (HSL-based tokens)
+- All inline styles replaced with Tailwind utility classes
 
 ### Added
-- `lucide-react` icon library (shadcn icons)
-- Welcome banner for first-time users (no stores connected)
-- Dashboard quick action shortcuts (Orders, Pick Lists, Shipping, Receiving)
-- Time-based greeting on dashboard
-- Custom scrollbar styling
+- Tailwind CSS 3.4 + PostCSS + Autoprefixer
+- `class-variance-authority`, `clsx`, `tailwind-merge` (shadcn utilities)
+- `cn()` helper in `src/lib/utils.js`
+- `tailwind.config.js` with shadcn color tokens
+- Inter font via Google Fonts
 
 ## [1.0.0] - 2026-02-27
 

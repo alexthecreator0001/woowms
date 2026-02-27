@@ -11,7 +11,7 @@
    - Major (X.0.0) for breaking changes
 4. **GIT PUSH**: After EVERY change, commit and push to GitHub. Always commit + push before giving the VPS deploy command.
 5. **DESIGN IS #1 PRIORITY**: UI/UX design quality is the top priority. Every frontend change must look polished, modern, and professional. Never ship ugly or default-looking UI.
-6. **USE LUCIDE-REACT ICONS**: Always use `lucide-react` (shadcn's icon library) for all icons. Import from `lucide-react`.
+6. **SHADCN DESIGN STYLE**: Use Tailwind CSS + shadcn/ui design patterns. Use `lucide-react` for icons. Use `cn()` from `src/lib/utils.js` for conditional classes. Follow shadcn HSL color tokens. No inline styles — use Tailwind classes only.
 
 ---
 
