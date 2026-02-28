@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { CircleNotch, Eye, EyeSlash } from '@phosphor-icons/react';
 import api from '../services/api';
-import { LogoMark } from '../components/Logo';
+import Logo from '../components/Logo';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -47,7 +47,7 @@ export default function Login() {
       <div className="relative z-10 flex w-full max-w-[400px] flex-col items-center">
         {/* Logo */}
         <div className="mb-5">
-          <LogoMark size={42} className="text-primary" />
+          <Logo width={140} className="text-foreground" />
         </div>
 
         {/* Heading */}
