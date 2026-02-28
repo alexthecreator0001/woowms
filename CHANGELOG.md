@@ -3,6 +3,31 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.0] - 2026-02-28
+
+### Added
+- **Visual Warehouse Shelf Manager** — full interactive grid-based warehouse builder with create/edit/delete for warehouses, zones, and bins
+- `PATCH /api/v1/warehouse/:id` — update warehouse (name, address, isDefault)
+- `DELETE /api/v1/warehouse/:id` — delete warehouse with cascade (blocked if any bin has stock)
+- `PATCH /api/v1/warehouse/zones/:zoneId` — update zone (name, type, description)
+- `DELETE /api/v1/warehouse/zones/:zoneId` — delete zone with cascade (blocked if stock exists)
+- `PATCH /api/v1/warehouse/bins/:binId` — update bin (label, capacity, isActive)
+- `DELETE /api/v1/warehouse/bins/:binId` — delete bin (blocked if stock exists)
+- `POST /api/v1/warehouse/zones/:zoneId/bins/generate` — bulk generate bins with prefix × rows × positions pattern
+- `WarehouseCard` component — expandable card per warehouse with zone sections, edit/delete actions
+- `ZoneSection` component — zone header with type badge, bin grid, add/generate/edit/delete actions
+- `BinGrid` component — visual grid of ~76px bin cells with zone-type color coding, stock counts, inactive state
+- `WarehouseModal` — create/edit warehouse with name, address, default checkbox
+- `ZoneModal` — create/edit zone with name, type dropdown (6 zone types), description
+- `BinModal` — edit bin with label, row/shelf/position, capacity, active toggle, delete (blocked if stocked)
+- `GenerateBinsModal` — bulk bin generation with live preview of generated labels
+- Zone type color coding: Storage (blue), Picking (violet), Receiving (amber), Packing (orange), Shipping (emerald), Returns (red)
+
+### Changed
+- Warehouse page fully rewritten from read-only display to interactive shelf builder
+- `GET /api/v1/warehouse` now includes stock location counts per bin (`_stockCount` field)
+- Warehouse creation now auto-unsets previous default when marking a new warehouse as default
+
 ## [2.5.0] - 2026-02-28
 
 ### Added

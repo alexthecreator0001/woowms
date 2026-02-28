@@ -125,13 +125,19 @@ export interface Bin {
   row: string | null;
   shelf: string | null;
   position: string | null;
+  capacity: number | null;
+  isActive: boolean;
   zone?: Zone;
+  stockLocations?: { quantity: number }[];
+  _stockCount?: number;
 }
+
+export type ZoneType = 'RECEIVING' | 'STORAGE' | 'PICKING' | 'PACKING' | 'SHIPPING' | 'RETURNS';
 
 export interface Zone {
   id: number;
   name: string;
-  type: string;
+  type: ZoneType;
   description: string | null;
   bins?: Bin[];
 }
