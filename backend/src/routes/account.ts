@@ -113,6 +113,47 @@ router.patch('/password', async (req: Request, res: Response, next: NextFunction
   }
 });
 
+// GET /api/v1/account/preferences — get user preferences
+router.get('/preferences', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: { preferences: true },
+    });
+    res.json({ data: user?.preferences || {} });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/v1/account/preferences — update user preferences (merge)
+router.patch('/preferences', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const updates = req.body;
+    if (!updates || typeof updates !== 'object') {
+      return res.status(400).json({ error: true, message: 'Request body must be an object', code: 'VALIDATION_ERROR' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: { preferences: true },
+    });
+
+    const existing = (user?.preferences as Record<string, unknown>) || {};
+    const merged = { ...existing, ...updates };
+
+    const updated = await prisma.user.update({
+      where: { id: req.user!.id },
+      data: { preferences: merged },
+      select: { preferences: true },
+    });
+
+    res.json({ data: updated.preferences });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // DELETE /api/v1/account — delete entire account (admin only, cascade)
 router.delete('/', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
   try {

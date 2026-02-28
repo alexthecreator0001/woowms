@@ -13,6 +13,8 @@ import Warehouse from './pages/Warehouse';
 import Picking from './pages/Picking';
 import Shipping from './pages/Shipping';
 import Receiving from './pages/Receiving';
+import PODetail from './pages/PODetail';
+import POCreate from './pages/POCreate';
 import Settings from './pages/settings/SettingsPage';
 import type { TokenPayload } from './types';
 
@@ -90,6 +92,8 @@ export default function App() {
                 <Route path="/picking" element={<Picking />} />
                 <Route path="/shipping" element={<Shipping />} />
                 <Route path="/receiving" element={<Receiving />} />
+                <Route path="/receiving/new" element={<POCreate />} />
+                <Route path="/receiving/:id" element={<PODetail />} />
                 <Route path="/settings" element={<Settings />} />
               </Routes>
             </Layout>

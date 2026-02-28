@@ -3,6 +3,32 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.5.0] - 2026-02-28
+
+### Added
+- **Image proxy + cache** — backend route `GET /api/v1/images/proxy?url=&w=` fetches external WooCommerce images, resizes with `sharp`, converts to WebP, caches to disk, serves with 24h cache headers
+- Frontend `proxyUrl()` helper in `lib/image.ts` — all product thumbnails in OrderDetail, Inventory, and ProductDetail now load through the proxy for fast, reliable rendering
+- **Table column customization** — users can toggle which columns appear in Orders and Inventory tables via a "Columns" dropdown button
+- `useTableConfig` hook with debounced save to backend + localStorage fallback
+- `TableConfigDropdown` component with checkboxes and minimum 2-column enforcement
+- `preferences` JSON column on User model (Prisma migration) for persisting column config
+- `GET/PATCH /api/v1/account/preferences` endpoints for reading/updating user preferences
+- "Tables" tab in Settings page to configure column visibility for Orders and Inventory
+- **Full PO management** — complete purchase order lifecycle with create, view, edit, status transitions, receive items, and PDF export
+- `GET /api/v1/receiving/:id` — single PO detail endpoint
+- `PATCH /api/v1/receiving/:id` — edit PO fields and items (DRAFT only)
+- `PATCH /api/v1/receiving/:id/status` — validated status transitions (DRAFT→ORDERED→RECEIVED etc.)
+- `DELETE /api/v1/receiving/:id` — delete PO (DRAFT only)
+- Pagination, status filter, and search on `GET /api/v1/receiving`
+- Redesigned Receiving list page with status filter dropdown, search, pagination, total cost column, received/total items progress
+- PO Detail page (`/receiving/:id`) — Shopify-style 2-column layout with items table, inline receive mode, cost summary, actions sidebar (status transitions, PDF download, delete)
+- PO Create page (`/receiving/new`) — form with auto-generated PO number, supplier, expected date, notes, editable items table, save as Draft or save & mark Ordered
+- PDF export via `jspdf` + `jspdf-autotable` — generates professional PO document with header, supplier info, items table, totals, and notes
+
+### Changed
+- Receiving list page now has pagination (25/page), status filter, search, clickable rows navigating to detail page
+- Product images in Inventory/OrderDetail/ProductDetail load through image proxy instead of direct WooCommerce CDN URLs
+
 ## [2.4.0] - 2026-02-28
 
 ### Added

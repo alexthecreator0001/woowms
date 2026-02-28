@@ -4,6 +4,7 @@ import {
   UsersThree,
   Storefront,
   Warning,
+  Table,
 } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import type { TokenPayload } from '../../types';
@@ -11,6 +12,7 @@ import AccountSection from './AccountSection';
 import TeamSection from './TeamSection';
 import WooCommerceSection from './WooCommerceSection';
 import DangerZoneSection from './DangerZoneSection';
+import TableConfigSection from './TableConfigSection';
 
 function getTokenPayload(): TokenPayload | null {
   const token = localStorage.getItem('token');
@@ -22,7 +24,7 @@ function getTokenPayload(): TokenPayload | null {
   }
 }
 
-type Tab = 'account' | 'team' | 'woocommerce' | 'danger';
+type Tab = 'account' | 'team' | 'woocommerce' | 'tables' | 'danger';
 
 interface TabDef {
   id: Tab;
@@ -35,6 +37,7 @@ const tabs: TabDef[] = [
   { id: 'account', label: 'Account', icon: User },
   { id: 'team', label: 'Team', icon: UsersThree, adminOnly: true },
   { id: 'woocommerce', label: 'WooCommerce', icon: Storefront },
+  { id: 'tables', label: 'Tables', icon: Table },
   { id: 'danger', label: 'Danger Zone', icon: Warning, adminOnly: true },
 ];
 
@@ -84,6 +87,7 @@ export default function SettingsPage() {
       {activeTab === 'account' && <AccountSection />}
       {activeTab === 'team' && isAdmin && <TeamSection />}
       {activeTab === 'woocommerce' && <WooCommerceSection />}
+      {activeTab === 'tables' && <TableConfigSection />}
       {activeTab === 'danger' && isAdmin && <DangerZoneSection />}
     </div>
   );

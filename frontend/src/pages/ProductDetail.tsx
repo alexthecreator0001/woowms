@@ -17,6 +17,7 @@ import {
   Hash,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { proxyUrl } from '../lib/image';
 import api from '../services/api';
 import type { ProductDetail as ProductDetailType, StockMovement } from '../types';
 
@@ -83,7 +84,7 @@ export default function ProductDetail() {
           <div className="flex-shrink-0">
             {product.imageUrl ? (
               <div className="h-24 w-24 overflow-hidden rounded-2xl border border-border/60 bg-muted/20 shadow-sm">
-                <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+                <img src={proxyUrl(product.imageUrl, 192)!} alt={product.name} className="h-full w-full object-cover" />
               </div>
             ) : (
               <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-border/60 bg-muted/30 shadow-sm">

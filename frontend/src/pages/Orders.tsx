@@ -8,7 +8,18 @@ import {
 import { cn } from '../lib/utils';
 import api from '../services/api';
 import Pagination from '../components/Pagination';
-import type { Order, PaginationMeta } from '../types';
+import TableConfigDropdown from '../components/TableConfigDropdown';
+import { useTableConfig } from '../hooks/useTableConfig';
+import type { Order, PaginationMeta, TableColumnDef } from '../types';
+
+const orderColumnDefs: TableColumnDef[] = [
+  { id: 'order', label: 'Order' },
+  { id: 'customer', label: 'Customer' },
+  { id: 'status', label: 'Status' },
+  { id: 'items', label: 'Items' },
+  { id: 'total', label: 'Total' },
+  { id: 'date', label: 'Date' },
+];
 
 const statusConfig: Record<string, { label: string; bg: string; text: string; dot: string }> = {
   PENDING: { label: 'Pending', bg: 'bg-amber-500/10', text: 'text-amber-600', dot: 'bg-amber-400' },
@@ -39,6 +50,7 @@ export default function Orders() {
   const [filter, setFilter] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const { visibleIds, toggleColumn, isVisible } = useTableConfig('orderColumns', orderColumnDefs);
 
   useEffect(() => {
     setPage(1);
@@ -101,6 +113,9 @@ export default function Orders() {
             {meta.total} order{meta.total !== 1 ? 's' : ''}
           </span>
         )}
+        <div className="ml-auto">
+          <TableConfigDropdown columns={orderColumnDefs} visibleIds={visibleIds} onToggle={toggleColumn} />
+        </div>
       </div>
 
       {/* Table */}
@@ -108,12 +123,12 @@ export default function Orders() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border/50 bg-muted/30">
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Order</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Customer</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Items</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</th>
+              {isVisible('order') && <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Order</th>}
+              {isVisible('customer') && <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Customer</th>}
+              {isVisible('status') && <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>}
+              {isVisible('items') && <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Items</th>}
+              {isVisible('total') && <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total</th>}
+              {isVisible('date') && <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</th>}
               <th className="w-10 px-5 py-3" />
             </tr>
           </thead>
@@ -126,19 +141,23 @@ export default function Orders() {
                   onClick={() => navigate(`/orders/${order.id}`)}
                   className="group cursor-pointer border-l-4 border-l-transparent transition-all hover:border-l-primary hover:bg-primary/[0.03]"
                 >
-                  <td className="px-5 py-3.5 text-sm font-semibold">#{order.orderNumber}</td>
-                  <td className="px-5 py-3.5 text-sm text-muted-foreground">{order.customerName}</td>
-                  <td className="px-5 py-3.5">
-                    <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide', status.bg, status.text)}>
-                      <span className={cn('h-1.5 w-1.5 rounded-full', status.dot)} />
-                      {status.label}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-sm text-muted-foreground">{order.items?.length || 0}</td>
-                  <td className="px-5 py-3.5 text-sm font-medium">{order.currency} {order.total}</td>
-                  <td className="px-5 py-3.5 text-sm text-muted-foreground">
-                    {new Date(order.wooCreatedAt).toLocaleDateString()}
-                  </td>
+                  {isVisible('order') && <td className="px-5 py-3.5 text-sm font-semibold">#{order.orderNumber}</td>}
+                  {isVisible('customer') && <td className="px-5 py-3.5 text-sm text-muted-foreground">{order.customerName}</td>}
+                  {isVisible('status') && (
+                    <td className="px-5 py-3.5">
+                      <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide', status.bg, status.text)}>
+                        <span className={cn('h-1.5 w-1.5 rounded-full', status.dot)} />
+                        {status.label}
+                      </span>
+                    </td>
+                  )}
+                  {isVisible('items') && <td className="px-5 py-3.5 text-sm text-muted-foreground">{order.items?.length || 0}</td>}
+                  {isVisible('total') && <td className="px-5 py-3.5 text-sm font-medium">{order.currency} {order.total}</td>}
+                  {isVisible('date') && (
+                    <td className="px-5 py-3.5 text-sm text-muted-foreground">
+                      {new Date(order.wooCreatedAt).toLocaleDateString()}
+                    </td>
+                  )}
                   <td className="px-5 py-3.5">
                     <ChevronRight className="h-4 w-4 text-muted-foreground/30 transition-colors group-hover:text-foreground" />
                   </td>
@@ -147,7 +166,7 @@ export default function Orders() {
             })}
             {orders.length === 0 && !loading && (
               <tr>
-                <td colSpan={7} className="px-5 py-16 text-center">
+                <td colSpan={visibleIds.length + 1} className="px-5 py-16 text-center">
                   <div className="relative mx-auto mb-4 flex h-16 w-16 items-center justify-center">
                     <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/20 to-violet-500/20 blur-xl" />
                     <ShoppingBag className="relative h-8 w-8 text-muted-foreground/30" />

@@ -13,9 +13,22 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { proxyUrl } from '../lib/image';
 import api from '../services/api';
 import Pagination from '../components/Pagination';
-import type { Product, InventoryStats, PaginationMeta } from '../types';
+import TableConfigDropdown from '../components/TableConfigDropdown';
+import { useTableConfig } from '../hooks/useTableConfig';
+import type { Product, InventoryStats, PaginationMeta, TableColumnDef } from '../types';
+
+const inventoryColumnDefs: TableColumnDef[] = [
+  { id: 'image', label: 'Image' },
+  { id: 'product', label: 'Product' },
+  { id: 'price', label: 'Price' },
+  { id: 'inStock', label: 'In Stock' },
+  { id: 'reserved', label: 'Reserved' },
+  { id: 'available', label: 'Available' },
+  { id: 'location', label: 'Location' },
+];
 
 export default function Inventory() {
   const navigate = useNavigate();
@@ -27,6 +40,7 @@ export default function Inventory() {
   const [stats, setStats] = useState<InventoryStats | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
+  const { visibleIds, toggleColumn, isVisible } = useTableConfig('inventoryColumns', inventoryColumnDefs);
 
   useEffect(() => {
     loadProducts();
@@ -169,6 +183,9 @@ export default function Inventory() {
         {meta && meta.total > 0 && (
           <span className="text-sm text-muted-foreground">{meta.total} product{meta.total !== 1 ? 's' : ''}</span>
         )}
+        <div className="ml-auto">
+          <TableConfigDropdown columns={inventoryColumnDefs} visibleIds={visibleIds} onToggle={toggleColumn} />
+        </div>
       </div>
 
       {/* Products Table */}
@@ -176,13 +193,13 @@ export default function Inventory() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border/50 bg-muted/30">
-              <th className="w-16 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground" />
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Product</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Price</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">In Stock</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reserved</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Available</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Location</th>
+              {isVisible('image') && <th className="w-16 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground" />}
+              {isVisible('product') && <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Product</th>}
+              {isVisible('price') && <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Price</th>}
+              {isVisible('inStock') && <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">In Stock</th>}
+              {isVisible('reserved') && <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reserved</th>}
+              {isVisible('available') && <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Available</th>}
+              {isVisible('location') && <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Location</th>}
               <th className="w-10 px-4 py-3" />
             </tr>
           </thead>
@@ -196,55 +213,61 @@ export default function Inventory() {
                   onClick={() => navigate(`/inventory/${p.id}`)}
                   className="group cursor-pointer border-l-4 border-l-transparent transition-all hover:border-l-emerald-500 hover:bg-emerald-500/[0.03]"
                 >
-                  {/* Image */}
-                  <td className="px-4 py-3">
-                    {p.imageUrl ? (
-                      <div className="h-10 w-10 overflow-hidden rounded-lg border border-border/40 bg-muted/20">
-                        <img src={p.imageUrl} alt="" className="h-full w-full object-cover" />
-                      </div>
-                    ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/40 bg-muted/30">
-                        <ImageIcon className="h-4 w-4 text-muted-foreground/30" />
-                      </div>
-                    )}
-                  </td>
-                  {/* Name + SKU */}
-                  <td className="px-4 py-3">
-                    <p className="text-sm font-semibold leading-tight">{p.name}</p>
-                    {p.sku && (
-                      <code className="mt-0.5 text-[11px] text-muted-foreground">{p.sku}</code>
-                    )}
-                  </td>
-                  {/* Price */}
-                  <td className="px-4 py-3">
-                    <span className="text-sm font-medium">{p.currency} {p.price}</span>
-                  </td>
-                  {/* In Stock */}
-                  <td className="px-4 py-3 text-center">
-                    <span className="text-sm font-semibold">{p.stockQty}</span>
-                  </td>
-                  {/* Reserved */}
-                  <td className="px-4 py-3 text-center">
-                    <span className={cn(
-                      'text-sm font-medium',
-                      p.reservedQty > 0 ? 'text-amber-600' : 'text-muted-foreground'
-                    )}>{p.reservedQty}</span>
-                  </td>
-                  {/* Available */}
-                  <td className="px-4 py-3 text-center">
-                    <span className={cn(
-                      'inline-flex items-center gap-1 text-sm font-bold',
-                      isLow ? 'text-red-500' : 'text-emerald-600'
-                    )}>
-                      {isLow && <AlertTriangle className="h-3.5 w-3.5" />}
-                      {available}
-                    </span>
-                  </td>
-                  {/* Location */}
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {p.stockLocations?.map((sl) => sl.bin?.label).filter(Boolean).join(', ') || '—'}
-                  </td>
-                  {/* Chevron */}
+                  {isVisible('image') && (
+                    <td className="px-4 py-3">
+                      {p.imageUrl ? (
+                        <div className="h-10 w-10 overflow-hidden rounded-lg border border-border/40 bg-muted/20">
+                          <img src={proxyUrl(p.imageUrl, 80)!} alt="" className="h-full w-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/40 bg-muted/30">
+                          <ImageIcon className="h-4 w-4 text-muted-foreground/30" />
+                        </div>
+                      )}
+                    </td>
+                  )}
+                  {isVisible('product') && (
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-semibold leading-tight">{p.name}</p>
+                      {p.sku && (
+                        <code className="mt-0.5 text-[11px] text-muted-foreground">{p.sku}</code>
+                      )}
+                    </td>
+                  )}
+                  {isVisible('price') && (
+                    <td className="px-4 py-3">
+                      <span className="text-sm font-medium">{p.currency} {p.price}</span>
+                    </td>
+                  )}
+                  {isVisible('inStock') && (
+                    <td className="px-4 py-3 text-center">
+                      <span className="text-sm font-semibold">{p.stockQty}</span>
+                    </td>
+                  )}
+                  {isVisible('reserved') && (
+                    <td className="px-4 py-3 text-center">
+                      <span className={cn(
+                        'text-sm font-medium',
+                        p.reservedQty > 0 ? 'text-amber-600' : 'text-muted-foreground'
+                      )}>{p.reservedQty}</span>
+                    </td>
+                  )}
+                  {isVisible('available') && (
+                    <td className="px-4 py-3 text-center">
+                      <span className={cn(
+                        'inline-flex items-center gap-1 text-sm font-bold',
+                        isLow ? 'text-red-500' : 'text-emerald-600'
+                      )}>
+                        {isLow && <AlertTriangle className="h-3.5 w-3.5" />}
+                        {available}
+                      </span>
+                    </td>
+                  )}
+                  {isVisible('location') && (
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
+                      {p.stockLocations?.map((sl) => sl.bin?.label).filter(Boolean).join(', ') || '—'}
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <ChevronRight className="h-4 w-4 text-muted-foreground/30 transition-colors group-hover:text-foreground" />
                   </td>
@@ -253,7 +276,7 @@ export default function Inventory() {
             })}
             {products.length === 0 && !loading && (
               <tr>
-                <td colSpan={8} className="px-5 py-16 text-center">
+                <td colSpan={visibleIds.length + 1} className="px-5 py-16 text-center">
                   <div className="relative mx-auto mb-4 flex h-16 w-16 items-center justify-center">
                     <div className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-500/20 to-teal-500/20 blur-xl" />
                     <Package className="relative h-8 w-8 text-muted-foreground/30" />

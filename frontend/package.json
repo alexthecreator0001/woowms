@@ -1,7 +1,7 @@
 {
   "name": "picknpack-frontend",
   "private": true,
-  "version": "2.4.0",
+  "version": "2.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -18,6 +18,8 @@
     "@phosphor-icons/react": "^2.1.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "jspdf": "^2.5.2",
+    "jspdf-autotable": "^3.8.4",
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {

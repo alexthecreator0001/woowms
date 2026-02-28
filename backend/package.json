@@ -1,6 +1,6 @@
 {
   "name": "picknpack-backend",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -22,7 +22,8 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "resend": "^4.1.2",
-    "node-cron": "^3.0.3"
+    "node-cron": "^3.0.3",
+    "sharp": "^0.33.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

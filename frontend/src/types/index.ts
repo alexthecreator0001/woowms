@@ -229,6 +229,17 @@ export interface InventoryStats {
   freeToSell: number;
 }
 
+export interface UserPreferences {
+  orderColumns?: string[];
+  inventoryColumns?: string[];
+}
+
+export interface TableColumnDef {
+  id: string;
+  label: string;
+  defaultVisible?: boolean;
+}
+
 export type POStatus = 'DRAFT' | 'ORDERED' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'CANCELLED';
 
 export interface PurchaseOrderItem {

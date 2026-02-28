@@ -15,6 +15,7 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { proxyUrl } from '../lib/image';
 import api from '../services/api';
 import type { OrderDetail as OrderDetailType, OrderStatus, WooAddress, Shipment } from '../types';
 
@@ -180,7 +181,7 @@ export default function OrderDetail() {
                     <div className="flex-shrink-0">
                       {item.product?.imageUrl ? (
                         <div className="h-12 w-12 overflow-hidden rounded-xl border border-border/40 bg-muted/20">
-                          <img src={item.product.imageUrl} alt="" className="h-full w-full object-cover" />
+                          <img src={proxyUrl(item.product.imageUrl, 96)!} alt="" className="h-full w-full object-cover" />
                         </div>
                       ) : (
                         <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border/40 bg-muted/30">

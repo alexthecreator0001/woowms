@@ -38,6 +38,7 @@ model User {
   verificationCode          String?   @map("verification_code")
   verificationCodeExpiresAt DateTime? @map("verification_code_expires_at")
   onboardingCompleted       Boolean   @default(false) @map("onboarding_completed")
+  preferences               Json?     @default("{}")
   createdAt                 DateTime  @default(now()) @map("created_at")
   updatedAt                 DateTime  @updatedAt @map("updated_at")
 
