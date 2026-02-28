@@ -3,6 +3,34 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.0.0] - 2026-02-28
+
+### Changed
+- **Full TypeScript migration** — entire codebase (backend + frontend) converted from JavaScript to TypeScript
+- Backend: 20 files migrated (.js → .ts) with strict mode, Express Request augmentation, Prisma types
+- Frontend: 17 files migrated (.jsx/.js → .tsx/.ts) with typed React state, props, and event handlers
+- Added `tsconfig.json` for both backend and frontend with strict configuration
+- Backend runtime changed from `node`/`nodemon` to `tsx` for native TypeScript execution
+- Frontend build now runs `tsc -b && vite build` for type checking before bundling
+- Created shared type definitions: `backend/src/types/index.ts`, `frontend/src/types/index.ts`
+- Custom type declarations for `@woocommerce/woocommerce-rest-api` (no built-in types)
+- Express Request augmented with `req.user`, `req.tenantId`, `req.prisma` types
+- All route handlers typed with `Request`, `Response`, `NextFunction`
+- All React components typed with proper props interfaces and `useState<T>()` generics
+
+### Added
+- TypeScript 5.7+ as dev dependency in both packages
+- `tsx` runtime for backend (dev + production)
+- `@types/node`, `@types/express`, `@types/cors`, `@types/morgan`, `@types/bcryptjs`, `@types/jsonwebtoken`, `@types/node-cron` (backend)
+- `@types/react-dom` (frontend)
+- `typecheck` npm script in both packages
+- `vite-env.d.ts` for Vite client types
+- `tsconfig.node.json` for frontend Vite/Tailwind config files
+
+### Removed
+- All `.js` and `.jsx` source files (replaced by `.ts`/`.tsx`)
+- `nodemon` dev dependency (replaced by `tsx watch`)
+
 ## [1.5.2] - 2026-02-28
 
 ### Fixed

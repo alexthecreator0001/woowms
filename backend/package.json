@@ -1,13 +1,15 @@
 {
   "name": "picknpack-backend",
-  "version": "1.2.1",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "node src/index.js",
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "db:migrate": "npx prisma migrate dev",
     "db:push": "npx prisma db push",
-    "db:seed": "node prisma/seed.js",
+    "db:seed": "tsx prisma/seed.ts",
     "db:studio": "npx prisma studio"
   },
   "dependencies": {
@@ -23,7 +25,15 @@
     "node-cron": "^3.0.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.9",
+    "typescript": "^5.7.0",
+    "tsx": "^4.19.0",
+    "@types/node": "^22.0.0",
+    "@types/express": "^5.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/morgan": "^1.9.9",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node-cron": "^3.0.11",
     "prisma": "^6.4.0"
   }
 }
