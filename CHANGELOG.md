@@ -3,6 +3,23 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.4.0] - 2026-02-28
+
+### Added
+- Full Shopify-style order detail page at `/orders/:id` — two-column layout with items (thumbnails, picked badges, line totals), payment summary, shipments, notes on left; customer info, shipping/billing addresses, timeline on right
+- Reusable `Pagination` component with smart page pills (first, last, current±1, ellipsis gaps), prev/next buttons, "Showing X–Y of Z" counter
+- Pagination on Orders page — 25 per page, page resets on filter change
+- Pagination on Inventory page — 25 per page (was 50), page resets on search change
+- Shared `WooAddress` and `OrderDetail` types in `types/index.ts`
+
+### Changed
+- Order detail is now a full page (not a slide-over panel) — click row navigates to `/orders/:id`
+- Orders table: added chevron arrow column indicating clickable navigation
+- Inventory count display now shows total from API meta instead of local array length
+
+### Removed
+- Order detail slide-over panel (replaced by full page)
+
 ## [2.3.0] - 2026-02-28
 
 ### Added

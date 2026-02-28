@@ -14,12 +14,15 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
-import type { Product, InventoryStats } from '../types';
+import Pagination from '../components/Pagination';
+import type { Product, InventoryStats, PaginationMeta } from '../types';
 
 export default function Inventory() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<InventoryStats | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -31,8 +34,12 @@ export default function Inventory() {
   }, []);
 
   useEffect(() => {
-    loadProducts();
+    setPage(1);
   }, [search]);
+
+  useEffect(() => {
+    loadProducts();
+  }, [search, page]);
 
   async function loadStats() {
     try {
@@ -46,10 +53,11 @@ export default function Inventory() {
   async function loadProducts() {
     try {
       setLoading(true);
-      const params: Record<string, string | number> = { limit: 50 };
+      const params: Record<string, string | number> = { limit: 25, page };
       if (search) params.search = search;
       const { data } = await api.get('/inventory', { params });
       setProducts(data.data);
+      setMeta(data.meta);
     } catch (err) {
       console.error('Failed to load inventory:', err);
     } finally {
@@ -158,8 +166,8 @@ export default function Inventory() {
             className="h-9 w-full rounded-lg border border-border/60 bg-card pl-9 pr-4 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
-        {products.length > 0 && (
-          <span className="text-sm text-muted-foreground">{products.length} products</span>
+        {meta && meta.total > 0 && (
+          <span className="text-sm text-muted-foreground">{meta.total} product{meta.total !== 1 ? 's' : ''}</span>
         )}
       </div>
 
@@ -258,6 +266,9 @@ export default function Inventory() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {meta && <Pagination meta={meta} onPageChange={setPage} />}
     </div>
   );
 }

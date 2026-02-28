@@ -6,6 +6,7 @@ import VerifyEmail from './pages/onboarding/VerifyEmail';
 import ConnectStore from './pages/onboarding/ConnectStore';
 import Dashboard from './pages/Dashboard';
 import Orders from './pages/Orders';
+import OrderDetail from './pages/OrderDetail';
 import Inventory from './pages/Inventory';
 import ProductDetail from './pages/ProductDetail';
 import Warehouse from './pages/Warehouse';
@@ -82,6 +83,7 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/orders" element={<Orders />} />
+                <Route path="/orders/:id" element={<OrderDetail />} />
                 <Route path="/inventory" element={<Inventory />} />
                 <Route path="/inventory/:id" element={<ProductDetail />} />
                 <Route path="/warehouse" element={<Warehouse />} />
