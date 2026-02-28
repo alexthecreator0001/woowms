@@ -3,6 +3,22 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.1.0] - 2026-02-28
+
+### Changed
+- **Login & Register redesigned** with Stripe-style split layout — animated gradient mesh panel on the left half, clean form on the right
+- Dark mesh panel features 5 animated gradient blobs (blue/violet) floating on a dark background with a subtle grid overlay
+- Login mesh panel shows the logo in white, tagline, and feature pills (WooCommerce Sync, Pick & Pack, etc.)
+- Register mesh panel shows the logo, tagline, and stats grid (10x Faster picking, 99% Order accuracy, 0 Setup fees)
+- Submit buttons now use brand blue `#2B67FF` instead of black
+- Input focus rings changed from black to `#2B67FF/10` with blue border
+- "Create one" / "Sign in" links now use brand blue instead of black
+- On mobile (< lg), the mesh panel hides and layout falls back to full-width form with logo in nav
+- Removed `grain` texture overlay from auth pages (replaced by mesh animation)
+
+### Added
+- CSS animated mesh gradient system (`.auth-mesh`, `.mesh-blob-*`, `.auth-grid`) with `meshFloat`/`meshFloat2` keyframe animations in `index.css`
+
 ## [3.0.1] - 2026-02-28
 
 ### Changed
