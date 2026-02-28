@@ -1,6 +1,71 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { authorize } from '../middleware/auth.js';
+import { syncProducts } from '../woocommerce/sync.js';
 
 const router = Router();
+
+// GET /api/v1/inventory/stats
+router.get('/stats', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = req.prisma!;
+    const tenantWhere = { isActive: true, store: { tenantId: req.tenantId } };
+
+    const aggregation = await prisma.product.aggregate({
+      where: tenantWhere,
+      _sum: { stockQty: true, reservedQty: true },
+    });
+
+    const inStock = aggregation._sum.stockQty || 0;
+    const reserved = aggregation._sum.reservedQty || 0;
+
+    // Incoming: sum of (orderedQty - receivedQty) from PO items where PO is ORDERED or PARTIALLY_RECEIVED
+    const incomingResult = await prisma.purchaseOrderItem.aggregate({
+      where: {
+        purchaseOrder: {
+          status: { in: ['ORDERED', 'PARTIALLY_RECEIVED'] },
+          tenantId: req.tenantId,
+        },
+      },
+      _sum: { orderedQty: true, receivedQty: true },
+    });
+
+    const totalOrdered = incomingResult._sum.orderedQty || 0;
+    const totalReceived = incomingResult._sum.receivedQty || 0;
+    const incoming = totalOrdered - totalReceived;
+
+    res.json({
+      data: {
+        inStock,
+        reserved,
+        incoming: incoming > 0 ? incoming : 0,
+        freeToSell: inStock - reserved,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/inventory/sync (ADMIN/MANAGER only)
+router.post('/sync', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = req.prisma!;
+
+    const stores = await prisma.store.findMany({
+      where: { tenantId: req.tenantId, isActive: true },
+    });
+
+    for (const store of stores) {
+      await syncProducts(store as any);
+    }
+
+    res.json({
+      data: { message: 'Product sync completed', storeCount: stores.length },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // GET /api/v1/inventory
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {

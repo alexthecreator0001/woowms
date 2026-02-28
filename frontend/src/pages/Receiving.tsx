@@ -28,11 +28,16 @@ export default function Receiving() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Receiving</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Track inbound shipments and purchase orders.
-        </p>
+      <div className="flex items-center gap-4">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10">
+          <PackageOpen className="h-5.5 w-5.5 text-amber-600" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Receiving</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Track inbound shipments and purchase orders.
+          </p>
+        </div>
       </div>
 
       {/* Table */}
@@ -51,7 +56,7 @@ export default function Receiving() {
             {purchaseOrders.map((po) => {
               const status = poStatusConfig[po.status] || poStatusConfig.PENDING;
               return (
-                <tr key={po.id} className="transition-colors hover:bg-muted/30">
+                <tr key={po.id} className="border-l-4 border-l-transparent transition-all hover:border-l-amber-500 hover:bg-amber-500/[0.03]">
                   <td className="px-5 py-3.5 text-sm font-semibold">{po.poNumber}</td>
                   <td className="px-5 py-3.5 text-sm text-muted-foreground">{po.supplier}</td>
                   <td className="px-5 py-3.5">
@@ -77,7 +82,10 @@ export default function Receiving() {
             {purchaseOrders.length === 0 && !loading && (
               <tr>
                 <td colSpan={5} className="px-5 py-16 text-center">
-                  <PackageOpen className="mx-auto mb-3 h-10 w-10 text-muted-foreground/20" />
+                  <div className="relative mx-auto mb-4 flex h-16 w-16 items-center justify-center">
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 blur-xl" />
+                    <PackageOpen className="relative h-8 w-8 text-muted-foreground/30" />
+                  </div>
                   <p className="text-sm font-medium text-muted-foreground">No purchase orders yet</p>
                   <p className="mt-1 text-xs text-muted-foreground/60">Purchase orders will appear here once created.</p>
                 </td>

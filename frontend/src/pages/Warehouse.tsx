@@ -31,11 +31,16 @@ export default function Warehouse() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Warehouse</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage your warehouse zones, bins, and locations.
-        </p>
+      <div className="flex items-center gap-4">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
+          <WarehouseIcon className="h-5.5 w-5.5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Warehouse</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Manage your warehouse zones, bins, and locations.
+          </p>
+        </div>
       </div>
 
       {/* Warehouse Cards */}
@@ -73,7 +78,7 @@ export default function Warehouse() {
             {wh.zones?.map((zone) => {
               const typeStyle = zoneTypeConfig[zone.type] || { bg: 'bg-gray-500/10', text: 'text-gray-500' };
               return (
-                <div key={zone.id} className="px-6 py-4 transition-colors hover:bg-muted/20">
+                <div key={zone.id} className="border-l-4 border-l-transparent px-6 py-4 transition-all hover:border-l-primary hover:bg-primary/[0.02]">
                   <div className="flex items-center gap-3 mb-2.5">
                     <Grid3x3 className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-semibold">{zone.name}</span>
@@ -108,7 +113,10 @@ export default function Warehouse() {
       {/* Empty State */}
       {warehouses.length === 0 && !loading && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-border/60 bg-card py-16 shadow-sm">
-          <WarehouseIcon className="mb-3 h-10 w-10 text-muted-foreground/20" />
+          <div className="relative mx-auto mb-4 flex h-16 w-16 items-center justify-center">
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/20 to-blue-500/20 blur-xl" />
+            <WarehouseIcon className="relative h-8 w-8 text-muted-foreground/30" />
+          </div>
           <p className="text-sm font-medium text-muted-foreground">No warehouses configured</p>
           <p className="mt-1 text-xs text-muted-foreground/60">Run the database seed to create a default warehouse.</p>
         </div>

@@ -3,6 +3,25 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.0] - 2026-02-28
+
+### Added
+- Order detail slide-over panel — click any order row to view full details (items, customer, shipments, addresses)
+- Order status change from slide-over panel via dropdown select
+- Inventory stats dashboard — 4 colorful stat cards: In Stock, Reserved, Incoming, Free to Sell
+- `GET /api/v1/inventory/stats` — aggregated inventory statistics endpoint
+- `POST /api/v1/inventory/sync` — manual product import trigger from WooCommerce (ADMIN/MANAGER)
+- "Import Products" button on Inventory page to sync products from all active stores
+
+### Changed
+- Visual refresh across all pages — colored header icons, vivid row hovers with left-border accents, gradient empty states
+- Orders page: clickable rows with blue left-border hover, enhanced empty state with gradient blob
+- Inventory page: emerald-themed with stat cards, left-border hover accents
+- Shipping page: violet-themed header icon and row hover accents
+- Receiving page: amber-themed header icon and row hover accents
+- Warehouse page: primary-blue themed header icon, zone row hover accents
+- Picking page: violet-themed header icon, item row hover accents, card hover shadow lift
+
 ## [2.1.0] - 2026-02-28
 
 ### Added

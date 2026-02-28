@@ -176,6 +176,13 @@ export interface Shipment {
   order?: Order;
 }
 
+export interface InventoryStats {
+  inStock: number;
+  reserved: number;
+  incoming: number;
+  freeToSell: number;
+}
+
 export type POStatus = 'DRAFT' | 'ORDERED' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'CANCELLED';
 
 export interface PurchaseOrderItem {

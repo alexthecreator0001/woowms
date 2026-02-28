@@ -31,11 +31,16 @@ export default function Picking() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Picking</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage pick lists and track picking progress.
-        </p>
+      <div className="flex items-center gap-4">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/10">
+          <ClipboardList className="h-5.5 w-5.5 text-violet-600" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Picking</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Manage pick lists and track picking progress.
+          </p>
+        </div>
       </div>
 
       {/* Pick Lists */}
@@ -50,7 +55,7 @@ export default function Picking() {
           return (
             <div
               key={pl.id}
-              className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm"
+              className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-md"
             >
               {/* Pick List Header */}
               <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
@@ -94,7 +99,7 @@ export default function Picking() {
                   </thead>
                   <tbody className="divide-y divide-border/30">
                     {pl.items?.map((item) => (
-                      <tr key={item.id} className="transition-colors hover:bg-muted/20">
+                      <tr key={item.id} className="border-l-4 border-l-transparent transition-all hover:border-l-violet-500 hover:bg-violet-500/[0.03]">
                         <td className="px-5 py-2.5">
                           <code className="rounded-md bg-muted/60 px-1.5 py-0.5 text-xs font-medium">{item.sku}</code>
                         </td>
@@ -123,7 +128,10 @@ export default function Picking() {
       {/* Empty State */}
       {pickLists.length === 0 && !loading && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-border/60 bg-card py-16 shadow-sm">
-          <ClipboardList className="mb-3 h-10 w-10 text-muted-foreground/20" />
+          <div className="relative mx-auto mb-4 flex h-16 w-16 items-center justify-center">
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-500/20 to-purple-500/20 blur-xl" />
+            <ClipboardList className="relative h-8 w-8 text-muted-foreground/30" />
+          </div>
           <p className="text-sm font-medium text-muted-foreground">No pick lists yet</p>
           <p className="mt-1 text-xs text-muted-foreground/60">Generate a pick list from an order to get started.</p>
         </div>

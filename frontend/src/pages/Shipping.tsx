@@ -28,11 +28,16 @@ export default function Shipping() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Shipping</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Track shipments and manage deliveries.
-        </p>
+      <div className="flex items-center gap-4">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/10">
+          <Truck className="h-5.5 w-5.5 text-violet-600" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Shipping</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Track shipments and manage deliveries.
+          </p>
+        </div>
       </div>
 
       {/* Table */}
@@ -51,7 +56,7 @@ export default function Shipping() {
             {shipments.map((s) => {
               const status = shippingStatusConfig[s.status] || shippingStatusConfig.PENDING;
               return (
-                <tr key={s.id} className="transition-colors hover:bg-muted/30">
+                <tr key={s.id} className="border-l-4 border-l-transparent transition-all hover:border-l-violet-500 hover:bg-violet-500/[0.03]">
                   <td className="px-5 py-3.5 text-sm font-semibold">#{s.order?.orderNumber}</td>
                   <td className="px-5 py-3.5">
                     {s.carrier ? (
@@ -85,7 +90,10 @@ export default function Shipping() {
             {shipments.length === 0 && !loading && (
               <tr>
                 <td colSpan={5} className="px-5 py-16 text-center">
-                  <Truck className="mx-auto mb-3 h-10 w-10 text-muted-foreground/20" />
+                  <div className="relative mx-auto mb-4 flex h-16 w-16 items-center justify-center">
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-500/20 to-purple-500/20 blur-xl" />
+                    <Truck className="relative h-8 w-8 text-muted-foreground/30" />
+                  </div>
                   <p className="text-sm font-medium text-muted-foreground">No shipments yet</p>
                   <p className="mt-1 text-xs text-muted-foreground/60">Shipments will appear here after orders are packed.</p>
                 </td>
