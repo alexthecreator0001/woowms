@@ -36,12 +36,12 @@ export default function Login() {
 
   return (
     <div className="auth-page relative flex min-h-svh flex-col items-center justify-center px-4">
-      {/* Gradient blobs */}
+      {/* Gradient blobs — large, heavily blurred, top-anchored */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-[30%] left-[10%] h-[60vh] w-[60vh] rounded-full bg-rose-200/50 blur-[120px]" />
-        <div className="absolute -top-[20%] left-[30%] h-[50vh] w-[50vh] rounded-full bg-violet-200/40 blur-[120px]" />
-        <div className="absolute -top-[25%] right-[15%] h-[55vh] w-[55vh] rounded-full bg-sky-200/40 blur-[120px]" />
-        <div className="absolute -top-[30%] right-[35%] h-[45vh] w-[45vh] rounded-full bg-amber-100/40 blur-[120px]" />
+        <div className="absolute -top-[40%] -left-[5%] h-[80vh] w-[80vh] rounded-full bg-rose-300/40 blur-[180px]" />
+        <div className="absolute -top-[35%] left-[25%] h-[70vh] w-[70vh] rounded-full bg-violet-300/30 blur-[180px]" />
+        <div className="absolute -top-[38%] right-[5%] h-[75vh] w-[75vh] rounded-full bg-sky-300/35 blur-[180px]" />
+        <div className="absolute -top-[30%] right-[30%] h-[60vh] w-[60vh] rounded-full bg-amber-200/30 blur-[160px]" />
       </div>
 
       <div className="relative z-10 flex w-full max-w-[400px] flex-col items-center">

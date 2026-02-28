@@ -116,7 +116,7 @@ th {
   height: 44px;
   width: 100%;
   border-radius: 8px;
-  background: hsl(240 70% 72%);
+  background: hsl(var(--primary));
   color: white;
   font-size: 14px;
   font-weight: 600;
@@ -129,7 +129,7 @@ th {
 }
 
 .auth-btn:hover {
-  background: hsl(240 70% 66%);
+  background: hsl(var(--primary) / 0.9);
 }
 
 .auth-btn:disabled {
