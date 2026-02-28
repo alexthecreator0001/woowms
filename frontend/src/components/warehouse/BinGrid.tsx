@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { CaretDown, CaretRight } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import type { Bin, ZoneType } from '../../types';
 
@@ -19,13 +20,15 @@ interface BinGridProps {
 
 interface AisleGroup {
   aisle: string;
-  shelves: Map<string, Bin[]>; // shelf number → bins sorted by position
+  shelves: Map<string, Bin[]>;
+  rackKeys: string[]; // unique rack identifiers (from bin labels)
 }
+
+const INITIAL_RACKS_SHOWN = 5;
 
 export default function BinGrid({ bins, zoneType, onBinClick }: BinGridProps) {
   const colors = zoneColorMap[zoneType] || zoneColorMap.STORAGE;
 
-  // Group bins into aisle → shelf → position hierarchy
   const { aisles, ungrouped } = useMemo(() => {
     const grouped: Bin[] = [];
     const ungrouped: Bin[] = [];
@@ -51,7 +54,7 @@ export default function BinGrid({ bins, zoneType, onBinClick }: BinGridProps) {
 
     // Sort positions within each shelf
     for (const shelfMap of aisleMap.values()) {
-      for (const [shelf, shelfBins] of shelfMap) {
+      for (const [, shelfBins] of shelfMap) {
         shelfBins.sort((a, b) => (a.position || '').localeCompare(b.position || ''));
       }
     }
@@ -59,7 +62,21 @@ export default function BinGrid({ bins, zoneType, onBinClick }: BinGridProps) {
     // Convert to sorted array (aisles sorted alphabetically, shelves descending = top shelf first)
     const aisles: AisleGroup[] = Array.from(aisleMap.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([aisle, shelfMap]) => ({ aisle, shelves: new Map([...shelfMap.entries()].sort(([a], [b]) => b.localeCompare(a))) }));
+      .map(([aisle, shelfMap]) => {
+        // Detect unique rack groupings from labels (Aisle-Rack-Shelf-Position pattern)
+        const rackKeys = new Set<string>();
+        for (const shelfBins of shelfMap.values()) {
+          for (const bin of shelfBins) {
+            const parts = bin.label.split('-');
+            if (parts.length >= 2) rackKeys.add(parts[1]);
+          }
+        }
+        return {
+          aisle,
+          shelves: new Map([...shelfMap.entries()].sort(([a], [b]) => b.localeCompare(a))),
+          rackKeys: Array.from(rackKeys).sort(),
+        };
+      });
 
     return { aisles, ungrouped };
   }, [bins]);
@@ -73,51 +90,19 @@ export default function BinGrid({ bins, zoneType, onBinClick }: BinGridProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Rack view — grouped by aisle */}
-      <div className="flex flex-wrap gap-4">
-        {aisles.map(({ aisle, shelves }) => (
-          <div key={aisle} className="min-w-[200px] flex-1">
-            {/* Aisle label */}
-            <div className="mb-1.5 flex items-center gap-2">
-              <span className={cn('text-xs font-bold uppercase tracking-wider', colors.text)}>
-                Aisle {aisle}
-              </span>
-              <div className="h-px flex-1 bg-border/40" />
-            </div>
+    <div className="space-y-5">
+      {aisles.map(({ aisle, shelves, rackKeys }) => (
+        <AisleSection
+          key={aisle}
+          aisle={aisle}
+          shelves={shelves}
+          rackKeys={rackKeys}
+          colors={colors}
+          onBinClick={onBinClick}
+        />
+      ))}
 
-            {/* Rack — shelves stacked top to bottom */}
-            <div className={cn('overflow-hidden rounded-lg border', colors.border)}>
-              {Array.from(shelves.entries()).map(([shelf, shelfBins], idx) => (
-                <div
-                  key={shelf}
-                  className={cn(
-                    'flex items-center gap-0',
-                    idx > 0 && 'border-t border-border/30',
-                  )}
-                >
-                  {/* Shelf label on left */}
-                  <div className={cn('flex w-8 shrink-0 items-center justify-center self-stretch border-r border-border/30 text-[10px] font-semibold text-muted-foreground', colors.shelfBg)}>
-                    {shelf}
-                  </div>
-
-                  {/* Position bins */}
-                  <div className="flex flex-1 flex-wrap gap-0">
-                    {shelfBins.map((bin) => (
-                      <BinCell key={bin.id} bin={bin} colors={colors} onClick={() => onBinClick(bin)} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              {/* Floor indicator */}
-              <div className={cn('h-1.5 w-full', colors.shelfBg)} style={{ background: 'repeating-linear-gradient(90deg, transparent, transparent 4px, hsl(var(--border)/0.3) 4px, hsl(var(--border)/0.3) 5px)' }} />
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Ungrouped bins (manually added without row/shelf) */}
+      {/* Ungrouped bins */}
       {ungrouped.length > 0 && (
         <div>
           <div className="mb-1.5 flex items-center gap-2">
@@ -131,6 +116,144 @@ export default function BinGrid({ bins, zoneType, onBinClick }: BinGridProps) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Collapsible aisle with rack limit */
+function AisleSection({
+  aisle,
+  shelves,
+  rackKeys,
+  colors,
+  onBinClick,
+}: {
+  aisle: string;
+  shelves: Map<string, Bin[]>;
+  rackKeys: string[];
+  colors: { bg: string; border: string; hoverBorder: string; text: string; shelfBg: string };
+  onBinClick: (bin: Bin) => void;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+
+  // If there are multiple racks, group shelves by rack
+  const hasMultipleRacks = rackKeys.length > 1;
+  const visibleRacks = showAll ? rackKeys : rackKeys.slice(0, INITIAL_RACKS_SHOWN);
+  const hiddenRackCount = rackKeys.length - INITIAL_RACKS_SHOWN;
+
+  // Filter bins to visible racks only (when multi-rack)
+  const filterByRack = (shelfBins: Bin[], rack: string) =>
+    shelfBins.filter((b) => {
+      const parts = b.label.split('-');
+      return parts.length >= 2 && parts[1] === rack;
+    });
+
+  return (
+    <div>
+      {/* Aisle header */}
+      <button
+        type="button"
+        onClick={() => setCollapsed((c) => !c)}
+        className="mb-1.5 flex w-full items-center gap-2"
+      >
+        {collapsed ? (
+          <CaretRight size={14} weight="bold" className={colors.text} />
+        ) : (
+          <CaretDown size={14} weight="bold" className={colors.text} />
+        )}
+        <span className={cn('text-xs font-bold uppercase tracking-wider', colors.text)}>
+          Aisle {aisle}
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          ({Array.from(shelves.values()).reduce((s, bins) => s + bins.length, 0)} locations)
+        </span>
+        <div className="h-px flex-1 bg-border/40" />
+      </button>
+
+      {!collapsed && (
+        <div className="flex flex-wrap gap-4">
+          {hasMultipleRacks ? (
+            // Render each rack separately
+            visibleRacks.map((rack) => {
+              // Build rack shelves
+              const rackShelves = new Map<string, Bin[]>();
+              for (const [shelf, shelfBins] of shelves) {
+                const filtered = filterByRack(shelfBins, rack);
+                if (filtered.length > 0) rackShelves.set(shelf, filtered);
+              }
+              if (rackShelves.size === 0) return null;
+
+              return (
+                <div key={rack} className="min-w-[200px]">
+                  <p className="mb-1 text-[10px] font-medium text-muted-foreground">Rack {rack}</p>
+                  <RackView shelves={rackShelves} colors={colors} onBinClick={onBinClick} />
+                </div>
+              );
+            })
+          ) : (
+            // Single rack: render all shelves together
+            <div className="min-w-[200px] flex-1">
+              <RackView shelves={shelves} colors={colors} onBinClick={onBinClick} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {!collapsed && hasMultipleRacks && hiddenRackCount > 0 && !showAll && (
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
+          className="mt-2 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+        >
+          Show {hiddenRackCount} more rack{hiddenRackCount !== 1 ? 's' : ''}
+        </button>
+      )}
+
+      {!collapsed && showAll && hiddenRackCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowAll(false)}
+          className="mt-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Show less
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Rack visualization */
+function RackView({
+  shelves,
+  colors,
+  onBinClick,
+}: {
+  shelves: Map<string, Bin[]>;
+  colors: { bg: string; border: string; hoverBorder: string; text: string; shelfBg: string };
+  onBinClick: (bin: Bin) => void;
+}) {
+  return (
+    <div className={cn('overflow-hidden rounded-lg border', colors.border)}>
+      {Array.from(shelves.entries()).map(([shelf, shelfBins], idx) => (
+        <div
+          key={shelf}
+          className={cn(
+            'flex items-center gap-0',
+            idx > 0 && 'border-t border-border/30',
+          )}
+        >
+          <div className={cn('flex w-8 shrink-0 items-center justify-center self-stretch border-r border-border/30 text-[10px] font-semibold text-muted-foreground', colors.shelfBg)}>
+            {shelf}
+          </div>
+          <div className="flex flex-1 flex-wrap gap-0">
+            {shelfBins.map((bin) => (
+              <BinCell key={bin.id} bin={bin} colors={colors} onClick={() => onBinClick(bin)} />
+            ))}
+          </div>
+        </div>
+      ))}
+      <div className={cn('h-1.5 w-full', colors.shelfBg)} style={{ background: 'repeating-linear-gradient(90deg, transparent, transparent 4px, hsl(var(--border)/0.3) 4px, hsl(var(--border)/0.3) 5px)' }} />
     </div>
   );
 }

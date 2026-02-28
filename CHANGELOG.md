@@ -3,6 +3,33 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.0] - 2026-02-28
+
+### Changed
+- **Warehouse page redesigned** — complete ground-up rethink from single-screen to three-level drill-down architecture (`/warehouse` → `/warehouse/:id` → `/warehouse/:id/zones/:zoneId`)
+- **WarehouseOverview** — new dashboard landing with 4 stat cards (Total Locations, Occupied, Empty, Utilization %), warehouse summary cards in a 2-column grid with utilization mini-bars, "?" guide button instead of 3 redundant help banners
+- **WarehouseDetail** — per-warehouse page showing all zones with full-width stacked utilization bar colored by zone type, segmented zone type filter pills, zone summary cards with stats and action footers (View Locations, Generate, Print)
+- **ZoneDetail** — per-zone page with bin-level detail: 4 stat pills, real-time search input, aisle/status dropdown filters, grid/list view toggle, collapsible aisle sections with rack limit (show 5 racks initially, expand on click), inline add location form (replaces `window.prompt()`)
+- **Slide-over panels** replace centered modals for editing warehouses, zones, and bins (right-anchored 420px panel with backdrop and Escape-to-close)
+- **BinGrid refactored** — aisles are now collapsible sections with expand/collapse toggle, multi-rack aisles show each rack separately with "Show N more" overflow
+- **BinListView** — new sortable data table view for bins with columns (Label, Aisle, Shelf, Position, Stock, Status), 25-per-page pagination, ideal for 500+ locations
+
+### Added
+- `SlideOver` shared component — generic right-anchored panel for edit forms
+- `UtilizationBar` shared component — stacked horizontal bar with colored segments and optional labels
+- `WarehouseSummaryCard` — warehouse card with stats, utilization bar, and "View Details" link
+- `ZoneSummaryCard` — zone card with type badge, stats, utilization bar, and action footer buttons
+- `BinListView` — table view with sort/pagination for large zones
+- Three new routes: `/warehouse/:warehouseId`, `/warehouse/:warehouseId/zones/:zoneId`
+
+### Removed
+- Old `Warehouse.tsx` page (single-screen with everything crammed together)
+- `WarehouseCard.tsx` (expandable card replaced by `WarehouseSummaryCard`)
+- `ZoneSection.tsx` (inline zone with embedded bin grid replaced by `ZoneSummaryCard`)
+- `BinModal.tsx` (centered modal replaced by slide-over panel in `ZoneDetail`)
+- Inline "How It Works" dismissible help card and localStorage dismiss logic
+- Bottom help banner ("Not sure what zones mean?")
+
 ## [2.8.0] - 2026-02-28
 
 ### Added

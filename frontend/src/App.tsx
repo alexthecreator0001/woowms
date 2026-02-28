@@ -9,7 +9,9 @@ import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
 import Inventory from './pages/Inventory';
 import ProductDetail from './pages/ProductDetail';
-import Warehouse from './pages/Warehouse';
+import WarehouseOverview from './pages/WarehouseOverview';
+import WarehouseDetail from './pages/WarehouseDetail';
+import ZoneDetail from './pages/ZoneDetail';
 import WarehouseGuide from './pages/WarehouseGuide';
 import Picking from './pages/Picking';
 import Shipping from './pages/Shipping';
@@ -90,8 +92,10 @@ export default function App() {
                 <Route path="/orders/:id" element={<OrderDetail />} />
                 <Route path="/inventory" element={<Inventory />} />
                 <Route path="/inventory/:id" element={<ProductDetail />} />
-                <Route path="/warehouse" element={<Warehouse />} />
+                <Route path="/warehouse" element={<WarehouseOverview />} />
                 <Route path="/warehouse/guide" element={<WarehouseGuide />} />
+                <Route path="/warehouse/:warehouseId" element={<WarehouseDetail />} />
+                <Route path="/warehouse/:warehouseId/zones/:zoneId" element={<ZoneDetail />} />
                 <Route path="/picking" element={<Picking />} />
                 <Route path="/shipping" element={<Shipping />} />
                 <Route path="/receiving" element={<Receiving />} />
