@@ -212,7 +212,7 @@ export default function PrintLabelsModal({
       doc.text(breakdown, centerX, centerY + labelH * 0.22, { align: 'center' });
     });
 
-    window.open(doc.output('bloburl') as string, '_blank');
+    window.open(doc.output('bloburl').toString(), '_blank');
   }
 
   if (!open) return null;
