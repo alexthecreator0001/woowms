@@ -10,6 +10,7 @@ import OrderDetail from './pages/OrderDetail';
 import Inventory from './pages/Inventory';
 import ProductDetail from './pages/ProductDetail';
 import Warehouse from './pages/Warehouse';
+import WarehouseGuide from './pages/WarehouseGuide';
 import Picking from './pages/Picking';
 import Shipping from './pages/Shipping';
 import Receiving from './pages/Receiving';
@@ -89,6 +90,7 @@ export default function App() {
                 <Route path="/inventory" element={<Inventory />} />
                 <Route path="/inventory/:id" element={<ProductDetail />} />
                 <Route path="/warehouse" element={<Warehouse />} />
+                <Route path="/warehouse/guide" element={<WarehouseGuide />} />
                 <Route path="/picking" element={<Picking />} />
                 <Route path="/shipping" element={<Shipping />} />
                 <Route path="/receiving" element={<Receiving />} />

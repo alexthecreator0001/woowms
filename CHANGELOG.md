@@ -3,6 +3,16 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.7.1] - 2026-02-28
+
+### Added
+- **Warehouse Setup Guide** page (`/warehouse/guide`) — visual documentation explaining the full warehouse hierarchy (Zone → Aisle → Rack → Shelf → Position) with real-world analogies (library/grocery store), color-coded label breakdown, interactive rack diagram, zone type explanations with examples, 3-step quick start, and a complete small e-commerce warehouse example (268 locations)
+- **Inline "How it Works" card** on Warehouse page — dismissible 4-column explainer showing Aisle/Rack/Shelf/Position with descriptions, label format example, and link to full guide (persists dismissal in localStorage)
+- **"Guide" button** in Warehouse page header linking to `/warehouse/guide`
+- **Bottom help banner** on Warehouse page — "Not sure what zones, aisles, or racks mean?" with link to guide
+- "Read the Guide First" button in empty state alongside "Create Warehouse"
+- Zone type hints in ZoneModal dropdown — each type now shows a plain-English description (e.g. "Storage — Main area where products live on shelves")
+
 ## [2.7.0] - 2026-02-28
 
 ### Changed

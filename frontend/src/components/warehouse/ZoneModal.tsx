@@ -14,6 +14,15 @@ const ZONE_TYPES = [
 
 type ZoneType = (typeof ZONE_TYPES)[number];
 
+const ZONE_TYPE_HINTS: Record<ZoneType, string> = {
+  STORAGE: 'Main area where products live on shelves',
+  PICKING: 'Where workers grab items to fulfill orders',
+  RECEIVING: 'Where incoming deliveries are unloaded',
+  PACKING: 'Where picked items get boxed for shipping',
+  SHIPPING: 'Packed orders waiting for carrier pickup',
+  RETURNS: 'Where returned items are inspected and sorted',
+};
+
 interface ZoneData {
   id: number;
   name: string;
@@ -167,10 +176,11 @@ export default function ZoneModal({
             >
               {ZONE_TYPES.map((zt) => (
                 <option key={zt} value={zt}>
-                  {zt.charAt(0) + zt.slice(1).toLowerCase()}
+                  {zt.charAt(0) + zt.slice(1).toLowerCase()} — {ZONE_TYPE_HINTS[zt]}
                 </option>
               ))}
             </select>
+            <p className="mt-1.5 text-[11px] text-muted-foreground">{ZONE_TYPE_HINTS[type]}</p>
           </div>
 
           {/* Description */}
