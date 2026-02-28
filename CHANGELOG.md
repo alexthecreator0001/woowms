@@ -3,21 +3,25 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [3.1.0] - 2026-02-28
+## [3.2.0] - 2026-02-28
 
 ### Changed
-- **Login & Register redesigned** with Stripe-style split layout — animated gradient mesh panel on the left half, clean form on the right
-- Dark mesh panel features 5 animated gradient blobs (blue/violet) floating on a dark background with a subtle grid overlay
-- Login mesh panel shows the logo in white, tagline, and feature pills (WooCommerce Sync, Pick & Pack, etc.)
-- Register mesh panel shows the logo, tagline, and stats grid (10x Faster picking, 99% Order accuracy, 0 Setup fees)
-- Submit buttons now use brand blue `#2B67FF` instead of black
-- Input focus rings changed from black to `#2B67FF/10` with blue border
-- "Create one" / "Sign in" links now use brand blue instead of black
-- On mobile (< lg), the mesh panel hides and layout falls back to full-width form with logo in nav
-- Removed `grain` texture overlay from auth pages (replaced by mesh animation)
+- **Login & Register completely redesigned** with cinematic dark aurora aesthetic — full-screen `#050508` background with two rotating conic-gradient aurora layers (30s + 45s cycles) creating a deep, atmospheric light show
+- Glass-morphism card centered on screen — `backdrop-filter: blur(40px) saturate(1.3)`, semi-transparent borders, layered box-shadows with inset highlight and blue ambient glow
+- Glass inputs with translucent background, white text, and blue focus ring (`#2B67FF` border + `0 0 0 3px rgba(43,103,255,0.12)` shadow)
+- Radial vignette overlay darkens edges while keeping center bright and cinematic
+- Logo floats above the glass card, no navbar or split layout
+- Submit buttons glow on hover: `box-shadow: 0 0 30px rgba(43,103,255,0.3)`
+- Labels are uppercase, tracked-wider, `white/30` for minimal contrast hierarchy
+- Bottom navigation links use `white/25` / `white/50` with hover-to-white transition
+- Auth pages use Plus Jakarta Sans (`.font-display`) for premium typography feel
 
 ### Added
-- CSS animated mesh gradient system (`.auth-mesh`, `.mesh-blob-*`, `.auth-grid`) with `meshFloat`/`meshFloat2` keyframe animations in `index.css`
+- CSS aurora animation system: `.auth-scene`, `.aurora`, `.aurora-2`, `.auth-vignette`, `.auth-glass`, `.auth-input`, `.auth-glow` with `auroraRotate` + `glowPulse` keyframe animations
+- Pulsing ambient glow (500px radial gradient) behind glass card with 8s ease-in-out scale animation
+
+### Removed
+- Previous split-layout mesh gradient design (`.auth-mesh`, `.mesh-blob-*`, `.auth-grid`, `meshFloat` keyframes) — completely replaced
 
 ## [3.0.1] - 2026-02-28
 
