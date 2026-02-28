@@ -3,25 +3,24 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [3.2.0] - 2026-02-28
+## [3.2.1] - 2026-02-28
 
 ### Changed
-- **Login & Register completely redesigned** with cinematic dark aurora aesthetic — full-screen `#050508` background with two rotating conic-gradient aurora layers (30s + 45s cycles) creating a deep, atmospheric light show
-- Glass-morphism card centered on screen — `backdrop-filter: blur(40px) saturate(1.3)`, semi-transparent borders, layered box-shadows with inset highlight and blue ambient glow
-- Glass inputs with translucent background, white text, and blue focus ring (`#2B67FF` border + `0 0 0 3px rgba(43,103,255,0.12)` shadow)
-- Radial vignette overlay darkens edges while keeping center bright and cinematic
-- Logo floats above the glass card, no navbar or split layout
-- Submit buttons glow on hover: `box-shadow: 0 0 30px rgba(43,103,255,0.3)`
-- Labels are uppercase, tracked-wider, `white/30` for minimal contrast hierarchy
-- Bottom navigation links use `white/25` / `white/50` with hover-to-white transition
-- Auth pages use Plus Jakarta Sans (`.font-display`) for premium typography feel
+- **Login & Register redesigned** with light background + flowing gradient ribbon shapes — vibrant blue, coral/pink, indigo, and warm accent bands sweep across a clean `#f6f9fc` background
+- Clean white card with subtle shadow, no glass/blur/dark effects — form is dead simple with dark text on white, standard gray-bordered inputs
+- Logo sits top-left of page, card centered vertically, footer at bottom
+- Inputs use standard light styling: white background, `#d1d5db` border, `#111827` text, blue focus ring
+- Error messages use light red (red-50 bg, red-200 border, red-600 text)
+- Bottom link section separated by a subtle border divider
+- Labels are normal weight `text-[14px]` dark text — no uppercase, no tracking tricks
 
 ### Added
-- CSS aurora animation system: `.auth-scene`, `.aurora`, `.aurora-2`, `.auth-vignette`, `.auth-glass`, `.auth-input`, `.auth-glow` with `auroraRotate` + `glowPulse` keyframe animations
-- Pulsing ambient glow (500px radial gradient) behind glass card with 8s ease-in-out scale animation
+- 4 gradient ribbon shapes (`.auth-ribbon-1` through `.auth-ribbon-4`) using positioned ellipses with linear gradients and rotation transforms
+- `.auth-card` clean white card class, `.auth-input` light input class
 
 ### Removed
-- Previous split-layout mesh gradient design (`.auth-mesh`, `.mesh-blob-*`, `.auth-grid`, `meshFloat` keyframes) — completely replaced
+- Dark aurora system (`.aurora`, `.aurora-2`, `.auth-vignette`, `.auth-glass`, `.auth-glow`, `auroraRotate`, `glowPulse` keyframes)
+- All glass-morphism, backdrop-filter, dark background styling from auth pages
 
 ## [3.0.1] - 2026-02-28
 
