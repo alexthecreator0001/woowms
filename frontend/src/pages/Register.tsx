@@ -1,12 +1,13 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { CircleNotch } from '@phosphor-icons/react';
+import { CircleNotch, Eye, EyeSlash } from '@phosphor-icons/react';
 import api from '../services/api';
-import Logo from '../components/Logo';
+import { LogoMark } from '../components/Logo';
 import type { AxiosError } from 'axios';
 
 export default function Register() {
   const [form, setForm] = useState({ companyName: '', name: '', email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -33,121 +34,124 @@ export default function Register() {
   };
 
   return (
-    <div className="grid min-h-svh lg:grid-cols-2">
-      {/* Form side */}
-      <div className="flex flex-col gap-4 p-6 md:p-10">
-        <div className="flex justify-center md:justify-start">
-          <Logo width={110} className="text-foreground" />
+    <div className="auth-page relative flex min-h-svh flex-col items-center justify-center px-4">
+      {/* Gradient blobs */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-[30%] left-[10%] h-[60vh] w-[60vh] rounded-full bg-rose-200/50 blur-[120px]" />
+        <div className="absolute -top-[20%] left-[30%] h-[50vh] w-[50vh] rounded-full bg-violet-200/40 blur-[120px]" />
+        <div className="absolute -top-[25%] right-[15%] h-[55vh] w-[55vh] rounded-full bg-sky-200/40 blur-[120px]" />
+        <div className="absolute -top-[30%] right-[35%] h-[45vh] w-[45vh] rounded-full bg-amber-100/40 blur-[120px]" />
+      </div>
+
+      <div className="relative z-10 flex w-full max-w-[400px] flex-col items-center">
+        {/* Logo */}
+        <div className="mb-5">
+          <LogoMark size={42} className="text-primary" />
         </div>
-        <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-sm">
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col items-center gap-1 text-center">
-                <h1 className="text-2xl font-bold">Create your account</h1>
-                <p className="text-sm text-muted-foreground text-balance">
-                  Free for 14 days. No card needed.
-                </p>
-              </div>
 
-              {error && (
-                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-                  {error}
-                </div>
-              )}
+        {/* Heading */}
+        <h1 className="text-[22px] font-bold tracking-tight text-foreground">Create your account</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Already have an account?{' '}
+          <Link to="/login" className="font-medium text-primary hover:text-primary/80 transition-colors">
+            Sign in
+          </Link>
+        </p>
 
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="email" className="text-sm font-medium">
-                    Email
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    required
-                    placeholder="jane@acme.com"
-                    className="auth-input"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="companyName" className="text-sm font-medium">
-                      Company name
-                    </label>
-                    <input
-                      id="companyName"
-                      name="companyName"
-                      value={form.companyName}
-                      onChange={handleChange}
-                      required
-                      placeholder="Acme Inc."
-                      className="auth-input"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="name" className="text-sm font-medium">
-                      Full name
-                    </label>
-                    <input
-                      id="name"
-                      name="name"
-                      value={form.name}
-                      onChange={handleChange}
-                      required
-                      placeholder="Jane Doe"
-                      className="auth-input"
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="password" className="text-sm font-medium">
-                    Password
-                  </label>
-                  <input
-                    id="password"
-                    type="password"
-                    name="password"
-                    value={form.password}
-                    onChange={handleChange}
-                    required
-                    minLength={6}
-                    placeholder="Min. 6 characters"
-                    className="auth-input"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="inline-flex h-10 w-full items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {loading ? <CircleNotch size={16} className="animate-spin" /> : 'Create account'}
-                </button>
-                <p className="text-center text-xs text-muted-foreground">
-                  By signing up, you agree to our Terms of Service.
-                </p>
-              </form>
-
-              <p className="text-center text-sm text-muted-foreground">
-                Already have an account?{' '}
-                <Link to="/login" className="underline underline-offset-4 hover:text-foreground">
-                  Sign in
-                </Link>
-              </p>
-            </div>
+        {/* Error */}
+        {error && (
+          <div className="mt-5 w-full rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-600">
+            {error}
           </div>
-        </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="mt-7 flex w-full flex-col gap-4">
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground/60">your details</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          {/* Email */}
+          <div>
+            <input
+              id="email"
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              required
+              placeholder="Work email"
+              className="auth-input-clean"
+            />
+          </div>
+
+          {/* Company + Name row */}
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              id="companyName"
+              name="companyName"
+              value={form.companyName}
+              onChange={handleChange}
+              required
+              placeholder="Company name"
+              className="auth-input-clean"
+            />
+            <input
+              id="name"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              required
+              placeholder="Full name"
+              className="auth-input-clean"
+            />
+          </div>
+
+          {/* Password */}
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              required
+              minLength={6}
+              placeholder="Password (min. 6 characters)"
+              className="auth-input-clean pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="auth-btn"
+          >
+            {loading ? <CircleNotch size={18} className="animate-spin" /> : 'Create Account'}
+          </button>
+
+          <p className="text-center text-xs text-muted-foreground/60">
+            By signing up, you agree to our Terms of Service.
+          </p>
+        </form>
       </div>
 
-      {/* Image side */}
-      <div className="relative hidden bg-muted lg:block">
-        <img
-          src="/placeholder.svg"
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        />
-      </div>
+      {/* Bottom */}
+      <p className="absolute bottom-6 text-xs text-muted-foreground/50">
+        Need help?
+      </p>
     </div>
   );
 }

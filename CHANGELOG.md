@@ -3,6 +3,16 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.4] - 2026-02-28
+
+### Changed
+- **Auth pages redesigned** — clean centered layout with soft pastel gradient blobs (rose, violet, sky, amber) fading to white, no card container, floating form
+- Login: logo mark at top, "Welcome back!" heading, email/password fields with eye toggle, lavender submit button, "Forgot Password?" link, "Need help?" footer
+- Register: matching style with "Create your account" heading, email + company/name row + password, "Create Account" lavender button, terms text
+- New `.auth-input-clean` style — 44px height, 8px radius, white background, focus ring with primary color
+- New `.auth-btn` style — lavender purple (hsl 240 70% 72%) with hover darken
+- Removed split two-column layout and image placeholder panel
+
 ## [3.2.3] - 2026-02-28
 
 ### Changed

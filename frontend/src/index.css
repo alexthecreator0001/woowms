@@ -83,7 +83,61 @@ th {
   }
 }
 
-/* ─── Auth inputs ──────────────────────── */
+/* ─── Auth page background ─────────────── */
+.auth-page {
+  background: linear-gradient(180deg, hsl(0 0% 100% / 0) 0%, hsl(0 0% 100%) 50%);
+}
+
+/* ─── Auth inputs (clean style) ──────────── */
+.auth-input-clean {
+  height: 44px;
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(0 0% 100%);
+  padding: 0 14px;
+  font-size: 14px;
+  color: hsl(var(--foreground));
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+
+.auth-input-clean::placeholder {
+  color: hsl(var(--muted-foreground) / 0.6);
+}
+
+.auth-input-clean:focus {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+}
+
+/* ─── Auth submit button ─────────────────── */
+.auth-btn {
+  height: 44px;
+  width: 100%;
+  border-radius: 8px;
+  background: hsl(240 70% 72%);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, opacity 0.2s;
+  cursor: pointer;
+  border: none;
+}
+
+.auth-btn:hover {
+  background: hsl(240 70% 66%);
+}
+
+.auth-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ─── Legacy auth inputs (keep for onboarding) ── */
 .auth-input {
   height: 40px;
   width: 100%;
