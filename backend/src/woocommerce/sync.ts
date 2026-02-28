@@ -50,17 +50,38 @@ interface WooProduct {
 }
 
 export async function syncOrders(store: Store): Promise<void> {
+  if (!store.syncOrders) {
+    console.log(`[SYNC] Order sync disabled for store: ${store.name}`);
+    return;
+  }
+
   const woo = getWooClient(store);
   let page = 1;
   let hasMore = true;
 
   console.log(`[SYNC] Starting order sync for store: ${store.name}`);
 
+  // Determine the earliest date to fetch orders from
+  const daysBackDate = new Date(Date.now() - store.syncDaysBack * 24 * 60 * 60 * 1000);
+  const cutoffDate = store.syncSinceDate && store.syncSinceDate > daysBackDate
+    ? store.syncSinceDate
+    : daysBackDate;
+  // Use the later of cutoffDate and lastSyncAt for incremental sync
+  const afterDate = store.lastSyncAt && store.lastSyncAt > cutoffDate
+    ? store.lastSyncAt
+    : cutoffDate;
+
+  // Build status filter
+  const statusFilter = store.orderStatusFilter.length > 0
+    ? store.orderStatusFilter.join(',')
+    : undefined;
+
   while (hasMore) {
     const { data: orders } = await woo.get<WooOrder[]>('orders', {
       page,
       per_page: 50,
-      after: store.lastSyncAt?.toISOString(),
+      after: afterDate.toISOString(),
+      status: statusFilter,
       orderby: 'date',
       order: 'asc',
     });
@@ -138,6 +159,11 @@ export async function syncOrders(store: Store): Promise<void> {
 }
 
 export async function syncProducts(store: Store): Promise<void> {
+  if (!store.syncProducts) {
+    console.log(`[SYNC] Product sync disabled for store: ${store.name}`);
+    return;
+  }
+
   const woo = getWooClient(store);
   let page = 1;
   let hasMore = true;

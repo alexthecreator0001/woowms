@@ -16,6 +16,14 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         url: true,
         isActive: true,
         lastSyncAt: true,
+        syncOrders: true,
+        syncProducts: true,
+        syncInventory: true,
+        autoSync: true,
+        syncIntervalMin: true,
+        orderStatusFilter: true,
+        syncDaysBack: true,
+        syncSinceDate: true,
         createdAt: true,
         _count: { select: { orders: true, products: true } },
       },
@@ -99,6 +107,44 @@ router.delete('/:id', authorize('ADMIN'), async (req: Request, res: Response, ne
       data: { isActive: false },
     });
     res.json({ data: { message: 'Store disconnected' } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/v1/stores/:id/sync-settings — update sync preferences
+router.patch('/:id/sync-settings', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const storeId = parseInt(req.params.id);
+    const { syncOrders, syncProducts, syncInventory, autoSync, syncIntervalMin, orderStatusFilter, syncDaysBack, syncSinceDate } = req.body;
+
+    const data: Prisma.StoreUpdateInput = {};
+    if (syncOrders !== undefined) data.syncOrders = syncOrders;
+    if (syncProducts !== undefined) data.syncProducts = syncProducts;
+    if (syncInventory !== undefined) data.syncInventory = syncInventory;
+    if (autoSync !== undefined) data.autoSync = autoSync;
+    if (syncIntervalMin !== undefined) data.syncIntervalMin = syncIntervalMin;
+    if (orderStatusFilter !== undefined) data.orderStatusFilter = orderStatusFilter;
+    if (syncDaysBack !== undefined) data.syncDaysBack = syncDaysBack;
+    if (syncSinceDate !== undefined) data.syncSinceDate = syncSinceDate ? new Date(syncSinceDate) : null;
+
+    const store = await req.prisma!.store.update({
+      where: { id: storeId },
+      data,
+      select: {
+        id: true,
+        syncOrders: true,
+        syncProducts: true,
+        syncInventory: true,
+        autoSync: true,
+        syncIntervalMin: true,
+        orderStatusFilter: true,
+        syncDaysBack: true,
+        syncSinceDate: true,
+      },
+    });
+
+    res.json({ data: store });
   } catch (err) {
     next(err);
   }

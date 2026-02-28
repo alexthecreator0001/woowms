@@ -3,6 +3,24 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.1.0] - 2026-02-28
+
+### Added
+- Full Settings page with tabbed navigation (Account, Team, WooCommerce, Danger Zone)
+- Account management: update profile name, change email (with password verification), change password
+- Team management (admin only): add members with role assignment, change roles, remove members
+- WooCommerce sync configuration per store: toggle order/product/inventory sync, auto-sync interval (1–60 min), order status filter, days lookback, sync-since-date cutoff
+- Danger Zone: full account deletion with cascade (all tenant data) behind password + confirmation
+- Backend routes: `/api/v1/account` (4 endpoints), `/api/v1/team` (4 endpoints), `PATCH /stores/:id/sync-settings`
+- Store model: 8 new sync settings fields (`sync_orders`, `sync_products`, `sync_inventory`, `auto_sync`, `sync_interval_min`, `order_status_filter`, `sync_days_back`, `sync_since_date`)
+- Database migration `20260228200000_add_store_sync_settings`
+
+### Changed
+- Cron job now runs every 1 minute instead of 5, checking per-store `autoSync` and `syncIntervalMin` settings
+- WooCommerce sync respects store-level toggles, status filters, and date-range preferences
+- Settings page restructured from single file to modular folder (`pages/settings/`)
+- Team and Danger Zone tabs only visible to ADMIN role
+
 ## [2.0.1] - 2026-02-28
 
 ### Changed

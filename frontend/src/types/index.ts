@@ -42,8 +42,24 @@ export interface Store {
   url: string;
   isActive: boolean;
   lastSyncAt: string | null;
+  syncOrders: boolean;
+  syncProducts: boolean;
+  syncInventory: boolean;
+  autoSync: boolean;
+  syncIntervalMin: number;
+  orderStatusFilter: string[];
+  syncDaysBack: number;
+  syncSinceDate: string | null;
   createdAt: string;
   _count?: { orders: number; products: number };
+}
+
+export interface TeamMember {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
 }
 
 export type OrderStatus =

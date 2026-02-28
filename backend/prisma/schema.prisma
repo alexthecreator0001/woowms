@@ -63,9 +63,17 @@ model Store {
   consumerKey    String   @map("consumer_key")
   consumerSecret String   @map("consumer_secret")
   webhookSecret  String?  @map("webhook_secret")
-  isActive       Boolean  @default(true) @map("is_active")
-  lastSyncAt     DateTime? @map("last_sync_at")
-  createdAt      DateTime @default(now()) @map("created_at")
+  isActive          Boolean   @default(true) @map("is_active")
+  lastSyncAt        DateTime? @map("last_sync_at")
+  syncOrders        Boolean   @default(true) @map("sync_orders")
+  syncProducts      Boolean   @default(true) @map("sync_products")
+  syncInventory     Boolean   @default(true) @map("sync_inventory")
+  autoSync          Boolean   @default(true) @map("auto_sync")
+  syncIntervalMin   Int       @default(5) @map("sync_interval_min")
+  orderStatusFilter String[]  @default(["processing", "on-hold", "pending"]) @map("order_status_filter")
+  syncDaysBack      Int       @default(30) @map("sync_days_back")
+  syncSinceDate     DateTime? @map("sync_since_date")
+  createdAt         DateTime  @default(now()) @map("created_at")
 
   orders   Order[]
   products Product[]

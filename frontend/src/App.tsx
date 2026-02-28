@@ -11,7 +11,7 @@ import Warehouse from './pages/Warehouse';
 import Picking from './pages/Picking';
 import Shipping from './pages/Shipping';
 import Receiving from './pages/Receiving';
-import Settings from './pages/Settings';
+import Settings from './pages/settings/SettingsPage';
 import type { TokenPayload } from './types';
 
 function getTokenPayload(): TokenPayload | null {

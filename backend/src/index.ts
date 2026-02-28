@@ -12,6 +12,8 @@ import { handleStoreWebhook } from './woocommerce/webhooks.js';
 import { syncOrders, syncProducts } from './woocommerce/sync.js';
 
 import authRoutes from './routes/auth.js';
+import accountRoutes from './routes/account.js';
+import teamRoutes from './routes/team.js';
 import storeRoutes from './routes/stores.js';
 import orderRoutes from './routes/orders.js';
 import inventoryRoutes from './routes/inventory.js';
@@ -41,6 +43,8 @@ app.post('/api/webhooks/woocommerce/:storeId', handleStoreWebhook);
 // All other API routes require authentication + tenant context
 app.use('/api/v1', authenticate, injectTenant);
 
+app.use('/api/v1/account', accountRoutes);
+app.use('/api/v1/team', teamRoutes);
 app.use('/api/v1/stores', storeRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/inventory', inventoryRoutes);
@@ -52,13 +56,31 @@ app.use('/api/v1/receiving', receivingRoutes);
 // Error handler
 app.use(errorHandler);
 
-// Cron: sync with WooCommerce every 5 minutes (all active stores across all tenants)
-cron.schedule('*/5 * * * *', async () => {
+// Cron: check every 1 minute, sync stores whose interval has elapsed
+cron.schedule('* * * * *', async () => {
   try {
-    const stores = await prisma.store.findMany({ where: { isActive: true } });
+    const stores = await prisma.store.findMany({
+      where: { isActive: true, autoSync: true },
+    });
+
+    const now = Date.now();
     for (const store of stores) {
-      await syncOrders(store);
-      await syncProducts(store);
+      const minutesSinceLastSync = store.lastSyncAt
+        ? (now - store.lastSyncAt.getTime()) / 60000
+        : Infinity;
+
+      if (minutesSinceLastSync < store.syncIntervalMin) continue;
+
+      try {
+        await syncOrders(store);
+        await syncProducts(store);
+        await prisma.store.update({
+          where: { id: store.id },
+          data: { lastSyncAt: new Date() },
+        });
+      } catch (storeErr) {
+        console.error(`[CRON] Sync failed for store ${store.name}:`, (storeErr as Error).message);
+      }
     }
   } catch (err) {
     console.error('[CRON] Sync failed:', (err as Error).message);
