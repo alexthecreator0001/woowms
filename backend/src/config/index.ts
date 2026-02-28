@@ -33,7 +33,7 @@ const config: AppConfig = {
 
   encryptionKey: process.env.ENCRYPTION_KEY || 'dev-encryption-key-change-in-production',
   resendApiKey: process.env.RESEND_API_KEY || '',
-  emailFrom: process.env.EMAIL_FROM || 'PickNPack <onboarding@resend.dev>',
+  emailFrom: process.env.EMAIL_FROM || 'PickNPack <noreply@picknpack.io>',
 };
 
 export default config;
