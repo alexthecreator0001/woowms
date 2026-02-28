@@ -39,6 +39,7 @@ export default function Register() {
       <div className="auth-ribbon auth-ribbon-2" />
       <div className="auth-ribbon auth-ribbon-3" />
       <div className="auth-ribbon auth-ribbon-4" />
+      <div className="auth-ribbon auth-ribbon-5" />
 
       {/* Logo */}
       <div className="relative z-10 px-8 pt-8">
@@ -47,11 +48,10 @@ export default function Register() {
 
       {/* Card */}
       <div className="relative z-10 flex flex-1 items-center justify-center px-5 pb-16">
-        <div className="auth-card w-full max-w-[480px] p-8 sm:p-10">
-          <h1 className="text-[24px] font-bold tracking-tight text-[#111827]">Create account</h1>
-          <p className="mt-1.5 text-[15px] text-[#6b7280]">
-            Free for 14 days. No card needed.
-          </p>
+        <div className="auth-card w-full max-w-[480px] overflow-hidden p-8 sm:p-10">
+          <h1 className="text-[24px] font-bold tracking-tight text-[#111827]">
+            Create your PickNPack account
+          </h1>
 
           {error && (
             <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-[13px] font-medium text-red-600">
@@ -60,10 +60,24 @@ export default function Register() {
           )}
 
           <form onSubmit={handleSubmit} className="mt-7 space-y-5">
+            <div>
+              <label className="mb-1.5 block text-[14px] font-medium text-[#374151]">
+                Email
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                required
+                placeholder="jane@acme.com"
+                className="auth-input"
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="mb-1.5 block text-[14px] font-medium text-[#111827]">
-                  Company
+                <label className="mb-1.5 block text-[14px] font-medium text-[#374151]">
+                  Company name
                 </label>
                 <input
                   name="companyName"
@@ -75,7 +89,7 @@ export default function Register() {
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-[14px] font-medium text-[#111827]">
+                <label className="mb-1.5 block text-[14px] font-medium text-[#374151]">
                   Full name
                 </label>
                 <input
@@ -89,21 +103,7 @@ export default function Register() {
               </div>
             </div>
             <div>
-              <label className="mb-1.5 block text-[14px] font-medium text-[#111827]">
-                Work email
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                required
-                placeholder="jane@acme.com"
-                className="auth-input"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-[14px] font-medium text-[#111827]">
+              <label className="mb-1.5 block text-[14px] font-medium text-[#374151]">
                 Password
               </label>
               <input
@@ -126,7 +126,7 @@ export default function Register() {
               {loading ? (
                 <CircleNotch size={18} className="animate-spin" />
               ) : (
-                <>Get started<ArrowRight size={16} weight="bold" /></>
+                <>Create account<ArrowRight size={16} weight="bold" /></>
               )}
             </button>
 
@@ -135,7 +135,8 @@ export default function Register() {
             </p>
           </form>
 
-          <div className="mt-5 border-t border-[#e5e7eb] pt-5 text-center text-[14px] text-[#6b7280]">
+          {/* Card footer */}
+          <div className="auth-card-footer mt-6 text-center text-[14px] text-[#6b7280]">
             Already have an account?{' '}
             <Link
               to="/login"
@@ -148,8 +149,9 @@ export default function Register() {
       </div>
 
       {/* Footer */}
-      <div className="relative z-10 px-8 pb-6 text-[12px] text-[#9ca3af]">
-        &copy; PickNPack &middot; Terms
+      <div className="relative z-10 flex gap-4 px-8 pb-6 text-[12px] text-[#9ca3af]">
+        <span>&copy; PickNPack</span>
+        <span>Privacy &amp; terms</span>
       </div>
     </div>
   );

@@ -3,6 +3,16 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.2.2] - 2026-02-28
+
+### Changed
+- **Auth ribbon shapes reworked** — ribbons are now tall, narrow vertical bands (280-320px wide, 1200-1600px tall) concentrated on the right side of the page, mimicking flowing silk scarves instead of wide horizontal blobs spread everywhere
+- 5 ribbons with distinct color gradients: sky blue, brand blue→indigo, purple→pink, pink→orange, orange→gold — layered and overlapping at different rotation angles
+- Card footer uses a light gray `#f9fafb` background section separated by a subtle border (like Stripe's "New to Stripe?" bar)
+- Card headings changed to "Sign in to your account" / "Create your PickNPack account"
+- Bottom page footer shows "© PickNPack · Privacy & terms" inline
+- Register form reordered: Email first, then Company/Name row, then Password (matches Stripe's field order)
+
 ## [3.2.1] - 2026-02-28
 
 ### Changed

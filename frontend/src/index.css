@@ -83,86 +83,72 @@ th {
   }
 }
 
-/* ─── Auth — flowing gradient ribbons ──────────────────────── */
+/* ─── Auth — gradient ribbon bands ──────────────────────── */
 .auth-scene {
   background: #f6f9fc;
   position: relative;
   overflow: hidden;
 }
 
-/* Ribbon base */
 .auth-ribbon {
   position: fixed;
   pointer-events: none;
   border-radius: 50%;
 }
 
-/* Blue band — sweeps across upper-right */
+/* Sky blue — leftmost, behind others */
 .auth-ribbon-1 {
-  width: 60vmax;
-  height: 34vmax;
-  top: -8vmax;
-  right: -8vmax;
-  background: linear-gradient(
-    130deg,
-    rgba(43, 103, 255, 0.06) 0%,
-    rgba(43, 103, 255, 0.45) 25%,
-    rgba(79, 140, 255, 0.6) 45%,
-    rgba(152, 190, 255, 0.3) 70%,
-    transparent 100%
-  );
-  transform: rotate(-8deg);
+  width: 280px;
+  height: 1500px;
+  top: -250px;
+  right: 18%;
+  background: linear-gradient(to bottom, #bfdbfe, #93c5fd, #60a5fa);
+  transform: rotate(-22deg);
+  opacity: 0.8;
 }
 
-/* Coral-to-pink band — bottom right */
+/* Brand blue — main band */
 .auth-ribbon-2 {
-  width: 55vmax;
-  height: 28vmax;
-  bottom: -6vmax;
-  right: -4vmax;
-  background: linear-gradient(
-    145deg,
-    transparent 0%,
-    rgba(255, 154, 92, 0.4) 20%,
-    rgba(255, 107, 138, 0.5) 50%,
-    rgba(192, 132, 252, 0.35) 80%,
-    transparent 100%
-  );
-  transform: rotate(-18deg);
+  width: 320px;
+  height: 1600px;
+  top: -300px;
+  right: 6%;
+  background: linear-gradient(to bottom, #60a5fa, #2B67FF, #4f46e5);
+  transform: rotate(-26deg);
+  opacity: 0.85;
 }
 
-/* Indigo band — middle depth layer */
+/* Purple → pink */
 .auth-ribbon-3 {
-  width: 65vmax;
-  height: 22vmax;
-  top: 25%;
-  right: -15vmax;
-  background: linear-gradient(
-    125deg,
-    transparent 0%,
-    rgba(129, 140, 248, 0.2) 25%,
-    rgba(167, 139, 250, 0.4) 50%,
-    rgba(43, 103, 255, 0.2) 75%,
-    transparent 100%
-  );
-  transform: rotate(-13deg);
+  width: 260px;
+  height: 1400px;
+  top: -150px;
+  right: -4%;
+  background: linear-gradient(to bottom, #8b5cf6, #c026d3, #ec4899);
+  transform: rotate(-30deg);
+  opacity: 0.75;
 }
 
-/* Warm accent — bottom left */
+/* Pink → orange */
 .auth-ribbon-4 {
-  width: 40vmax;
-  height: 22vmax;
-  bottom: -2vmax;
-  left: -6vmax;
-  background: linear-gradient(
-    160deg,
-    transparent 0%,
-    rgba(251, 191, 146, 0.25) 30%,
-    rgba(244, 114, 182, 0.25) 60%,
-    rgba(192, 132, 252, 0.1) 90%,
-    transparent 100%
-  );
-  transform: rotate(8deg);
+  width: 300px;
+  height: 1500px;
+  top: -80px;
+  right: -14%;
+  background: linear-gradient(to bottom, #f472b6, #fb923c, #fbbf24);
+  transform: rotate(-34deg);
+  opacity: 0.8;
+}
+
+/* Thin warm accent */
+.auth-ribbon-5 {
+  width: 180px;
+  height: 1200px;
+  top: -100px;
+  right: -22%;
+  background: linear-gradient(to bottom, #f97316, #fbbf24, #fde68a);
+  transform: rotate(-28deg);
+  opacity: 0.7;
 }
 
 /* White card */
@@ -170,9 +156,25 @@ th {
   background: white;
   border-radius: 12px;
   box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.02),
-    0 12px 40px rgba(0, 0, 0, 0.06);
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 8px 30px rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* Card footer area */
+.auth-card-footer {
+  background: #f9fafb;
+  border-top: 1px solid #f0f0f0;
+  border-radius: 0 0 12px 12px;
+  margin: 0 -2rem -2rem;
+  padding: 1.25rem 2rem;
+}
+
+@media (min-width: 640px) {
+  .auth-card-footer {
+    margin: 0 -2.5rem -2.5rem;
+    padding: 1.25rem 2.5rem;
+  }
 }
 
 /* Inputs */
