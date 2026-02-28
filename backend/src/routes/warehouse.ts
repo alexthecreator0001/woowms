@@ -234,38 +234,84 @@ router.post('/zones/:zoneId/bins', authorize('ADMIN', 'MANAGER'), async (req: Re
   }
 });
 
-// POST /api/v1/warehouse/zones/:zoneId/bins/generate — bulk generate bins
+// POST /api/v1/warehouse/zones/:zoneId/bins/generate — bulk generate locations
+// ShipHero-style hierarchy: Aisle → Rack → Shelf → Position
+// Label format: {Aisle}-{Rack}-{Shelf}-{Position} e.g. A-01-03-02
 router.post('/zones/:zoneId/bins/generate', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const zoneId = parseInt(req.params.zoneId);
-    const { prefix, rows, positions } = req.body as { prefix: string; rows: number; positions: number };
+    const {
+      aisles, aisleNaming, racksPerAisle, shelvesPerRack, positionsPerShelf,
+      // Legacy compat
+      prefix, rows, positions,
+    } = req.body as {
+      aisles?: number;
+      aisleNaming?: 'letters' | 'numbers';
+      racksPerAisle?: number;
+      shelvesPerRack?: number;
+      positionsPerShelf?: number;
+      prefix?: string;
+      rows?: number;
+      positions?: number;
+    };
 
     const zone = await req.prisma!.zone.findUnique({ where: { id: zoneId } });
     if (!zone) {
       return res.status(404).json({ error: true, message: 'Zone not found', code: 'NOT_FOUND' });
     }
 
-    if (!prefix || !rows || !positions || rows < 1 || positions < 1) {
-      return res.status(400).json({ error: true, message: 'prefix, rows (>=1), and positions (>=1) are required', code: 'VALIDATION_ERROR' });
-    }
-
-    if (rows * positions > 500) {
-      return res.status(400).json({ error: true, message: 'Cannot generate more than 500 bins at once', code: 'VALIDATION_ERROR' });
-    }
-
     const pad = (n: number) => String(n).padStart(2, '0');
-    const binsData = [];
+    const binsData: { zoneId: number; label: string; row: string; shelf: string; position: string }[] = [];
 
-    for (let r = 1; r <= rows; r++) {
-      for (let p = 1; p <= positions; p++) {
-        binsData.push({
-          zoneId,
-          label: `${prefix}-${pad(r)}-${pad(p)}`,
-          row: pad(r),
-          shelf: '01',
-          position: pad(p),
-        });
+    if (aisles && racksPerAisle && shelvesPerRack && positionsPerShelf) {
+      // New WMS-style generation: Aisle-Rack-Shelf-Position
+      const total = aisles * racksPerAisle * shelvesPerRack * positionsPerShelf;
+      if (total > 2000) {
+        return res.status(400).json({ error: true, message: `Cannot generate more than 2000 locations at once (requested ${total})`, code: 'VALIDATION_ERROR' });
       }
+
+      const naming = aisleNaming || 'letters';
+
+      for (let a = 1; a <= aisles; a++) {
+        const aisleLabel = naming === 'letters'
+          ? String.fromCharCode(64 + a) // A, B, C...
+          : pad(a);                       // 01, 02, 03...
+
+        for (let r = 1; r <= racksPerAisle; r++) {
+          for (let s = 1; s <= shelvesPerRack; s++) {
+            for (let p = 1; p <= positionsPerShelf; p++) {
+              binsData.push({
+                zoneId,
+                label: `${aisleLabel}-${pad(r)}-${pad(s)}-${pad(p)}`,
+                row: aisleLabel,
+                shelf: pad(s),
+                position: pad(p),
+              });
+            }
+          }
+        }
+      }
+    } else if (prefix && rows && positions) {
+      // Legacy format: prefix-row-position
+      if (rows < 1 || positions < 1) {
+        return res.status(400).json({ error: true, message: 'rows and positions must be >= 1', code: 'VALIDATION_ERROR' });
+      }
+      if (rows * positions > 500) {
+        return res.status(400).json({ error: true, message: 'Cannot generate more than 500 bins at once', code: 'VALIDATION_ERROR' });
+      }
+      for (let r = 1; r <= rows; r++) {
+        for (let p = 1; p <= positions; p++) {
+          binsData.push({
+            zoneId,
+            label: `${prefix}-${pad(r)}-${pad(p)}`,
+            row: prefix,
+            shelf: pad(r),
+            position: pad(p),
+          });
+        }
+      }
+    } else {
+      return res.status(400).json({ error: true, message: 'Provide either {aisles, racksPerAisle, shelvesPerRack, positionsPerShelf} or {prefix, rows, positions}', code: 'VALIDATION_ERROR' });
     }
 
     // Check for label conflicts

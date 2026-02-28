@@ -101,11 +101,11 @@ export default function BinModal({ open, onClose, onSaved, bin }: BinModalProps)
         className="w-full max-w-md rounded-xl border border-border/60 bg-card p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold">Edit Bin</h2>
+        <h2 className="text-lg font-semibold">Edit Location</h2>
 
         {/* Stock count info */}
         <p className="mt-1 text-sm text-muted-foreground">
-          Items in bin: {stockCount}
+          <span className="font-mono font-semibold text-foreground">{bin.label}</span> — {stockCount} item{stockCount !== 1 ? 's' : ''} stored
         </p>
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">

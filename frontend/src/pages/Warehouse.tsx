@@ -32,9 +32,9 @@ export default function Warehouse() {
             <WarehouseIcon size={24} weight="duotone" className="text-primary" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Warehouse Locations</h2>
+            <h2 className="text-2xl font-bold tracking-tight">Warehouse</h2>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Manage your warehouse layout and shelf bins.
+              Manage zones, aisles, racks, and shelf locations.
             </p>
           </div>
         </div>
@@ -71,7 +71,7 @@ export default function Warehouse() {
             <WarehouseIcon size={36} weight="duotone" className="relative text-muted-foreground/30" />
           </div>
           <p className="text-sm font-medium text-muted-foreground">No warehouses configured</p>
-          <p className="mt-1 text-xs text-muted-foreground/60">Create your first warehouse to start building zones and bins.</p>
+          <p className="mt-1 text-xs text-muted-foreground/60">Create a warehouse, add zones, then generate aisle and shelf locations.</p>
           <button
             type="button"
             onClick={() => setCreateModalOpen(true)}

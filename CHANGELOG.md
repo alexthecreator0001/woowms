@@ -3,6 +3,18 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.7.0] - 2026-02-28
+
+### Changed
+- **Real WMS location hierarchy** — warehouse locations now follow the ShipHero-inspired `Aisle-Rack-Shelf-Position` naming convention (e.g. `A-01-03-02` = Aisle A, Rack 01, Shelf 03, Position 02)
+- **Location Generator Wizard** — completely rewritten with 4 inputs (aisles, racks per aisle, shelf levels, positions per shelf), Letters/Numbers toggle for aisle naming, live mini rack diagram preview, color-coded label format explainer, and total location count summary
+- **Vertical Rack Visualization** — bins grouped by aisle and displayed as visual rack units (top shelf → floor), with shelf level labels on the left and position cells across each shelf; ungrouped locations shown separately
+- **Zone sections** — now show left-colored accent border matching zone type, location/aisle/item counts, "Generate Locations" button highlighted when zone is empty
+- Terminology updated from "bins" to "locations" throughout (BinModal, ZoneSection, WarehouseCard, page header)
+- Backend generate endpoint now accepts `{aisles, aisleNaming, racksPerAisle, shelvesPerRack, positionsPerShelf}` for proper 4-level WMS hierarchy (up to 2,000 locations per batch), with backward compatibility for legacy `{prefix, rows, positions}` format
+- Shelves numbered from floor up (level 01 = floor, highest = top) per WMS best practices
+- Zero-padded numbers in all location labels for correct alphanumeric sorting
+
 ## [2.6.0] - 2026-02-28
 
 ### Added

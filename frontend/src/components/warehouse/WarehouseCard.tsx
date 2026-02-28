@@ -79,7 +79,7 @@ export default function WarehouseCard({ warehouse, onRefresh }: WarehouseCardPro
               )}
               <span>{zones.length} zone{zones.length !== 1 ? 's' : ''}</span>
               <span className="text-muted-foreground/40">·</span>
-              <span>{totalBins} bin{totalBins !== 1 ? 's' : ''}</span>
+              <span>{totalBins} location{totalBins !== 1 ? 's' : ''}</span>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -122,7 +122,7 @@ export default function WarehouseCard({ warehouse, onRefresh }: WarehouseCardPro
 
             {zones.length === 0 && (
               <p className="py-6 text-center text-sm text-muted-foreground/60">
-                No zones configured. Add a zone to start building your shelf layout.
+                No zones configured. Add a zone (e.g. Storage, Picking, Receiving) then generate locations.
               </p>
             )}
 

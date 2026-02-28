@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, CircleNotch } from '@phosphor-icons/react';
+import { X, CircleNotch, Rows, Stack, GridFour, MapPin } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import api from '../../services/api';
 
@@ -10,54 +10,73 @@ interface GenerateBinsModalProps {
   zoneId: number;
 }
 
+type AisleNaming = 'letters' | 'numbers';
+
 export default function GenerateBinsModal({
   open,
   onClose,
   onSaved,
   zoneId,
 }: GenerateBinsModalProps) {
-  const [prefix, setPrefix] = useState('A');
-  const [rows, setRows] = useState(4);
-  const [positions, setPositions] = useState(6);
+  const [aisles, setAisles] = useState(3);
+  const [aisleNaming, setAisleNaming] = useState<AisleNaming>('letters');
+  const [racks, setRacks] = useState(2);
+  const [shelves, setShelves] = useState(4);
+  const [positions, setPositions] = useState(3);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Reset form when modal opens
   useEffect(() => {
     if (open) {
-      setPrefix('A');
-      setRows(4);
-      setPositions(6);
+      setAisles(3);
+      setAisleNaming('letters');
+      setRacks(2);
+      setShelves(4);
+      setPositions(3);
       setError(null);
     }
   }, [open]);
 
-  // Generate preview labels
-  const labels = useMemo(() => {
-    const result: string[] = [];
-    const trimmedPrefix = prefix.trim();
-    if (!trimmedPrefix || rows <= 0 || positions <= 0) return result;
+  const pad = (n: number) => String(n).padStart(2, '0');
 
-    for (let r = 1; r <= rows; r++) {
-      for (let p = 1; p <= positions; p++) {
-        const row = String(r).padStart(2, '0');
-        const pos = String(p).padStart(2, '0');
-        result.push(`${trimmedPrefix}-${row}-${pos}`);
-      }
+  const totalLocations = aisles * racks * shelves * positions;
+
+  // Generate preview labels
+  const preview = useMemo(() => {
+    if (aisles < 1 || racks < 1 || shelves < 1 || positions < 1) return { first: '', last: '', aisleLabels: [] as string[] };
+    const firstAisle = aisleNaming === 'letters' ? 'A' : '01';
+    const lastAisle = aisleNaming === 'letters' ? String.fromCharCode(64 + Math.min(aisles, 26)) : pad(aisles);
+    const aisleLabels = [];
+    for (let i = 1; i <= Math.min(aisles, 26); i++) {
+      aisleLabels.push(aisleNaming === 'letters' ? String.fromCharCode(64 + i) : pad(i));
     }
-    return result;
-  }, [prefix, rows, positions]);
+    return {
+      first: `${firstAisle}-${pad(1)}-${pad(1)}-${pad(1)}`,
+      last: `${lastAisle}-${pad(racks)}-${pad(shelves)}-${pad(positions)}`,
+      aisleLabels,
+    };
+  }, [aisles, aisleNaming, racks, shelves, positions]);
+
+  // Mini rack preview for first aisle
+  const rackPreview = useMemo(() => {
+    const aisle = aisleNaming === 'letters' ? 'A' : '01';
+    const rack = pad(1);
+    const rows: { shelf: string; bins: string[] }[] = [];
+    for (let s = Math.min(shelves, 6); s >= 1; s--) {
+      const bins: string[] = [];
+      for (let p = 1; p <= Math.min(positions, 6); p++) {
+        bins.push(`${aisle}-${rack}-${pad(s)}-${pad(p)}`);
+      }
+      rows.push({ shelf: pad(s), bins });
+    }
+    return rows;
+  }, [aisleNaming, shelves, positions, racks]);
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
-
-    const trimmedPrefix = prefix.trim();
-    if (!trimmedPrefix) {
-      setError('Prefix is required.');
-      return;
-    }
-    if (rows <= 0 || positions <= 0) {
-      setError('Rows and positions must be greater than 0.');
+    if (totalLocations < 1) return;
+    if (totalLocations > 2000) {
+      setError('Cannot generate more than 2,000 locations at once. Reduce your numbers.');
       return;
     }
 
@@ -66,24 +85,17 @@ export default function GenerateBinsModal({
 
     try {
       await api.post(`/warehouse/zones/${zoneId}/bins/generate`, {
-        prefix: trimmedPrefix,
-        rows,
-        positions,
+        aisles,
+        aisleNaming,
+        racksPerAisle: racks,
+        shelvesPerRack: shelves,
+        positionsPerShelf: positions,
       });
-
       onSaved();
       onClose();
     } catch (err: any) {
-      if (err?.response?.status === 409) {
-        const message =
-          err?.response?.data?.message ||
-          'Some bin labels already exist in this zone. Please use a different prefix.';
-        setError(message);
-      } else {
-        const message =
-          err?.response?.data?.message || 'Failed to generate bins. Please try again.';
-        setError(message);
-      }
+      const message = err?.response?.data?.message || 'Failed to generate locations. Please try again.';
+      setError(message);
     } finally {
       setGenerating(false);
     }
@@ -91,150 +103,199 @@ export default function GenerateBinsModal({
 
   if (!open) return null;
 
+  const inputCls = cn(
+    'w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm',
+    'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30',
+  );
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-lg rounded-xl border border-border/60 bg-card p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div className="flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-xl" onClick={(e) => e.stopPropagation()}>
+
         {/* Header */}
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Generate Bins</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className={cn(
-              'rounded-lg p-1.5 text-muted-foreground transition-colors',
-              'hover:bg-muted hover:text-foreground'
-            )}
-          >
+        <div className="flex items-center justify-between border-b border-border/40 px-6 py-4">
+          <div>
+            <h2 className="text-lg font-semibold">Generate Warehouse Locations</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Set up aisles, racks, shelves, and positions — we'll create all the labels for you.
+            </p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
             <X size={18} weight="bold" />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleGenerate} className="space-y-4">
-          {/* Prefix */}
-          <div>
-            <label
-              htmlFor="bin-prefix"
-              className="mb-1.5 block text-sm font-medium text-foreground"
-            >
-              Prefix <span className="text-destructive">*</span>
-            </label>
-            <input
-              id="bin-prefix"
-              type="text"
-              value={prefix}
-              onChange={(e) => setPrefix(e.target.value)}
-              placeholder="e.g. A"
-              className={cn(
-                'w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm',
-                'placeholder:text-muted-foreground',
-                'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-              )}
-            />
-          </div>
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          <form id="generate-form" onSubmit={handleGenerate} className="space-y-6">
 
-          {/* Rows + Positions */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="bin-rows"
-                className="mb-1.5 block text-sm font-medium text-foreground"
-              >
-                Number of Rows
-              </label>
-              <input
-                id="bin-rows"
-                type="number"
-                min={1}
-                max={99}
-                value={rows}
-                onChange={(e) => setRows(Math.max(0, parseInt(e.target.value) || 0))}
-                className={cn(
-                  'w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm',
-                  'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-                )}
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="bin-positions"
-                className="mb-1.5 block text-sm font-medium text-foreground"
-              >
-                Positions per Row
-              </label>
-              <input
-                id="bin-positions"
-                type="number"
-                min={1}
-                max={99}
-                value={positions}
-                onChange={(e) => setPositions(Math.max(0, parseInt(e.target.value) || 0))}
-                className={cn(
-                  'w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm',
-                  'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-                )}
-              />
-            </div>
-          </div>
-
-          {/* Preview */}
-          {labels.length > 0 && (
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Preview
-              </label>
-              <div className="max-h-48 overflow-y-auto rounded-lg border border-border/40 bg-muted/30 p-3">
-                <div className="flex flex-wrap gap-1.5">
-                  {labels.map((label) => (
-                    <span
-                      key={label}
-                      className="inline-flex rounded-md bg-muted/60 px-2 py-1 text-xs font-medium text-muted-foreground"
-                    >
-                      {label}
-                    </span>
-                  ))}
-                </div>
+            {/* Label Format Explainer */}
+            <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary/70 mb-2">Location Label Format</p>
+              <div className="flex items-center gap-1 text-sm font-mono font-bold">
+                <span className="rounded bg-blue-500/15 px-2 py-0.5 text-blue-700">Aisle</span>
+                <span className="text-muted-foreground">-</span>
+                <span className="rounded bg-violet-500/15 px-2 py-0.5 text-violet-700">Rack</span>
+                <span className="text-muted-foreground">-</span>
+                <span className="rounded bg-amber-500/15 px-2 py-0.5 text-amber-700">Shelf</span>
+                <span className="text-muted-foreground">-</span>
+                <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-emerald-700">Position</span>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                {labels.length} bin{labels.length !== 1 ? 's' : ''} will be created
+                Example: <span className="font-mono font-semibold text-foreground">A-02-03-01</span> = Aisle A, Rack 02, Shelf 03 (from floor), Position 01
               </p>
             </div>
-          )}
 
-          {/* Error */}
-          {error && <p className="text-sm text-red-500">{error}</p>}
+            {/* Configuration Grid */}
+            <div className="grid grid-cols-2 gap-x-6 gap-y-5">
 
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className={cn(
-                'rounded-lg border border-border/60 px-4 py-2 text-sm font-medium',
-                'hover:bg-muted'
+              {/* Aisles */}
+              <div>
+                <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-foreground">
+                  <Rows size={16} weight="duotone" className="text-blue-600" />
+                  Aisles
+                </label>
+                <p className="mb-2 text-[11px] text-muted-foreground">Parallel rows in your warehouse</p>
+                <input type="number" min={1} max={26} value={aisles} onChange={(e) => setAisles(Math.max(1, Math.min(26, parseInt(e.target.value) || 1)))} className={inputCls} />
+                <div className="mt-2 flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setAisleNaming('letters')}
+                    className={cn(
+                      'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                      aisleNaming === 'letters' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    Letters (A, B, C)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAisleNaming('numbers')}
+                    className={cn(
+                      'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                      aisleNaming === 'numbers' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    Numbers (01, 02, 03)
+                  </button>
+                </div>
+              </div>
+
+              {/* Racks per Aisle */}
+              <div>
+                <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-foreground">
+                  <GridFour size={16} weight="duotone" className="text-violet-600" />
+                  Racks per Aisle
+                </label>
+                <p className="mb-2 text-[11px] text-muted-foreground">Shelving units along each aisle</p>
+                <input type="number" min={1} max={99} value={racks} onChange={(e) => setRacks(Math.max(1, Math.min(99, parseInt(e.target.value) || 1)))} className={inputCls} />
+              </div>
+
+              {/* Shelves per Rack */}
+              <div>
+                <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-foreground">
+                  <Stack size={16} weight="duotone" className="text-amber-600" />
+                  Shelf Levels per Rack
+                </label>
+                <p className="mb-2 text-[11px] text-muted-foreground">Vertical levels on each rack (counted from floor up)</p>
+                <input type="number" min={1} max={20} value={shelves} onChange={(e) => setShelves(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))} className={inputCls} />
+              </div>
+
+              {/* Positions per Shelf */}
+              <div>
+                <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-foreground">
+                  <MapPin size={16} weight="duotone" className="text-emerald-600" />
+                  Positions per Shelf
+                </label>
+                <p className="mb-2 text-[11px] text-muted-foreground">Bin slots on each shelf (left to right)</p>
+                <input type="number" min={1} max={20} value={positions} onChange={(e) => setPositions(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))} className={inputCls} />
+              </div>
+            </div>
+
+            {/* Visual Rack Preview */}
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Rack Preview — Aisle {preview.aisleLabels[0]}, Rack 01
+              </p>
+              <div className="overflow-x-auto rounded-lg border border-border/40 bg-muted/20">
+                <div className="min-w-fit">
+                  {rackPreview.map((row, idx) => (
+                    <div key={row.shelf} className={cn('flex items-center', idx > 0 && 'border-t border-border/20')}>
+                      <div className="flex w-12 shrink-0 items-center justify-center self-stretch border-r border-border/30 bg-muted/40 py-1.5">
+                        <span className="text-[10px] font-bold text-muted-foreground">Lv {row.shelf}</span>
+                      </div>
+                      <div className="flex gap-0 py-0.5 px-0.5">
+                        {row.bins.map((label) => (
+                          <div key={label} className="flex h-9 w-[72px] items-center justify-center border-r border-border/10 last:border-r-0">
+                            <span className="font-mono text-[10px] font-medium text-muted-foreground">{label}</span>
+                          </div>
+                        ))}
+                        {positions > 6 && (
+                          <div className="flex h-9 w-10 items-center justify-center">
+                            <span className="text-[10px] text-muted-foreground/50">+{positions - 6}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {/* Floor */}
+                  <div className="h-2 bg-gradient-to-r from-muted/60 via-muted/40 to-muted/60" />
+                </div>
+              </div>
+              {shelves > 6 && (
+                <p className="mt-1 text-[10px] text-muted-foreground/60">Showing first 6 of {shelves} shelves</p>
               )}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={generating || labels.length === 0}
-              className={cn(
-                'inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground',
-                'hover:bg-primary/90 disabled:opacity-50'
+            </div>
+
+            {/* Summary */}
+            <div className="rounded-lg border border-border/40 bg-muted/30 px-4 py-3">
+              <div className="flex items-baseline justify-between">
+                <div>
+                  <span className="text-sm text-muted-foreground">
+                    {aisles} aisle{aisles !== 1 ? 's' : ''} x {racks} rack{racks !== 1 ? 's' : ''} x {shelves} shelf{shelves !== 1 ? '' : ''} x {positions} position{positions !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <span className={cn(
+                  'text-lg font-bold',
+                  totalLocations > 2000 ? 'text-red-500' : 'text-foreground',
+                )}>
+                  {totalLocations.toLocaleString()} locations
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Labels from <span className="font-mono font-semibold text-foreground">{preview.first}</span> to <span className="font-mono font-semibold text-foreground">{preview.last}</span>
+              </p>
+              {totalLocations > 2000 && (
+                <p className="mt-1 text-xs text-red-500">Maximum 2,000 locations per batch. Reduce your numbers.</p>
               )}
-            >
-              {generating && <CircleNotch size={16} className="animate-spin" />}
-              {generating ? 'Generating...' : 'Generate'}
-            </button>
-          </div>
-        </form>
+            </div>
+
+            {error && <p className="text-sm text-red-500">{error}</p>}
+          </form>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 border-t border-border/40 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-border/60 px-4 py-2 text-sm font-medium hover:bg-muted"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="generate-form"
+            disabled={generating || totalLocations < 1 || totalLocations > 2000}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground',
+              'hover:bg-primary/90 disabled:opacity-50',
+            )}
+          >
+            {generating && <CircleNotch size={16} className="animate-spin" />}
+            {generating ? 'Generating...' : `Generate ${totalLocations.toLocaleString()} Locations`}
+          </button>
+        </div>
       </div>
     </div>
   );
