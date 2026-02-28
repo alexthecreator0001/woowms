@@ -1,21 +1,60 @@
-# MANDATORY RULES
+# ⚠️ CRITICAL WORKFLOW — READ FIRST
 
-1. **VPS DEPLOY COMMAND**: After EVERY change, provide a single one-liner command for the user to run on VPS to pull and restart. Format: `cd /var/www/woowms && git pull && cd backend && npm install && npx prisma generate && pm2 restart woowms-backend && cd ../frontend && npm install && npm run build && pm2 restart woowms-frontend`
-   - Shorten the command if the change only affects backend or frontend (skip the other).
-   - If DB migrations were added: include `npx prisma migrate deploy` in the command.
-   - If no dependency changes: skip `npm install`.
-2. **CHANGELOG**: Update `CHANGELOG.md` with every change. Add entry under current version with date, short description, and category (Added/Changed/Fixed/Removed).
-3. **VERSION BUMP**: Bump the version in the relevant `package.json` (backend, frontend, or both) with every change. Use semver:
-   - Patch (x.x.X) for fixes and small changes
-   - Minor (x.X.0) for new features
-   - Major (X.0.0) for breaking changes
-4. **GIT PUSH**: After EVERY change, commit and push to GitHub. Always commit + push before giving the VPS deploy command.
-5. **DESIGN IS #1 PRIORITY**: UI/UX design quality is the top priority. Every frontend change must look polished, modern, and professional. Never ship ugly or default-looking UI.
-6. **SHADCN DESIGN STYLE**: Use Tailwind CSS + shadcn/ui design patterns. Use `lucide-react` for icons. Use `cn()` from `src/lib/utils.js` for conditional classes. Follow shadcn HSL color tokens. No inline styles — use Tailwind classes only.
+All development is local. The VPS pulls from GitHub via `git pull`.
+
+- **NEVER** run `npm install`, `npm run build`, `npm run dev`, or any server commands locally.
+- **NEVER** SSH into the VPS to fix issues. Just send the user the exact command to paste.
+- After every change that is committed and pushed, provide the user a single copy-pasteable VPS deploy command.
+
+### Standard VPS deploy command (after git push):
+
+**Full stack (backend + frontend):**
+```bash
+cd /var/www/woowms && git pull && cd backend && npm install && npx prisma generate && pm2 restart woowms-backend && cd ../frontend && npm install && npm run build && pm2 restart woowms-frontend
+```
+
+**Backend only (no frontend changes):**
+```bash
+cd /var/www/woowms && git pull && cd backend && npm install && npx prisma generate && pm2 restart woowms-backend
+```
+
+**Frontend only (no backend changes):**
+```bash
+cd /var/www/woowms && git pull && cd frontend && npm install && npm run build && pm2 restart woowms-frontend
+```
+
+**If only code changed (no new deps, no schema change):**
+```bash
+cd /var/www/woowms && git pull && cd backend && pm2 restart woowms-backend && cd ../frontend && npm run build && pm2 restart woowms-frontend
+```
+
+**If DB migrations were added:**
+Include `npx prisma migrate deploy` (NOT `migrate dev` — that's interactive and hangs on VPS):
+```bash
+cd /var/www/woowms && git pull && cd backend && npm install && npx prisma migrate deploy && npx prisma generate && pm2 restart woowms-backend
+```
+
+- Skip `npm install` if no dependency changes.
+- Skip backend or frontend section if only one side changed.
+- Always use `npx prisma migrate deploy` (non-interactive, production-safe) — never `npx prisma migrate dev` on VPS.
 
 ---
 
-# WooWMS - Warehouse Management System for WooCommerce
+# MANDATORY RULES
+
+1. **GIT PUSH**: After EVERY change, commit and push to GitHub. Always commit + push before giving the VPS deploy command.
+2. **VPS DEPLOY COMMAND**: After EVERY push, provide the appropriate deploy command from above.
+3. **CHANGELOG**: Update `CHANGELOG.md` with every change. Add entry under current version with date, short description, and category (Added/Changed/Fixed/Removed).
+4. **VERSION BUMP**: Bump the version in the relevant `package.json` (backend, frontend, or both) with every change. Use semver:
+   - Patch (x.x.X) for fixes and small changes
+   - Minor (x.X.0) for new features
+   - Major (X.0.0) for breaking changes
+5. **DESIGN IS #1 PRIORITY**: UI/UX design quality is the top priority. Every frontend change must look polished, modern, and professional. Never ship ugly or default-looking UI.
+6. **SHADCN DESIGN STYLE**: Use Tailwind CSS + shadcn/ui design patterns. Use `@phosphor-icons/react` for icons. Use `cn()` from `src/lib/utils.js` for conditional classes. Follow shadcn HSL color tokens. No inline styles — use Tailwind classes only.
+
+---
+
+# PickNPack - Warehouse Management System for WooCommerce
 
 ## Project Overview
 A full-featured WMS web application that integrates with WooCommerce via REST API + Webhooks.
