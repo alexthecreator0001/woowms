@@ -3,6 +3,16 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.2.1] - 2026-02-28
+
+### Fixed
+- Order detail slide-over: shipping/billing addresses now render properly (were JSON objects, displayed as `[object Object]`)
+
+### Added
+- Product detail slide-over on Inventory page — click any product row to see stock overview (4 mini stat boxes), product details, locations, and recent stock movements
+- `GET /api/v1/inventory/:id` endpoint returning product with stock locations and recent movements
+- `StockMovement` and `ProductDetail` types in frontend
+
 ## [2.2.0] - 2026-02-28
 
 ### Added

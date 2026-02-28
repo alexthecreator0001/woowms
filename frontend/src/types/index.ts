@@ -176,6 +176,30 @@ export interface Shipment {
   order?: Order;
 }
 
+export interface StockMovement {
+  id: number;
+  type: string;
+  quantity: number;
+  fromBin: string | null;
+  toBin: string | null;
+  reason: string | null;
+  reference: string | null;
+  createdAt: string;
+}
+
+export interface ProductDetail extends Product {
+  description: string | null;
+  price: string;
+  weight: string | null;
+  length: string | null;
+  width: string | null;
+  height: string | null;
+  createdAt: string;
+  updatedAt: string;
+  stockMovements?: StockMovement[];
+  store?: Store;
+}
+
 export interface InventoryStats {
   inStock: number;
   reserved: number;

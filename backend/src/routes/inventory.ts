@@ -107,6 +107,29 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
+// GET /api/v1/inventory/:id
+router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = req.prisma!;
+    const product = await prisma.product.findUnique({
+      where: { id: parseInt(req.params.id) },
+      include: {
+        store: true,
+        stockLocations: { include: { bin: { include: { zone: true } } } },
+        stockMovements: { orderBy: { createdAt: 'desc' }, take: 20 },
+      },
+    });
+
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    res.json({ data: product });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // PATCH /api/v1/inventory/:id/adjust
 router.patch('/:id/adjust', async (req: Request, res: Response, next: NextFunction) => {
   try {

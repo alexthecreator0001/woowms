@@ -39,10 +39,33 @@ const filterOptions = [
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
 
+interface WooAddress {
+  first_name?: string;
+  last_name?: string;
+  address_1?: string;
+  address_2?: string;
+  city?: string;
+  state?: string;
+  postcode?: string;
+  country?: string;
+}
+
 interface OrderDetail extends Order {
-  shippingAddress?: string;
-  billingAddress?: string;
+  shippingAddress?: WooAddress;
+  billingAddress?: WooAddress;
   shipments?: Shipment[];
+}
+
+function formatAddress(addr: WooAddress | undefined | null): string | null {
+  if (!addr) return null;
+  const parts = [
+    [addr.first_name, addr.last_name].filter(Boolean).join(' '),
+    addr.address_1,
+    addr.address_2,
+    [addr.city, addr.state, addr.postcode].filter(Boolean).join(', '),
+    addr.country,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join('\n') : null;
 }
 
 export default function Orders() {
@@ -253,22 +276,22 @@ export default function Orders() {
                     </div>
 
                     {/* Addresses */}
-                    {(selectedOrder.shippingAddress || selectedOrder.billingAddress) && (
+                    {(formatAddress(selectedOrder.shippingAddress) || formatAddress(selectedOrder.billingAddress)) && (
                       <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
                         <div className="mb-2.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                           <MapPin className="h-3.5 w-3.5" />
                           Addresses
                         </div>
-                        {selectedOrder.shippingAddress && (
+                        {formatAddress(selectedOrder.shippingAddress) && (
                           <div className="mb-2">
                             <p className="text-xs font-medium text-muted-foreground">Shipping</p>
-                            <p className="text-sm">{selectedOrder.shippingAddress}</p>
+                            <p className="whitespace-pre-line text-sm">{formatAddress(selectedOrder.shippingAddress)}</p>
                           </div>
                         )}
-                        {selectedOrder.billingAddress && (
+                        {formatAddress(selectedOrder.billingAddress) && (
                           <div>
                             <p className="text-xs font-medium text-muted-foreground">Billing</p>
-                            <p className="text-sm">{selectedOrder.billingAddress}</p>
+                            <p className="whitespace-pre-line text-sm">{formatAddress(selectedOrder.billingAddress)}</p>
                           </div>
                         )}
                       </div>
