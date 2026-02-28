@@ -16,6 +16,7 @@ import {
   CaretLineRight,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
+import Logo, { LogoMark } from './Logo';
 
 interface NavItem {
   path: string;
@@ -78,14 +79,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div
           className={cn(
             'flex items-center px-4 py-4',
-            collapsed ? 'justify-center' : 'gap-2.5'
+            collapsed ? 'justify-center' : 'gap-2'
           )}
         >
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#0a0a0a]">
-            <span className="text-[13px] font-extrabold text-white">P</span>
-          </div>
-          {!collapsed && (
-            <span className="truncate text-[15px] font-bold tracking-tight text-[#0a0a0a]">PickNPack</span>
+          {collapsed ? (
+            <LogoMark size={24} className="flex-shrink-0 text-[#0a0a0a]" />
+          ) : (
+            <Logo width={110} className="flex-shrink-0 text-[#0a0a0a]" />
           )}
         </div>
 

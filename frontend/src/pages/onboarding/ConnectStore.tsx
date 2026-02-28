@@ -11,6 +11,7 @@ import {
 } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import api from '../../services/api';
+import Logo from '../../components/Logo';
 import type { AxiosError } from 'axios';
 
 export default function ConnectStore() {
@@ -66,11 +67,8 @@ export default function ConnectStore() {
     <div className="grain font-display relative flex min-h-screen flex-col bg-[#fafafa]">
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-5 sm:px-10">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0a0a0a]">
-            <span className="text-[13px] font-extrabold text-white">P</span>
-          </div>
-          <span className="text-[15px] font-bold tracking-tight text-[#0a0a0a]">PickNPack</span>
+        <div className="flex items-center">
+          <Logo width={120} className="text-[#0a0a0a]" />
         </div>
         {/* Steps */}
         <div className="flex items-center gap-3 text-[13px]">

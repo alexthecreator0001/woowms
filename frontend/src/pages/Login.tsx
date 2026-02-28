@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowRight, CircleNotch } from '@phosphor-icons/react';
 import api from '../services/api';
+import Logo from '../components/Logo';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -36,11 +37,8 @@ export default function Login() {
     <div className="grain font-display relative flex min-h-screen flex-col bg-[#fafafa]">
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-5 sm:px-10">
-        <Link to="/" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0a0a0a]">
-            <span className="text-[13px] font-extrabold text-white">P</span>
-          </div>
-          <span className="text-[15px] font-bold tracking-tight text-[#0a0a0a]">PickNPack</span>
+        <Link to="/" className="flex items-center">
+          <Logo width={120} className="text-[#0a0a0a]" />
         </Link>
         <Link
           to="/register"

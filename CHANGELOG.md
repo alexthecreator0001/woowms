@@ -3,6 +3,18 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.0.1] - 2026-02-28
+
+### Changed
+- **Brand color** updated to `#2B67FF` — primary HSL token changed from `221 83% 53%` to `222 100% 58%`, affects all `bg-primary`, `text-primary`, focus rings, and selection highlights across the app
+- **Logo** replaced placeholder black "P" square with actual PickNPack SVG wordmark logo in all 4 locations (sidebar, login, register, connect store)
+- Sidebar shows full wordmark when expanded, compact "p+Q" logomark when collapsed
+- Logo text paths use `currentColor` for flexibility, brand "Q" shape stays `#2B67FF`
+
+### Added
+- `Logo` component (`components/Logo.tsx`) — full SVG wordmark, accepts `width`/`className` props
+- `LogoMark` component — compact icon variant for collapsed sidebar
+
 ## [3.0.0] - 2026-02-28
 
 ### Changed
