@@ -205,17 +205,26 @@ export default function Warehouse() {
             <p className="text-xs text-muted-foreground">Our guide explains everything with real examples and visual diagrams.</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/warehouse/guide')}
-          className={cn(
-            'inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground',
-            'hover:bg-primary/90 shadow-sm transition-colors whitespace-nowrap',
-          )}
-        >
-          View Setup Guide
-          <ArrowRight size={16} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/warehouse/guide')}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground',
+              'hover:bg-primary/90 shadow-sm transition-colors whitespace-nowrap',
+            )}
+          >
+            View Setup Guide
+            <ArrowRight size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/docs')}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors whitespace-nowrap"
+          >
+            All Help Topics
+          </button>
+        </div>
       </div>
 
       {/* Create Warehouse Modal */}

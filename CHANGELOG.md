@@ -3,6 +3,18 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.8.0] - 2026-02-28
+
+### Added
+- **Help Center** (`/docs`) — central documentation page with searchable help topic cards (Warehouse Setup, Orders, Inventory, Picking, Receiving, Settings), quick links, and "Coming Soon" badges for future guides
+- **"Help" link in sidebar** — Question icon link above Settings in the sidebar footer, navigating to `/docs`
+- **Print Location Labels** — PDF label generator per zone with 3 size options (Small 30/page for shelf edges, Medium 10/page for rack labels, Large 6/page for aisle signs), select all/individual checkbox selection grouped by aisle, generates professional PDF with location code in bold, zone/warehouse name, and label breakdown (Aisle · Rack · Shelf · Position)
+- "Print Labels" button in zone header (visible when zone has locations)
+- "All Help Topics" button in warehouse page bottom banner linking to `/docs`
+
+### Fixed
+- Zone creation bug — creating a second zone after the first now works correctly (form state resets properly between creates, `zone={null}` passed explicitly to create modal)
+
 ## [2.7.1] - 2026-02-28
 
 ### Added

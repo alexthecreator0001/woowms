@@ -94,8 +94,12 @@ export default function ZoneModal({
         await api.post(`/warehouse/${warehouseId}/zones`, payload);
       }
 
-      onSaved();
+      // Reset form immediately so next open starts clean
+      setName('');
+      setType('STORAGE');
+      setDescription('');
       onClose();
+      onSaved();
     } catch (err: any) {
       const message =
         err?.response?.data?.message || 'Failed to save zone. Please try again.';

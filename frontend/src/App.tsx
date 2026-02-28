@@ -17,6 +17,7 @@ import Receiving from './pages/Receiving';
 import PODetail from './pages/PODetail';
 import POCreate from './pages/POCreate';
 import Settings from './pages/settings/SettingsPage';
+import Docs from './pages/Docs';
 import type { TokenPayload } from './types';
 
 function getTokenPayload(): TokenPayload | null {
@@ -97,6 +98,7 @@ export default function App() {
                 <Route path="/receiving/new" element={<POCreate />} />
                 <Route path="/receiving/:id" element={<PODetail />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/docs" element={<Docs />} />
               </Routes>
             </Layout>
           </PrivateRoute>

@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { PencilSimple, Trash, Plus, MapTrifold } from '@phosphor-icons/react';
+import { PencilSimple, Trash, Plus, MapTrifold, Printer } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import type { Zone, Bin, ZoneType } from '../../types';
 import BinGrid from './BinGrid';
 import ZoneModal from './ZoneModal';
 import BinModal from './BinModal';
 import GenerateBinsModal from './GenerateBinsModal';
+import PrintLabelsModal from './PrintLabelsModal';
 import api from '../../services/api';
 
 const zoneTypeBadge: Record<string, { bg: string; text: string; accent: string }> = {
@@ -20,13 +21,15 @@ const zoneTypeBadge: Record<string, { bg: string; text: string; accent: string }
 interface ZoneSectionProps {
   zone: Zone;
   warehouseId: number;
+  warehouseName: string;
   onRefresh: () => void;
 }
 
-export default function ZoneSection({ zone, warehouseId, onRefresh }: ZoneSectionProps) {
+export default function ZoneSection({ zone, warehouseId, warehouseName, onRefresh }: ZoneSectionProps) {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [binModalOpen, setBinModalOpen] = useState(false);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
+  const [printModalOpen, setPrintModalOpen] = useState(false);
   const [selectedBin, setSelectedBin] = useState<Bin | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -119,6 +122,17 @@ export default function ZoneSection({ zone, warehouseId, onRefresh }: ZoneSectio
               <MapTrifold size={14} weight="bold" />
               Generate Locations
             </button>
+            {bins.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setPrintModalOpen(true)}
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title="Print location labels as PDF"
+              >
+                <Printer size={14} weight="bold" />
+                Print Labels
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setEditModalOpen(true)}
@@ -164,6 +178,13 @@ export default function ZoneSection({ zone, warehouseId, onRefresh }: ZoneSectio
         onClose={() => setGenerateModalOpen(false)}
         onSaved={onRefresh}
         zoneId={zone.id}
+      />
+      <PrintLabelsModal
+        open={printModalOpen}
+        onClose={() => setPrintModalOpen(false)}
+        bins={bins}
+        zoneName={zone.name}
+        warehouseName={warehouseName}
       />
     </>
   );

@@ -116,6 +116,7 @@ export default function WarehouseCard({ warehouse, onRefresh }: WarehouseCardPro
                 key={zone.id}
                 zone={zone}
                 warehouseId={warehouse.id}
+                warehouseName={warehouse.name}
                 onRefresh={onRefresh}
               />
             ))}
@@ -152,8 +153,9 @@ export default function WarehouseCard({ warehouse, onRefresh }: WarehouseCardPro
       <ZoneModal
         open={zoneModalOpen}
         onClose={() => setZoneModalOpen(false)}
-        onSaved={onRefresh}
+        onSaved={() => { setZoneModalOpen(false); onRefresh(); }}
         warehouseId={warehouse.id}
+        zone={null}
       />
     </>
   );
