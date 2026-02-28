@@ -7,6 +7,7 @@ import ConnectStore from './pages/onboarding/ConnectStore';
 import Dashboard from './pages/Dashboard';
 import Orders from './pages/Orders';
 import Inventory from './pages/Inventory';
+import ProductDetail from './pages/ProductDetail';
 import Warehouse from './pages/Warehouse';
 import Picking from './pages/Picking';
 import Shipping from './pages/Shipping';
@@ -82,6 +83,7 @@ export default function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/orders" element={<Orders />} />
                 <Route path="/inventory" element={<Inventory />} />
+                <Route path="/inventory/:id" element={<ProductDetail />} />
                 <Route path="/warehouse" element={<Warehouse />} />
                 <Route path="/picking" element={<Picking />} />
                 <Route path="/shipping" element={<Shipping />} />

@@ -157,6 +157,7 @@ model Product {
   width         Decimal? @db.Decimal(8, 2)
   height        Decimal? @db.Decimal(8, 2)
   price         Decimal  @db.Decimal(10, 2)
+  currency      String   @default("USD")
   stockQty      Int      @default(0) @map("stock_qty")
   reservedQty   Int      @default(0) @map("reserved_qty")
   lowStockThreshold Int  @default(5) @map("low_stock_threshold")

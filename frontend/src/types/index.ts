@@ -103,6 +103,8 @@ export interface Product {
   id: number;
   sku: string | null;
   name: string;
+  price: string;
+  currency: string;
   stockQty: number;
   reservedQty: number;
   lowStockThreshold: number;

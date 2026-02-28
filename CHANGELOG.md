@@ -3,6 +3,22 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3.0] - 2026-02-28
+
+### Added
+- Full product detail page at `/inventory/:id` — image, 4 gradient stock stat cards, product info panel, warehouse locations panel, stock movement history table
+- Product currency synced from WooCommerce store settings (fetches `woocommerce_currency` from store settings API)
+- `currency` column on Product model (DB migration `20260228220000_add_product_currency`)
+- Product image thumbnails in inventory list table
+- Price column with correct currency in inventory list
+- Chevron arrow on product rows indicating clickable navigation
+
+### Changed
+- Product detail is now a full page (not a sidebar) — navigates to `/inventory/:id`
+- Inventory stat cards upgraded with gradient backgrounds and larger typography
+- Inventory table redesigned: image thumbnail, name+SKU stacked, price with currency, centered stock numbers, available column with low-stock warning
+- Inventory stat cards use `rounded-2xl` and gradient overlays for a more polished look
+
 ## [2.2.1] - 2026-02-28
 
 ### Fixed

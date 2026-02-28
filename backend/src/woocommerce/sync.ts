@@ -49,6 +49,11 @@ interface WooProduct {
   status: string;
 }
 
+interface WooSetting {
+  id: string;
+  value: string;
+}
+
 export async function syncOrders(store: Store): Promise<void> {
   if (!store.syncOrders) {
     console.log(`[SYNC] Order sync disabled for store: ${store.name}`);
@@ -170,6 +175,16 @@ export async function syncProducts(store: Store): Promise<void> {
 
   console.log(`[SYNC] Starting product sync for store: ${store.name}`);
 
+  // Fetch store currency from WooCommerce settings
+  let currency = 'USD';
+  try {
+    const { data: settings } = await woo.get<WooSetting[]>('settings/general');
+    const currencySetting = settings.find((s: WooSetting) => s.id === 'woocommerce_currency');
+    if (currencySetting?.value) currency = currencySetting.value;
+  } catch {
+    console.log(`[SYNC] Could not fetch currency setting, defaulting to USD`);
+  }
+
   while (hasMore) {
     const { data: products } = await woo.get<WooProduct[]>('products', {
       page,
@@ -191,6 +206,7 @@ export async function syncProducts(store: Store): Promise<void> {
           sku: product.sku || null,
           description: product.short_description || null,
           price: product.price || '0',
+          currency,
           stockQty: product.stock_quantity || 0,
           weight: product.weight ? parseFloat(product.weight) : null,
           length: product.dimensions?.length ? parseFloat(product.dimensions.length) : null,
@@ -206,6 +222,7 @@ export async function syncProducts(store: Store): Promise<void> {
           sku: product.sku || null,
           description: product.short_description || null,
           price: product.price || '0',
+          currency,
           stockQty: product.stock_quantity || 0,
           weight: product.weight ? parseFloat(product.weight) : null,
           length: product.dimensions?.length ? parseFloat(product.dimensions.length) : null,
