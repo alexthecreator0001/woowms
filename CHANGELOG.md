@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.2] - 2026-02-28
+
+### Fixed
+- Fix "handleSkip is not defined" crash on Connect Store page — "I'll connect later" button now works
+
 ## [1.5.1] - 2026-02-28
 
 ### Changed

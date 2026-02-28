@@ -227,7 +227,7 @@ export default function ConnectStore() {
           {/* Skip */}
           <div className="mt-8 text-center">
             <button
-              onClick={handleSkip}
+              onClick={completeOnboarding}
               className="text-[13px] text-[#a0a0a0] transition-colors hover:text-[#6b6b6b]"
             >
               I'll connect later
