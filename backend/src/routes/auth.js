@@ -4,7 +4,11 @@ import jwt from 'jsonwebtoken';
 import config from '../config/index.js';
 import prisma from '../lib/prisma.js';
 import { authenticate } from '../middleware/auth.js';
-import { sendVerificationEmail } from '../services/email.js';
+// Lazy-load email service only when needed (avoids crash if resend not installed)
+async function loadEmailService() {
+  const { sendVerificationEmail } = await import('../services/email.js');
+  return sendVerificationEmail;
+}
 
 const router = Router();
 
@@ -144,7 +148,8 @@ router.post('/send-verification', authenticate, async (req, res, next) => {
       data: { verificationCode: code, verificationCodeExpiresAt: codeExpiry },
     });
 
-    await sendVerificationEmail(user.email, code);
+    const sendEmail = await loadEmailService();
+    await sendEmail(user.email, code);
 
     res.json({ data: { message: 'Verification code sent' } });
   } catch (err) {

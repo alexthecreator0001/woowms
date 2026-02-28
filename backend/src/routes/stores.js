@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authorize } from '../middleware/auth.js';
 import { syncOrders, syncProducts } from '../woocommerce/sync.js';
+import { encrypt } from '../lib/crypto.js';
 
 const router = Router();
 
@@ -35,7 +36,13 @@ router.post('/', authorize('ADMIN', 'MANAGER'), async (req, res, next) => {
     }
 
     const store = await req.prisma.store.create({
-      data: { name, url, consumerKey, consumerSecret, webhookSecret },
+      data: {
+        name,
+        url,
+        consumerKey: encrypt(consumerKey),
+        consumerSecret: encrypt(consumerSecret),
+        webhookSecret: webhookSecret ? encrypt(webhookSecret) : null,
+      },
     });
 
     res.status(201).json({
@@ -59,9 +66,9 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req, res, next) => {
     const data = {};
     if (name !== undefined) data.name = name;
     if (url !== undefined) data.url = url;
-    if (consumerKey !== undefined) data.consumerKey = consumerKey;
-    if (consumerSecret !== undefined) data.consumerSecret = consumerSecret;
-    if (webhookSecret !== undefined) data.webhookSecret = webhookSecret;
+    if (consumerKey !== undefined) data.consumerKey = encrypt(consumerKey);
+    if (consumerSecret !== undefined) data.consumerSecret = encrypt(consumerSecret);
+    if (webhookSecret !== undefined) data.webhookSecret = webhookSecret ? encrypt(webhookSecret) : null;
     if (isActive !== undefined) data.isActive = isActive;
 
     const store = await req.prisma.store.update({
