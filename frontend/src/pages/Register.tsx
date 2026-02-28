@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { CircleNotch, Eye, EyeSlash } from '@phosphor-icons/react';
 import api from '../services/api';
 import Logo from '../components/Logo';
+import GradientBlobs from '../components/GradientBlobs';
 import type { AxiosError } from 'axios';
 
 export default function Register() {
@@ -35,13 +36,7 @@ export default function Register() {
 
   return (
     <div className="auth-page relative flex min-h-svh flex-col items-center justify-center px-4">
-      {/* Gradient blobs — large, heavily blurred, top-anchored */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-[40%] -left-[5%] h-[80vh] w-[80vh] rounded-full bg-rose-300/40 blur-[180px]" />
-        <div className="absolute -top-[35%] left-[25%] h-[70vh] w-[70vh] rounded-full bg-violet-300/30 blur-[180px]" />
-        <div className="absolute -top-[38%] right-[5%] h-[75vh] w-[75vh] rounded-full bg-sky-300/35 blur-[180px]" />
-        <div className="absolute -top-[30%] right-[30%] h-[60vh] w-[60vh] rounded-full bg-amber-200/30 blur-[160px]" />
-      </div>
+      <GradientBlobs />
 
       <div className="relative z-10 flex w-full max-w-[400px] flex-col items-center">
         {/* Logo */}

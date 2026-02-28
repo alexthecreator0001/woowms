@@ -3,6 +3,19 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.3.0] - 2026-02-28
+
+### Added
+- **Whitelabel branding** — admins can set company name in Settings → Branding tab, displayed in sidebar for all team members
+- `PATCH /api/v1/account/branding` — update tenant company name (admin only)
+- `/auth/me` now returns `tenantName` field
+- **Reusable `GradientBlobs` component** — shared blue-violet-rose pastel gradient background, used on auth pages and available for any page
+- **Branding tab** in Settings — company name field with live sidebar avatar preview
+
+### Changed
+- **Sidebar redesigned Stripe-style** — company initial avatar + company name + dropdown chevron at top (replaces large wordmark logo), cleaner section headers
+- **Auth page gradient** updated to blue-violet-rose tones (was rose-violet-sky-amber)
+
 ## [3.2.4] - 2026-02-28
 
 ### Changed

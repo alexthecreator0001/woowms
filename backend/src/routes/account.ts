@@ -154,6 +154,25 @@ router.patch('/preferences', async (req: Request, res: Response, next: NextFunct
   }
 });
 
+// PATCH /api/v1/account/branding — update company/tenant name (admin only)
+router.patch('/branding', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { companyName } = req.body;
+    if (!companyName || typeof companyName !== 'string' || companyName.trim().length === 0) {
+      return res.status(400).json({ error: true, message: 'Company name is required', code: 'VALIDATION_ERROR' });
+    }
+
+    const tenant = await prisma.tenant.update({
+      where: { id: req.user!.tenantId },
+      data: { name: companyName.trim() },
+    });
+
+    res.json({ data: { companyName: tenant.name } });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // DELETE /api/v1/account — delete entire account (admin only, cascade)
 router.delete('/', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
   try {

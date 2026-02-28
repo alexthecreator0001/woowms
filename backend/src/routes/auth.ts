@@ -229,7 +229,11 @@ router.get('/me', authenticate, async (req: Request, res: Response, next: NextFu
       where: { id: req.user!.id },
       select: { id: true, email: true, name: true, role: true, tenantId: true, emailVerified: true, onboardingCompleted: true, createdAt: true },
     });
-    res.json({ data: user });
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: req.user!.tenantId },
+      select: { name: true },
+    });
+    res.json({ data: { ...user, tenantName: tenant?.name || '' } });
   } catch (err) {
     next(err);
   }

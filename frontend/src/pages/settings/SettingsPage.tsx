@@ -5,6 +5,7 @@ import {
   Storefront,
   Warning,
   Table,
+  PaintBrush,
 } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import type { TokenPayload } from '../../types';
@@ -13,6 +14,7 @@ import TeamSection from './TeamSection';
 import WooCommerceSection from './WooCommerceSection';
 import DangerZoneSection from './DangerZoneSection';
 import TableConfigSection from './TableConfigSection';
+import BrandingSection from './BrandingSection';
 
 function getTokenPayload(): TokenPayload | null {
   const token = localStorage.getItem('token');
@@ -24,7 +26,7 @@ function getTokenPayload(): TokenPayload | null {
   }
 }
 
-type Tab = 'account' | 'team' | 'woocommerce' | 'tables' | 'danger';
+type Tab = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger';
 
 interface TabDef {
   id: Tab;
@@ -35,6 +37,7 @@ interface TabDef {
 
 const tabs: TabDef[] = [
   { id: 'account', label: 'Account', icon: User },
+  { id: 'branding', label: 'Branding', icon: PaintBrush, adminOnly: true },
   { id: 'team', label: 'Team', icon: UsersThree, adminOnly: true },
   { id: 'woocommerce', label: 'WooCommerce', icon: Storefront },
   { id: 'tables', label: 'Tables', icon: Table },
@@ -85,6 +88,7 @@ export default function SettingsPage() {
 
       {/* Tab content */}
       {activeTab === 'account' && <AccountSection />}
+      {activeTab === 'branding' && isAdmin && <BrandingSection />}
       {activeTab === 'team' && isAdmin && <TeamSection />}
       {activeTab === 'woocommerce' && <WooCommerceSection />}
       {activeTab === 'tables' && <TableConfigSection />}

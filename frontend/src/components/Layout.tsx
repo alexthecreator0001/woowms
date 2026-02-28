@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import {
@@ -14,9 +14,11 @@ import {
   SignOut,
   CaretLineLeft,
   CaretLineRight,
+  CaretDown,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
-import Logo, { LogoMark } from './Logo';
+import { LogoMark } from './Logo';
+import api from '../services/api';
 
 interface NavItem {
   path: string;
@@ -57,6 +59,15 @@ const navSections: NavSection[] = [
 export default function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+
+  useEffect(() => {
+    api.get('/auth/me')
+      .then(({ data }) => {
+        setCompanyName(data.data.tenantName || '');
+      })
+      .catch(() => {});
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -65,6 +76,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const sidebarWidth = collapsed ? 'w-[64px]' : 'w-[240px]';
   const mainMargin = collapsed ? 'ml-[64px]' : 'ml-[240px]';
+
+  // Get company initial for the avatar
+  const initial = (companyName || 'P').charAt(0).toUpperCase();
 
   return (
     <div className="flex min-h-screen bg-[#fafafa]">
@@ -75,22 +89,34 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           sidebarWidth
         )}
       >
-        {/* Brand */}
+        {/* Company header — Stripe style */}
         <div
           className={cn(
-            'flex items-center px-4 py-4',
-            collapsed ? 'justify-center' : 'gap-2'
+            'flex items-center border-b border-[#ebebeb] px-3 py-3',
+            collapsed ? 'justify-center' : 'gap-2.5'
           )}
         >
           {collapsed ? (
-            <LogoMark size={24} className="flex-shrink-0 text-[#0a0a0a]" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-[13px] font-bold text-primary">
+              {initial}
+            </div>
           ) : (
-            <Logo width={110} className="flex-shrink-0 text-[#0a0a0a]" />
+            <>
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-primary/10 text-[13px] font-bold text-primary">
+                {initial}
+              </div>
+              <div className="flex min-w-0 flex-1 items-center gap-1">
+                <span className="truncate text-[13px] font-semibold text-[#0a0a0a]">
+                  {companyName || 'PickNPack'}
+                </span>
+                <CaretDown size={12} className="flex-shrink-0 text-[#a0a0a0]" />
+              </div>
+            </>
           )}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2.5 pt-2">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2.5 pt-3">
           {navSections.map((section) => (
             <div key={section.label} className="mb-5">
               {!collapsed && (
