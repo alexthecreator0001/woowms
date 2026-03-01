@@ -8,6 +8,9 @@ import {
   Buildings,
   ArrowLeft,
   CaretRight,
+  BellSimple,
+  ArrowsLeftRight,
+  Package,
 } from '@phosphor-icons/react';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
@@ -18,6 +21,9 @@ import WooCommerceSection from './WooCommerceSection';
 import DangerZoneSection from './DangerZoneSection';
 import TableConfigSection from './TableConfigSection';
 import BrandingSection from './BrandingSection';
+import NotificationsSection from './NotificationsSection';
+import OrderWorkflowSection from './OrderWorkflowSection';
+import InventoryDefaultsSection from './InventoryDefaultsSection';
 
 function getTokenPayload(): TokenPayload | null {
   const token = localStorage.getItem('token');
@@ -29,7 +35,7 @@ function getTokenPayload(): TokenPayload | null {
   }
 }
 
-type Section = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger';
+type Section = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger' | 'notifications' | 'orderWorkflow' | 'inventoryDefaults';
 
 interface SettingsCard {
   id: Section;
@@ -44,10 +50,13 @@ interface SettingsCard {
 const cards: SettingsCard[] = [
   { id: 'account', title: 'Personal details', description: 'Name, email, and password.', icon: User, group: 'Personal settings' },
   { id: 'tables', title: 'Table preferences', description: 'Configure visible columns in orders and inventory.', icon: Table, group: 'Personal settings' },
+  { id: 'notifications', title: 'Notifications', description: 'Alerts, badges, and default filters.', icon: BellSimple, group: 'Personal settings' },
   { id: 'branding', title: 'Business', description: 'Company name and branding.', icon: Buildings, group: 'Account settings', adminOnly: true },
   { id: 'team', title: 'Team and security', description: 'Team members, roles, and permissions.', icon: UsersThree, group: 'Account settings', adminOnly: true },
-  { id: 'woocommerce', title: 'WooCommerce', description: 'Store connections and sync settings.', icon: Storefront, group: 'Integrations' },
   { id: 'danger', title: 'Danger zone', description: 'Delete account and all data.', icon: Warning, group: 'Account settings', adminOnly: true, danger: true },
+  { id: 'orderWorkflow', title: 'Order workflow', description: 'Map WooCommerce statuses to WMS statuses.', icon: ArrowsLeftRight, group: 'Warehouse settings', adminOnly: true },
+  { id: 'inventoryDefaults', title: 'Inventory defaults', description: 'Low stock threshold and stock sync.', icon: Package, group: 'Warehouse settings', adminOnly: true },
+  { id: 'woocommerce', title: 'WooCommerce', description: 'Store connections and sync settings.', icon: Storefront, group: 'Integrations' },
 ];
 
 export default function SettingsPage() {
@@ -80,6 +89,9 @@ export default function SettingsPage() {
         {active === 'team' && isAdmin && <TeamSection />}
         {active === 'woocommerce' && <WooCommerceSection />}
         {active === 'tables' && <TableConfigSection />}
+        {active === 'notifications' && <NotificationsSection />}
+        {active === 'orderWorkflow' && isAdmin && <OrderWorkflowSection />}
+        {active === 'inventoryDefaults' && isAdmin && <InventoryDefaultsSection />}
         {active === 'danger' && isAdmin && <DangerZoneSection />}
       </div>
     );

@@ -81,7 +81,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const initial = (companyName || 'P').charAt(0).toUpperCase();
 
   return (
-    <div className="flex min-h-screen bg-[#fafafa]">
+    <div className="flex min-h-screen bg-white">
       {/* Sidebar */}
       <aside
         className={cn(

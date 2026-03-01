@@ -3,6 +3,23 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.5.0 / 2.10.0] - 2026-03-01
+
+### Added
+- **Tenant settings** — `settings` JSON column on Tenant model for tenant-wide operational config
+- `GET/PATCH /api/v1/account/tenant-settings` — read/update tenant settings (admin only)
+- **Notifications section** in Settings — toggle low-stock alerts, new-order alerts, set default order filter (user preferences)
+- **Order Workflow section** in Settings — map 7 WooCommerce statuses to WMS statuses, set default new-order status (tenant settings, admin only)
+- **Inventory Defaults section** in Settings — configurable low-stock threshold and push-stock-to-WooCommerce toggle (tenant settings, admin only)
+- **Warehouse settings** group in Settings card grid
+
+### Changed
+- Main content background changed from `#fafafa` to white for cleaner Stripe-like appearance
+- `mapWooStatus()` in sync now reads custom status mapping from tenant settings, falls back to defaults
+- Low-stock queries in inventory routes now read threshold from tenant settings instead of hardcoded `5`
+- New products created during sync now use tenant low-stock threshold
+- Settings page now shows 4 groups with 9 cards (was 3 groups with 6 cards)
+
 ## [3.4.0] - 2026-03-01
 
 ### Changed

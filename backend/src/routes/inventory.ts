@@ -1,8 +1,18 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authorize } from '../middleware/auth.js';
 import { syncProducts } from '../woocommerce/sync.js';
+import prisma from '../lib/prisma.js';
 
 const router = Router();
+
+async function getLowStockThreshold(tenantId: number): Promise<number> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { settings: true },
+  });
+  const settings = (tenant?.settings as Record<string, unknown>) || {};
+  return typeof settings.lowStockThreshold === 'number' ? settings.lowStockThreshold : 5;
+}
 
 // GET /api/v1/inventory/stats
 router.get('/stats', async (req: Request, res: Response, next: NextFunction) => {
@@ -84,7 +94,8 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       ];
     }
     if (lowStock === 'true') {
-      where.stockQty = { lte: 5 };
+      const threshold = await getLowStockThreshold(req.tenantId!);
+      where.stockQty = { lte: threshold };
     }
 
     const [products, total] = await Promise.all([
@@ -172,10 +183,12 @@ router.get('/low-stock', async (req: Request, res: Response, next: NextFunction)
   try {
     const prisma = req.prisma!;
 
+    const threshold = await getLowStockThreshold(req.tenantId!);
+
     const products = await prisma.product.findMany({
       where: {
         isActive: true,
-        stockQty: { lte: 5 },
+        stockQty: { lte: threshold },
         store: { tenantId: req.tenantId },
       },
       orderBy: { stockQty: 'asc' },

@@ -154,6 +154,47 @@ router.patch('/preferences', async (req: Request, res: Response, next: NextFunct
   }
 });
 
+// GET /api/v1/account/tenant-settings — get tenant settings (admin only)
+router.get('/tenant-settings', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: req.user!.tenantId },
+      select: { settings: true },
+    });
+    res.json({ data: tenant?.settings || {} });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/v1/account/tenant-settings — update tenant settings (admin only, shallow merge)
+router.patch('/tenant-settings', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const updates = req.body;
+    if (!updates || typeof updates !== 'object') {
+      return res.status(400).json({ error: true, message: 'Request body must be an object', code: 'VALIDATION_ERROR' });
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: req.user!.tenantId },
+      select: { settings: true },
+    });
+
+    const existing = (tenant?.settings as Record<string, unknown>) || {};
+    const merged = { ...existing, ...updates };
+
+    const updated = await prisma.tenant.update({
+      where: { id: req.user!.tenantId },
+      data: { settings: merged },
+      select: { settings: true },
+    });
+
+    res.json({ data: updated.settings });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // PATCH /api/v1/account/branding — update company/tenant name (admin only)
 router.patch('/branding', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
   try {

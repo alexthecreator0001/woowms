@@ -54,6 +54,14 @@ interface WooSetting {
   value: string;
 }
 
+async function getTenantSettings(tenantId: number): Promise<Record<string, unknown>> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { settings: true },
+  });
+  return (tenant?.settings as Record<string, unknown>) || {};
+}
+
 export async function syncOrders(store: Store): Promise<void> {
   if (!store.syncOrders) {
     console.log(`[SYNC] Order sync disabled for store: ${store.name}`);
@@ -61,6 +69,7 @@ export async function syncOrders(store: Store): Promise<void> {
   }
 
   const woo = getWooClient(store);
+  const tenantSettings = await getTenantSettings(store.tenantId);
   let page = 1;
   let hasMore = true;
 
@@ -116,7 +125,7 @@ export async function syncOrders(store: Store): Promise<void> {
           storeId: store.id,
           orderNumber: order.number,
           wooStatus: order.status,
-          status: mapWooStatus(order.status),
+          status: mapWooStatus(order.status, tenantSettings),
           customerName: `${order.billing.first_name} ${order.billing.last_name}`,
           customerEmail: order.billing.email,
           shippingAddress: order.shipping,
@@ -170,6 +179,8 @@ export async function syncProducts(store: Store): Promise<void> {
   }
 
   const woo = getWooClient(store);
+  const tenantSettings = await getTenantSettings(store.tenantId);
+  const lowStockThreshold = typeof tenantSettings.lowStockThreshold === 'number' ? tenantSettings.lowStockThreshold : 5;
   let page = 1;
   let hasMore = true;
 
@@ -224,6 +235,7 @@ export async function syncProducts(store: Store): Promise<void> {
           price: product.price || '0',
           currency,
           stockQty: product.stock_quantity || 0,
+          lowStockThreshold,
           weight: product.weight ? parseFloat(product.weight) : null,
           length: product.dimensions?.length ? parseFloat(product.dimensions.length) : null,
           width: product.dimensions?.width ? parseFloat(product.dimensions.width) : null,
@@ -253,8 +265,8 @@ export async function pushStockToWoo(store: Store, productId: number): Promise<v
   console.log(`[SYNC] Pushed stock for ${product.sku}: ${product.stockQty - product.reservedQty}`);
 }
 
-function mapWooStatus(wooStatus: string): OrderStatus {
-  const map: Record<string, OrderStatus> = {
+function mapWooStatus(wooStatus: string, tenantSettings?: Record<string, unknown>): OrderStatus {
+  const defaults: Record<string, OrderStatus> = {
     pending: 'PENDING',
     processing: 'PENDING',
     'on-hold': 'ON_HOLD',
@@ -263,5 +275,12 @@ function mapWooStatus(wooStatus: string): OrderStatus {
     refunded: 'CANCELLED',
     failed: 'CANCELLED',
   };
-  return map[wooStatus] || 'PENDING';
+
+  const customMapping = tenantSettings?.statusMapping as Record<string, string> | undefined;
+  if (customMapping && customMapping[wooStatus]) {
+    return customMapping[wooStatus] as OrderStatus;
+  }
+
+  const defaultNewOrderStatus = tenantSettings?.defaultNewOrderStatus as string | undefined;
+  return defaults[wooStatus] || (defaultNewOrderStatus as OrderStatus) || 'PENDING';
 }
