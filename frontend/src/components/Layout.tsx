@@ -286,7 +286,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           mainMargin
         )}
       >
-        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+        <div className="mx-auto max-w-7xl overflow-x-hidden px-6 py-8 lg:px-8">
           {children}
         </div>
       </main>

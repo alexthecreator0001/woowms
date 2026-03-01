@@ -382,9 +382,12 @@ router.post('/:id/floor-plan/auto-zone', authorize('ADMIN', 'MANAGER'), async (r
     const typeMap: Record<string, string> = {
       shelf: 'STORAGE',
       pallet_rack: 'STORAGE',
+      pallet_storage: 'STORAGE',
       packing_table: 'PACKING',
       receiving_area: 'RECEIVING',
       shipping_area: 'SHIPPING',
+      dock_door: 'RECEIVING',
+      staging_area: 'PICKING',
     };
     const zoneType = typeMap[elementType];
     if (!zoneType) {

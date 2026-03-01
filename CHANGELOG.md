@@ -3,6 +3,16 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.18.0 / 2.21.0] - 2026-03-01
+
+### Added
+- **3 new floor plan elements** — Pallet Storage (green, 2×2, ground-level pallet positions), Dock Door (teal, 3×1, loading bay entry points), Staging Area (pink, 2×3, temp holding between pick/pack)
+- **Grid scale legend** — bottom-left corner of the floor plan grid shows "= 1 m" or "= 1 ft" so users understand what one square represents
+- Backend auto-zone mapping for new element types: pallet_storage→STORAGE, dock_door→RECEIVING, staging_area→PICKING
+
+### Fixed
+- **Slide-over page overflow** — opening a zone edit slide-over on the Warehouse Detail page no longer causes horizontal scroll; added `overflow-x-hidden` to main content wrapper
+
 ## [3.17.0 / 2.20.0] - 2026-03-01
 
 ### Added

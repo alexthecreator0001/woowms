@@ -133,7 +133,7 @@ export interface Zone {
   bins?: Bin[];
 }
 
-export type FloorPlanElementType = 'shelf' | 'pallet_rack' | 'packing_table' | 'receiving_area' | 'shipping_area' | 'wall';
+export type FloorPlanElementType = 'shelf' | 'pallet_rack' | 'packing_table' | 'receiving_area' | 'shipping_area' | 'wall' | 'pallet_storage' | 'dock_door' | 'staging_area';
 
 export interface FloorPlanElement {
   id: string;

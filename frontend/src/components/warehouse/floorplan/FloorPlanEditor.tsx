@@ -365,6 +365,7 @@ export default function FloorPlanEditor({ warehouse, onSaved, highlightZoneId, o
           <FloorPlanGrid
             width={floorPlan.width}
             height={floorPlan.height}
+            unit={unitLabel}
             elements={floorPlan.elements}
             selectedId={selectedId}
             activeTool={activeTool}

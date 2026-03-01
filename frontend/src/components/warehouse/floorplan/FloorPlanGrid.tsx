@@ -30,6 +30,7 @@ function pointInRect(px: number, py: number, r: { x: number; y: number; w: numbe
 interface FloorPlanGridProps {
   width: number;
   height: number;
+  unit?: string;
   elements: FloorPlanElement[];
   selectedId: string | null;
   activeTool: FloorPlanElementType | null;
@@ -41,6 +42,7 @@ interface FloorPlanGridProps {
 export default function FloorPlanGrid({
   width,
   height,
+  unit,
   elements,
   selectedId,
   activeTool,
@@ -155,6 +157,21 @@ export default function FloorPlanGrid({
             {i}
           </div>
         ))}
+
+        {/* Scale legend */}
+        {unit && (
+          <div
+            className="absolute flex items-center gap-1.5 pointer-events-none select-none z-30"
+            style={{ bottom: 6, left: 6 }}
+          >
+            <div className="flex items-center gap-1 rounded bg-background/80 backdrop-blur-sm border border-border/40 px-2 py-1">
+              <div className="h-px bg-foreground/50" style={{ width: CELL_SIZE }} />
+              <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap">
+                = 1 {unit}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Placed elements */}
         {elements.map((el) => {

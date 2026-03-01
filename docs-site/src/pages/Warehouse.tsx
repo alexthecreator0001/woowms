@@ -173,6 +173,21 @@ export default function Warehouse() {
             <td>Shipping</td>
           </tr>
           <tr>
+            <td className="font-medium text-surface-800">Pallet Storage</td>
+            <td>2 &times; 2</td>
+            <td>Storage</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Dock Door</td>
+            <td>3 &times; 1</td>
+            <td>Receiving</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Staging Area</td>
+            <td>2 &times; 3</td>
+            <td>Picking</td>
+          </tr>
+          <tr>
             <td className="font-medium text-surface-800">Wall</td>
             <td>1 &times; 1</td>
             <td><em>None</em> (barrier)</td>
@@ -199,6 +214,8 @@ export default function Warehouse() {
       <p>
         Elements can be dragged to new positions on the grid with 0.1-unit snap precision.
         Overlap is prevented automatically. The editor includes undo support (up to 20 steps).
+        A scale legend in the bottom-left corner of the grid shows what one square represents
+        (e.g., "= 1 m" or "= 1 ft").
       </p>
 
       <h3>Cross-Tab Navigation</h3>
