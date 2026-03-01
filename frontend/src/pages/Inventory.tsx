@@ -186,7 +186,7 @@ export default function Inventory() {
             { key: 'low' as const, label: 'Low Stock', count: filterCounts.low },
             { key: 'out' as const, label: 'Out of Stock', count: filterCounts.out },
             { key: 'healthy' as const, label: 'In Stock' },
-          ] as const).map(({ key, label, count }) => (
+          ] as const).map(({ key, label, count }: { key: string; label: string; count?: number }) => (
             <button
               key={key}
               onClick={() => setStockFilter(key)}
