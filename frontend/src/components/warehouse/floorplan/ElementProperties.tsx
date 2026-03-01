@@ -6,6 +6,8 @@ import {
   Plus,
   MapPin,
   CopySimple,
+  Stack,
+  ArrowRight,
 } from '@phosphor-icons/react';
 import { cn } from '../../../lib/utils';
 import { getTemplate } from './ElementPalette';
@@ -21,6 +23,7 @@ interface ElementPropertiesProps {
   onDelete: () => void;
   onDuplicate: () => void;
   onCreateZone: () => void;
+  onViewZone?: (zoneId: number) => void;
 }
 
 export default function ElementProperties({
@@ -33,6 +36,7 @@ export default function ElementProperties({
   onDelete,
   onDuplicate,
   onCreateZone,
+  onViewZone,
 }: ElementPropertiesProps) {
   const template = getTemplate(element.type);
   const linkedZone = zones.find((z) => z.id === element.zoneId);
@@ -138,24 +142,89 @@ export default function ElementProperties({
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">Linked Zone</label>
           {linkedZone ? (
-            <div className="flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2">
-              <LinkSimple size={14} className="text-primary shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{linkedZone.name}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {linkedZone.type} — {linkedZone.bins?.length || 0} locations
-                </p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2">
+                <LinkSimple size={14} className="text-primary shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{linkedZone.name}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {linkedZone.type} — {linkedZone.bins?.length || 0} locations
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onUpdate({ ...element, zoneId: null })}
+                  className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  Unlink
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => onUpdate({ ...element, zoneId: null })}
-                className="text-xs text-muted-foreground hover:text-destructive transition-colors"
-              >
-                Unlink
-              </button>
+              {/* Zone stats + View link */}
+              <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
+                <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                  <span>
+                    <span className="font-semibold text-foreground">
+                      {new Set(linkedZone.bins?.filter((b) => b.shelf).map((b) => b.shelf!)).size}
+                    </span> shelves
+                  </span>
+                  <span>
+                    <span className="font-semibold text-foreground">{linkedZone.bins?.length || 0}</span> locations
+                  </span>
+                </div>
+                {onViewZone && (
+                  <button
+                    type="button"
+                    onClick={() => onViewZone(linkedZone.id)}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
+                  >
+                    View
+                    <ArrowRight size={11} weight="bold" />
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <div className="space-y-2">
+              {/* Storage Setup */}
+              <div className="rounded-lg border border-border/40 bg-muted/30 px-3 py-2.5">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Stack size={13} className="text-muted-foreground" />
+                  <span className="text-[11px] font-medium text-muted-foreground">Storage Setup</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="mb-0.5 block text-[10px] text-muted-foreground">Shelves</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={element.shelvesCount ?? 4}
+                      onChange={(e) => {
+                        const v = Math.max(1, Math.min(20, parseInt(e.target.value) || 1));
+                        onUpdate({ ...element, shelvesCount: v });
+                      }}
+                      className={cn(inputClasses, 'text-center !py-1')}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-0.5 block text-[10px] text-muted-foreground">Positions</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={element.positionsPerShelf ?? 3}
+                      onChange={(e) => {
+                        const v = Math.max(1, Math.min(20, parseInt(e.target.value) || 1));
+                        onUpdate({ ...element, positionsPerShelf: v });
+                      }}
+                      className={cn(inputClasses, 'text-center !py-1')}
+                    />
+                  </div>
+                </div>
+                <p className="mt-1.5 text-[10px] text-muted-foreground text-center">
+                  {(element.shelvesCount ?? 4) * (element.positionsPerShelf ?? 3)} locations will be created
+                </p>
+              </div>
               <select
                 value=""
                 onChange={(e) => {

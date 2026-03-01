@@ -146,6 +146,8 @@ export interface FloorPlanElement {
   rotation: 0 | 90;
   zoneId: number | null;
   color?: string;
+  shelvesCount?: number;
+  positionsPerShelf?: number;
 }
 
 export interface FloorPlan {

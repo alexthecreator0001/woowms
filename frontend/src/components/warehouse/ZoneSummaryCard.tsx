@@ -5,6 +5,7 @@ import {
   Trash,
   MapTrifold,
   Printer,
+  GridFour,
 } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import type { Zone, ZoneType } from '../../types';
@@ -26,6 +27,8 @@ interface ZoneSummaryCardProps {
   onDelete: (zone: Zone) => void;
   onGenerate: (zone: Zone) => void;
   onPrint: (zone: Zone) => void;
+  onShowOnFloorPlan?: (zone: Zone) => void;
+  hasFloorPlanLink?: boolean;
 }
 
 export default function ZoneSummaryCard({
@@ -35,6 +38,8 @@ export default function ZoneSummaryCard({
   onDelete,
   onGenerate,
   onPrint,
+  onShowOnFloorPlan,
+  hasFloorPlanLink,
 }: ZoneSummaryCardProps) {
   const navigate = useNavigate();
   const badge = zoneTypeBadge[zone.type] || { bg: 'bg-gray-500/10', text: 'text-gray-500', accent: 'border-l-gray-500', barColor: 'bg-gray-500' };
@@ -146,6 +151,19 @@ export default function ZoneSummaryCard({
             >
               <Printer size={13} weight="bold" />
               Print
+            </button>
+          </>
+        )}
+        {hasFloorPlanLink && onShowOnFloorPlan && (
+          <>
+            <div className="w-px self-stretch bg-border/30" />
+            <button
+              type="button"
+              onClick={() => onShowOnFloorPlan(zone)}
+              className="flex flex-1 items-center justify-center gap-1.5 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <GridFour size={13} weight="bold" />
+              Floor Plan
             </button>
           </>
         )}

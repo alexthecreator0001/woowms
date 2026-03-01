@@ -192,13 +192,31 @@ export default function Warehouse() {
         <li>Click a placed element to select it — the right panel shows its properties</li>
         <li>Edit the element label, resize (decimal values supported), rotate, or link it to an existing zone</li>
         <li>Use <strong>Duplicate</strong> (or <kbd>Ctrl/Cmd+D</kbd>) to copy the selected element</li>
-        <li>Use <strong>Create Zone</strong> to auto-create a zone with bins for the element</li>
+        <li>Configure <strong>Storage Setup</strong> — set the number of shelves and positions per shelf (shown below the zone link section). The summary shows the total locations that will be created.</li>
+        <li>Use <strong>Create Zone</strong> to auto-create a zone with bins matching your storage config</li>
         <li>Click <strong>Save</strong> to persist your floor plan</li>
       </ol>
       <p>
         Elements can be dragged to new positions on the grid with 0.1-unit snap precision.
         Overlap is prevented automatically. The editor includes undo support (up to 20 steps).
       </p>
+
+      <h3>Cross-Tab Navigation</h3>
+      <p>
+        Floor plan elements and zones are connected bidirectionally:
+      </p>
+      <ul>
+        <li>
+          <strong>Zone → Floor Plan</strong> — on zone cards that are linked to a floor plan element,
+          click the <strong>Floor Plan</strong> button to switch to the Floor Plan tab with the linked
+          element automatically selected.
+        </li>
+        <li>
+          <strong>Floor Plan → Zone</strong> — when viewing a linked element's properties, click
+          the <strong>View</strong> link next to the zone stats to switch back to the Zones tab,
+          filtered to the zone's type.
+        </li>
+      </ul>
 
       <h2>Editing & Deleting</h2>
       <p>

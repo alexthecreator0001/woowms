@@ -3,6 +3,13 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.17.0 / 2.20.0] - 2026-03-01
+
+### Added
+- **Configurable storage setup** — when creating a zone from a floor plan element, configure shelves (1-20) and positions per shelf (1-20) instead of hardcoded 4×3; settings persist on the element and are shown as a summary before zone creation
+- **Cross-tab zone ↔ floor plan navigation** — click "Floor Plan" on a zone card to jump to the Floor Plan tab with the linked element auto-selected; click "View" on a linked zone in the floor plan properties to jump back to the Zones tab filtered to that zone's type
+- Zone stats (shelf count, total locations) shown in ElementProperties when a zone is linked
+
 ## [3.16.0 / 2.20.0] - 2026-03-01
 
 ### Added

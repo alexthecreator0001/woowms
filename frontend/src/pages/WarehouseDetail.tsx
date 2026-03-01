@@ -77,6 +77,9 @@ export default function WarehouseDetail() {
   // Tab: 'zones' or 'floorplan'
   const [activeTab, setActiveTab] = useState<'zones' | 'floorplan'>('zones');
 
+  // Cross-tab navigation: highlight element linked to a zone
+  const [highlightZoneId, setHighlightZoneId] = useState<number | null>(null);
+
   // Auto-collapse sidebar on floor plan tab for more editing space
   const { collapsed: sidebarCollapsed, setCollapsed: setSidebarCollapsed } = useSidebar();
   useEffect(() => {
@@ -140,6 +143,31 @@ export default function WarehouseDetail() {
       label: s.type.charAt(0) + s.type.slice(1).toLowerCase(),
     }));
   }, [zones]);
+
+  // Set of zone IDs that are linked to floor plan elements
+  const linkedZoneIds = useMemo(() => {
+    const ids = new Set<number>();
+    const elements = warehouse?.floorPlan?.elements || [];
+    for (const el of elements) {
+      if (el.zoneId) ids.add(el.zoneId);
+    }
+    return ids;
+  }, [warehouse]);
+
+  // Cross-tab navigation handlers
+  const handleShowOnFloorPlan = (zone: Zone) => {
+    setHighlightZoneId(zone.id);
+    setActiveTab('floorplan');
+  };
+
+  const handleViewZoneFromFloorPlan = (zoneId: number) => {
+    const zone = zones.find((z) => z.id === zoneId);
+    if (zone) {
+      setTypeFilter(zone.type);
+    }
+    setHighlightZoneId(null);
+    setActiveTab('zones');
+  };
 
   // Edit warehouse handlers
   const openEditWarehouse = () => {
@@ -339,7 +367,7 @@ export default function WarehouseDetail() {
       <div className="flex items-center gap-1 rounded-lg bg-muted p-1 w-fit">
         <button
           type="button"
-          onClick={() => setActiveTab('zones')}
+          onClick={() => { setActiveTab('zones'); setHighlightZoneId(null); }}
           className={cn(
             'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
             activeTab === 'zones'
@@ -426,6 +454,8 @@ export default function WarehouseDetail() {
                   onDelete={handleDeleteZone}
                   onGenerate={(z) => setGenerateZone(z)}
                   onPrint={(z) => setPrintZone(z)}
+                  onShowOnFloorPlan={handleShowOnFloorPlan}
+                  hasFloorPlanLink={linkedZoneIds.has(zone.id)}
                 />
               ))}
             </div>
@@ -461,7 +491,12 @@ export default function WarehouseDetail() {
 
       {/* ===== Floor Plan Tab ===== */}
       {activeTab === 'floorplan' && (
-        <FloorPlanEditor warehouse={warehouse} onSaved={fetchWarehouse} />
+        <FloorPlanEditor
+          warehouse={warehouse}
+          onSaved={fetchWarehouse}
+          highlightZoneId={highlightZoneId}
+          onViewZone={handleViewZoneFromFloorPlan}
+        />
       )}
 
       {/* Create Zone Modal */}

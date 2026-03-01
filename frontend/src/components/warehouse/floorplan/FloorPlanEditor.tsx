@@ -23,9 +23,11 @@ function generateId(): string {
 interface FloorPlanEditorProps {
   warehouse: Warehouse;
   onSaved: () => void;
+  highlightZoneId?: number | null;
+  onViewZone?: (zoneId: number) => void;
 }
 
-export default function FloorPlanEditor({ warehouse, onSaved }: FloorPlanEditorProps) {
+export default function FloorPlanEditor({ warehouse, onSaved, highlightZoneId, onViewZone }: FloorPlanEditorProps) {
   const zones = warehouse.zones || [];
 
   // Floor plan state — on load, default missing unit to 'm' and filter out legacy aisle elements
@@ -232,6 +234,17 @@ export default function FloorPlanEditor({ warehouse, onSaved }: FloorPlanEditorP
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleDuplicateElement]);
 
+  // Highlight element linked to a zone (cross-tab navigation)
+  useEffect(() => {
+    if (highlightZoneId && floorPlan) {
+      const el = floorPlan.elements.find((e) => e.zoneId === highlightZoneId);
+      if (el) {
+        setSelectedId(el.id);
+        setActiveTool(null);
+      }
+    }
+  }, [highlightZoneId, floorPlan]);
+
   // Auto-create zone for selected element
   const handleCreateZone = async () => {
     if (!selectedId || !floorPlan) return;
@@ -243,8 +256,8 @@ export default function FloorPlanEditor({ warehouse, onSaved }: FloorPlanEditorP
       const { data } = await api.post(`/warehouse/${warehouse.id}/floor-plan/auto-zone`, {
         elementType: element.type,
         label: element.label,
-        shelvesCount: 4,
-        positionsPerShelf: 3,
+        shelvesCount: element.shelvesCount ?? 4,
+        positionsPerShelf: element.positionsPerShelf ?? 3,
       });
       const zone = data.data.zone;
       handleUpdateElement({ ...element, zoneId: zone.id });
@@ -374,6 +387,7 @@ export default function FloorPlanEditor({ warehouse, onSaved }: FloorPlanEditorP
               onDelete={handleDeleteElement}
               onDuplicate={handleDuplicateElement}
               onCreateZone={handleCreateZone}
+              onViewZone={onViewZone}
             />
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-center">
