@@ -1,5 +1,5 @@
 import {
-  Bookcase,
+  Rows,
   Package,
   Table as TableIcon,
   TruckTrailer,
@@ -27,7 +27,7 @@ export const ELEMENT_TEMPLATES: ElementTemplate[] = [
   {
     type: 'shelf',
     label: 'Shelving Rack',
-    icon: <Bookcase size={18} />,
+    icon: <Rows size={18} />,
     defaultW: 1,
     defaultH: 4,
     color: '#3b82f6',
