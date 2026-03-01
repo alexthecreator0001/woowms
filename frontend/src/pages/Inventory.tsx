@@ -58,6 +58,10 @@ export default function Inventory() {
   const [syncMode, setSyncMode] = useState<SyncMode>('add_and_update');
   const [importStock, setImportStock] = useState(false);
   const [syncResult, setSyncResult] = useState<{ added: number; updated: number; skipped: number } | null>(null);
+  const [syncJobId, setSyncJobId] = useState<string | null>(null);
+  const [syncProgress, setSyncProgress] = useState(0);
+  const [syncPhase, setSyncPhase] = useState('');
+  const [syncBgNotice, setSyncBgNotice] = useState(false);
 
   const loadFilterCounts = useCallback(async () => {
     try {
@@ -111,12 +115,42 @@ export default function Inventory() {
     try {
       setSyncing(true);
       setSyncResult(null);
+      setSyncProgress(0);
+      setSyncPhase('Starting...');
+      setSyncBgNotice(false);
+
       const { data } = await api.post('/inventory/sync', { mode: syncMode, importStock });
-      setSyncResult(data.data);
-      await Promise.all([loadProducts(), loadStats(), loadFilterCounts()]);
+      const jobId = data.data.jobId;
+      setSyncJobId(jobId);
+
+      // Poll for progress
+      const poll = setInterval(async () => {
+        try {
+          const { data: status } = await api.get(`/inventory/sync-status/${jobId}`);
+          const job = status.data;
+          setSyncProgress(job.progress || 0);
+          setSyncPhase(job.phase || '');
+
+          if (job.status === 'complete') {
+            clearInterval(poll);
+            setSyncResult({ added: job.added, updated: job.updated, skipped: job.skipped });
+            setSyncing(false);
+            setSyncJobId(null);
+            await Promise.all([loadProducts(), loadStats(), loadFilterCounts()]);
+          } else if (job.status === 'error') {
+            clearInterval(poll);
+            setSyncPhase(job.error || 'Sync failed');
+            setSyncing(false);
+            setSyncJobId(null);
+          }
+        } catch {
+          clearInterval(poll);
+          setSyncing(false);
+          setSyncJobId(null);
+        }
+      }, 800);
     } catch (err) {
       console.error('Sync failed:', err);
-    } finally {
       setSyncing(false);
     }
   }
@@ -146,6 +180,22 @@ export default function Inventory() {
 
   return (
     <div className="space-y-5">
+      {/* Background sync banner */}
+      {syncing && !showSyncModal && (
+        <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+          <CircleNotch size={16} className="animate-spin text-primary flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-medium text-primary">{syncPhase}</p>
+              <span className="text-xs font-bold tabular-nums text-primary">{syncProgress}%</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/10">
+              <div className="h-full rounded-full bg-primary transition-all duration-500 ease-out" style={{ width: `${syncProgress}%` }} />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -509,6 +559,25 @@ export default function Inventory() {
                 )}
               </div>
 
+              {/* Sync Progress */}
+              {syncing && (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-primary">{syncPhase}</p>
+                    <span className="text-xs font-bold tabular-nums text-primary">{syncProgress}%</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-primary/10">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+                      style={{ width: `${syncProgress}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    You can close this dialog — sync will continue in the background.
+                  </p>
+                </div>
+              )}
+
               {/* Sync Result */}
               {syncResult && (
                 <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3">
@@ -524,30 +593,23 @@ export default function Inventory() {
 
             <div className="flex items-center justify-end gap-3 border-t border-border/50 px-6 py-4">
               <button
-                onClick={() => setShowSyncModal(false)}
+                onClick={() => {
+                  if (syncing) setSyncBgNotice(true);
+                  setShowSyncModal(false);
+                }}
                 className="h-9 rounded-lg border border-border/60 px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
               >
-                {syncResult ? 'Close' : 'Cancel'}
+                {syncResult ? 'Close' : syncing ? 'Run in Background' : 'Cancel'}
               </button>
-              <button
-                onClick={handleSync}
-                disabled={syncing}
-                className={cn(
-                  'inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:opacity-50',
-                )}
-              >
-                {syncing ? (
-                  <>
-                    <CircleNotch size={14} className="animate-spin" />
-                    Syncing...
-                  </>
-                ) : (
-                  <>
-                    <ArrowsClockwise size={14} weight="bold" />
-                    Start Sync
-                  </>
-                )}
-              </button>
+              {!syncing && (
+                <button
+                  onClick={handleSync}
+                  className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
+                >
+                  <ArrowsClockwise size={14} weight="bold" />
+                  {syncResult ? 'Sync Again' : 'Start Sync'}
+                </button>
+              )}
             </div>
           </div>
         </div>

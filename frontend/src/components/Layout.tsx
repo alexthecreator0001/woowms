@@ -210,26 +210,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Footer */}
         <div className="border-t border-[#ebebeb] p-2.5 space-y-px">
-          <NavLink
-            to="/docs"
+          <a
+            href="https://docs.picknpack.io"
+            target="_blank"
+            rel="noopener noreferrer"
             title={collapsed ? 'Help' : undefined}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center rounded-md text-[13px] font-medium transition-colors duration-150',
-                collapsed ? 'justify-center p-2.5' : 'gap-2.5 px-2.5 py-[7px]',
-                isActive
-                  ? 'bg-[#f5f5f5] text-[#0a0a0a]'
-                  : 'text-[#6b6b6b] hover:bg-[#f5f5f5] hover:text-[#0a0a0a]'
-              )
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <Question size={collapsed ? 20 : 18} weight={isActive ? 'fill' : 'regular'} className="flex-shrink-0" />
-                {!collapsed && <span>Help</span>}
-              </>
+            className={cn(
+              'flex items-center rounded-md text-[13px] font-medium transition-colors duration-150',
+              collapsed ? 'justify-center p-2.5' : 'gap-2.5 px-2.5 py-[7px]',
+              'text-[#6b6b6b] hover:bg-[#f5f5f5] hover:text-[#0a0a0a]'
             )}
-          </NavLink>
+          >
+            <Question size={collapsed ? 20 : 18} weight="regular" className="flex-shrink-0" />
+            {!collapsed && <span>Help</span>}
+          </a>
           <NavLink
             to="/settings"
             title={collapsed ? 'Settings' : undefined}

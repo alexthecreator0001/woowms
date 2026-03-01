@@ -25,7 +25,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
           ],
         },
         include: { shipments: true },
-        take: 5,
+        take: 25,
         orderBy: { wooCreatedAt: 'desc' },
       }),
       prisma.product.findMany({
@@ -38,7 +38,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
             { barcodes: { some: { barcode: { contains: q, mode: 'insensitive' } } } },
           ],
         },
-        take: 5,
+        take: 25,
         orderBy: { name: 'asc' },
       }),
       prisma.purchaseOrder.findMany({
@@ -51,7 +51,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
           ],
         },
         include: { supplierRef: true },
-        take: 5,
+        take: 25,
         orderBy: { createdAt: 'desc' },
       }),
       prisma.supplier.findMany({
@@ -64,7 +64,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
             { phone: { contains: q, mode: 'insensitive' } },
           ],
         },
-        take: 5,
+        take: 25,
         orderBy: { name: 'asc' },
       }),
     ]);

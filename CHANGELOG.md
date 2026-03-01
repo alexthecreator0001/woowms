@@ -3,6 +3,20 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.14.0 / 2.18.0] - 2026-03-01
+
+### Added
+- **Sync progress bar** — product sync now shows real-time progress percentage with animated bar; sync runs in background so the modal can be closed while sync continues
+- **Background sync banner** — when sync modal is closed during sync, a progress banner appears at the top of the Inventory page
+- **Sync status polling endpoint** — `GET /api/v1/inventory/sync-status/:jobId` for tracking background sync progress
+- **Docs site favicon** — PickNPack favicon added to docs site
+
+### Changed
+- **Help link** — sidebar Help button now opens `docs.picknpack.io` in a new tab instead of the in-app help center
+- **Global search results** — increased from 5 to 25 results per category (orders, products, POs, suppliers) with scrollable results list
+- **Docs site logo** — fixed to use the full PickNPack wordmark SVG instead of a broken clipped version
+- **Sync endpoint** — `POST /api/v1/inventory/sync` now returns a `jobId` immediately and runs sync in background
+
 ## [3.13.0 / 2.17.0] - 2026-03-01
 
 ### Added

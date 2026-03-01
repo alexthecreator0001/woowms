@@ -5,6 +5,30 @@ import prisma from '../lib/prisma.js';
 
 const router = Router();
 
+// ─── Sync Job Tracking ──────────────────────────────
+interface SyncJob {
+  status: 'running' | 'complete' | 'error';
+  progress: number; // 0-100
+  phase: string;
+  added: number;
+  updated: number;
+  skipped: number;
+  error?: string;
+}
+
+const syncJobs = new Map<string, SyncJob>();
+
+// Clean up old jobs after 5 minutes
+function cleanupJobs() {
+  // Simple: just keep last 100 jobs
+  if (syncJobs.size > 100) {
+    const keys = Array.from(syncJobs.keys());
+    for (let i = 0; i < keys.length - 100; i++) {
+      syncJobs.delete(keys[i]);
+    }
+  }
+}
+
 async function getTenantSettings(tenantId: number): Promise<Record<string, unknown>> {
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
@@ -61,35 +85,65 @@ router.get('/stats', async (req: Request, res: Response, next: NextFunction) => 
 });
 
 // POST /api/v1/inventory/sync (ADMIN/MANAGER only)
+// Returns a jobId immediately, sync runs in background
 router.post('/sync', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const prisma = req.prisma!;
+    const p = req.prisma!;
+    const tenantId = req.tenantId;
     const { mode = 'add_and_update', importStock = false } = req.body as {
       mode?: 'add_only' | 'update_only' | 'add_and_update';
       importStock?: boolean;
     };
 
-    const stores = await prisma.store.findMany({
-      where: { tenantId: req.tenantId, isActive: true },
+    const stores = await p.store.findMany({
+      where: { tenantId, isActive: true },
     });
 
-    let added = 0;
-    let updated = 0;
-    let skipped = 0;
+    const jobId = `sync_${tenantId}_${Date.now()}`;
+    const job: SyncJob = { status: 'running', progress: 0, phase: 'Starting...', added: 0, updated: 0, skipped: 0 };
+    syncJobs.set(jobId, job);
+    cleanupJobs();
 
-    for (const store of stores) {
-      const result = await syncProducts(store as any, { mode, importStock });
-      added += result.added;
-      updated += result.updated;
-      skipped += result.skipped;
-    }
+    // Return immediately with jobId
+    res.json({ data: { jobId, message: 'Sync started' } });
 
-    res.json({
-      data: { message: 'Product sync completed', storeCount: stores.length, added, updated, skipped },
-    });
+    // Run sync in background
+    (async () => {
+      try {
+        const totalStores = stores.length;
+        for (let i = 0; i < totalStores; i++) {
+          const store = stores[i];
+          job.phase = totalStores > 1 ? `Syncing store ${i + 1}/${totalStores}...` : 'Syncing products...';
+          job.progress = Math.round((i / totalStores) * 90);
+
+          const result = await syncProducts(store as any, { mode, importStock });
+          job.added += result.added;
+          job.updated += result.updated;
+          job.skipped += result.skipped;
+        }
+
+        job.status = 'complete';
+        job.progress = 100;
+        job.phase = 'Complete';
+      } catch (err: any) {
+        job.status = 'error';
+        job.phase = 'Failed';
+        job.error = err?.message || 'Sync failed';
+        console.error('[SYNC] Background sync error:', err);
+      }
+    })();
   } catch (err) {
     next(err);
   }
+});
+
+// GET /api/v1/inventory/sync-status/:jobId
+router.get('/sync-status/:jobId', async (req: Request, res: Response) => {
+  const job = syncJobs.get(req.params.jobId);
+  if (!job) {
+    return res.json({ data: { status: 'not_found' } });
+  }
+  res.json({ data: job });
 });
 
 // GET /api/v1/inventory/filter-counts
