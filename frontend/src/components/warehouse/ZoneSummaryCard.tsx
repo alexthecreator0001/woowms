@@ -3,9 +3,7 @@ import {
   ArrowRight,
   PencilSimple,
   Trash,
-  MapTrifold,
   Printer,
-  GridFour,
 } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import type { Zone, FloorPlanElementType } from '../../types';
@@ -26,10 +24,7 @@ interface ZoneSummaryCardProps {
   warehouseId: number;
   onEdit: (zone: Zone) => void;
   onDelete: (zone: Zone) => void;
-  onGenerate: (zone: Zone) => void;
   onPrint: (zone: Zone) => void;
-  onShowOnFloorPlan?: (zone: Zone) => void;
-  hasFloorPlanLink?: boolean;
   elementType?: FloorPlanElementType;
 }
 
@@ -38,10 +33,7 @@ export default function ZoneSummaryCard({
   warehouseId,
   onEdit,
   onDelete,
-  onGenerate,
   onPrint,
-  onShowOnFloorPlan,
-  hasFloorPlanLink,
   elementType,
 }: ZoneSummaryCardProps) {
   const navigate = useNavigate();
@@ -111,21 +103,13 @@ export default function ZoneSummaryCard({
             />
           </div>
 
-          {/* Action icons */}
+          {/* Delete icon (top-right, on hover) */}
           <div className="ml-3 flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onEdit(zone); }}
-              className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              title="Edit zone"
-            >
-              <PencilSimple size={14} />
-            </button>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onDelete(zone); }}
               className="rounded-md p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors"
-              title="Delete zone"
+              title="Delete"
             >
               <Trash size={14} />
             </button>
@@ -137,25 +121,20 @@ export default function ZoneSummaryCard({
       <div className="flex items-center gap-0 border-t border-border/30">
         <button
           type="button"
-          onClick={() => navigate(`/warehouse/${warehouseId}/zones/${zone.id}`)}
+          onClick={() => onEdit(zone)}
           className="flex flex-1 items-center justify-center gap-1.5 py-2 text-xs font-medium text-primary hover:bg-primary/5 transition-colors"
         >
-          View Locations
-          <ArrowRight size={13} weight="bold" />
+          <PencilSimple size={13} weight="bold" />
+          Edit
         </button>
         <div className="w-px self-stretch bg-border/30" />
         <button
           type="button"
-          onClick={() => onGenerate(zone)}
-          className={cn(
-            'flex flex-1 items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors',
-            totalBins === 0
-              ? 'text-primary hover:bg-primary/5'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-          )}
+          onClick={() => navigate(`/warehouse/${warehouseId}/zones/${zone.id}`)}
+          className="flex flex-1 items-center justify-center gap-1.5 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
         >
-          <MapTrifold size={13} weight="bold" />
-          Generate
+          Locations
+          <ArrowRight size={13} weight="bold" />
         </button>
         {totalBins > 0 && (
           <>
@@ -167,19 +146,6 @@ export default function ZoneSummaryCard({
             >
               <Printer size={13} weight="bold" />
               Print
-            </button>
-          </>
-        )}
-        {hasFloorPlanLink && onShowOnFloorPlan && (
-          <>
-            <div className="w-px self-stretch bg-border/30" />
-            <button
-              type="button"
-              onClick={() => onShowOnFloorPlan(zone)}
-              className="flex flex-1 items-center justify-center gap-1.5 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            >
-              <GridFour size={13} weight="bold" />
-              Floor Plan
             </button>
           </>
         )}

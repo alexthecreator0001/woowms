@@ -18,7 +18,6 @@ import ZoneSummaryCard from '../components/warehouse/ZoneSummaryCard';
 import UtilizationBar from '../components/warehouse/UtilizationBar';
 import SlideOver from '../components/warehouse/SlideOver';
 import ZoneModal from '../components/warehouse/ZoneModal';
-import GenerateBinsModal from '../components/warehouse/GenerateBinsModal';
 import PrintLabelsModal from '../components/warehouse/PrintLabelsModal';
 import FloorPlanEditor from '../components/warehouse/floorplan/FloorPlanEditor';
 
@@ -67,9 +66,6 @@ export default function WarehouseDetail() {
 
   // Create zone modal
   const [createZoneOpen, setCreateZoneOpen] = useState(false);
-
-  // Generate bins modal
-  const [generateZone, setGenerateZone] = useState<Zone | null>(null);
 
   // Print labels modal
   const [printZone, setPrintZone] = useState<Zone | null>(null);
@@ -154,16 +150,7 @@ export default function WarehouseDetail() {
     return map;
   }, [warehouse]);
 
-  const linkedZoneIds = useMemo(() => {
-    return new Set(floorPlanZoneMap.keys());
-  }, [floorPlanZoneMap]);
-
   // Cross-tab navigation handlers
-  const handleShowOnFloorPlan = (zone: Zone) => {
-    setHighlightZoneId(zone.id);
-    setActiveTab('floorplan');
-  };
-
   const handleViewZoneFromFloorPlan = (zoneId: number) => {
     const zone = zones.find((z) => z.id === zoneId);
     if (zone) {
@@ -236,7 +223,7 @@ export default function WarehouseDetail() {
   const handleEditZoneSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingZone || !editZoneName.trim()) {
-      setEditZoneError('Zone name is required.');
+      setEditZoneError('Name is required.');
       return;
     }
     setEditZoneSaving(true);
@@ -462,10 +449,7 @@ export default function WarehouseDetail() {
                   warehouseId={warehouse.id}
                   onEdit={handleEditZone}
                   onDelete={handleDeleteZone}
-                  onGenerate={(z) => setGenerateZone(z)}
                   onPrint={(z) => setPrintZone(z)}
-                  onShowOnFloorPlan={handleShowOnFloorPlan}
-                  hasFloorPlanLink={linkedZoneIds.has(zone.id)}
                   elementType={floorPlanZoneMap.get(zone.id)?.elementType}
                 />
               ))}
@@ -568,7 +552,7 @@ export default function WarehouseDetail() {
       <SlideOver
         open={editZoneSlideOpen}
         onClose={() => setEditZoneSlideOpen(false)}
-        title="Edit Zone"
+        title="Edit Element"
         subtitle={editingZone?.name}
         footer={
           <div className="flex items-center justify-end gap-3">
@@ -630,14 +614,6 @@ export default function WarehouseDetail() {
           {editZoneError && <p className="text-sm text-destructive">{editZoneError}</p>}
         </form>
       </SlideOver>
-
-      {/* Generate Bins Modal */}
-      <GenerateBinsModal
-        open={!!generateZone}
-        onClose={() => setGenerateZone(null)}
-        onSaved={() => { setGenerateZone(null); fetchWarehouse(); }}
-        zoneId={generateZone?.id ?? 0}
-      />
 
       {/* Print Labels Modal */}
       <PrintLabelsModal
