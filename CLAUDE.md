@@ -15,7 +15,7 @@ All development is local. The VPS pulls from GitHub via `git pull`.
 
 **Full stack (backend + frontend):**
 ```bash
-cd /var/www/woowms && git pull && cd backend && npm install && npx prisma generate && pm2 restart woowms-backend && cd ../frontend && npm install && npm run build && pm2 restart woowms-frontend
+cd /var/www/woowms && git pull && cd backend && npm install && npx prisma generate && pm2 restart woowms-backend && cd ../frontend && npm install && NODE_OPTIONS=--max-old-space-size=1024 npm run build
 ```
 
 **Backend only (no frontend changes):**
@@ -25,12 +25,12 @@ cd /var/www/woowms && git pull && cd backend && npm install && npx prisma genera
 
 **Frontend only (no backend changes):**
 ```bash
-cd /var/www/woowms && git pull && cd frontend && npm install && npm run build && pm2 restart woowms-frontend
+cd /var/www/woowms && git pull && cd frontend && npm install && NODE_OPTIONS=--max-old-space-size=1024 npm run build
 ```
 
 **If only code changed (no new deps, no schema change):**
 ```bash
-cd /var/www/woowms && git pull && cd backend && pm2 restart woowms-backend && cd ../frontend && npm run build && pm2 restart woowms-frontend
+cd /var/www/woowms && git pull && cd backend && pm2 restart woowms-backend && cd ../frontend && NODE_OPTIONS=--max-old-space-size=1024 npm run build
 ```
 
 **If DB migrations were added:**
@@ -39,9 +39,16 @@ Include `npx prisma migrate deploy` (NOT `migrate dev` — that's interactive an
 cd /var/www/woowms && git pull && cd backend && npm install && npx prisma migrate deploy && npx prisma generate && pm2 restart woowms-backend
 ```
 
+**If docs-site changed:**
+```bash
+cd /var/www/woowms && git pull && cd docs-site && npm install && NODE_OPTIONS=--max-old-space-size=1024 npm run build
+```
+
 - Skip `npm install` if no dependency changes.
 - Skip backend or frontend section if only one side changed.
+- Frontend is served as static files by Nginx — NO pm2 process. Only `npm run build` is needed.
 - Always use `npx prisma migrate deploy` (non-interactive, production-safe) — never `npx prisma migrate dev` on VPS.
+- Always use `NODE_OPTIONS=--max-old-space-size=1024` for frontend/docs builds on the VPS.
 
 ---
 
