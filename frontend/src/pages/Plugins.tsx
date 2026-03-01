@@ -12,12 +12,17 @@ import {
   ShieldCheck,
   ArrowSquareOut,
   GearSix,
+  Lightning,
+  CheckCircle,
+  XCircle,
+  Code,
+  Globe,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
 import type { PluginCatalogItem } from '../types';
 
-// ─── Brand colors & icons for plugins ──────────────
+// ─── Brand config ──────────────────────────────────
 
 const PLUGIN_BRANDS: Record<string, { bg: string; installBg: string; installHover: string }> = {
   zapier: { bg: 'bg-[#FFF4EE]', installBg: 'bg-[#FF4A00]', installHover: 'hover:bg-[#e64300]' },
@@ -41,6 +46,39 @@ function PluginIcon({ pluginKey, size = 28 }: { pluginKey: string; size?: number
   return <Plug size={size} weight="fill" className="flex-shrink-0 text-[#6b6b6b]" />;
 }
 
+// Helper: get the base API URL for webhook instructions
+function getWebhookBaseUrl(): string {
+  const origin = window.location.origin;
+  // In production, the API is on the same domain. In dev, it might be proxied.
+  return origin;
+}
+
+// ─── Copyable code block ───────────────────────────
+
+function CopyBlock({ value, label }: { value: string; label?: string }) {
+  const [didCopy, setDidCopy] = useState(false);
+  function copy() {
+    navigator.clipboard.writeText(value);
+    setDidCopy(true);
+    setTimeout(() => setDidCopy(false), 2000);
+  }
+  return (
+    <div>
+      {label && <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#a0a0a0]">{label}</p>}
+      <div className="flex items-center gap-2 rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5">
+        <code className="flex-1 break-all text-[12px] font-mono text-[#0a0a0a] select-all">{value}</code>
+        <button
+          onClick={copy}
+          className="flex-shrink-0 rounded-md p-1 text-[#a0a0a0] transition-colors hover:bg-[#ebebeb] hover:text-[#0a0a0a]"
+          title="Copy"
+        >
+          {didCopy ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Category filter ───────────────────────────────
 
 const CATEGORIES = ['All', 'Automation', 'Notifications', 'Accounting', 'Shipping'];
@@ -59,6 +97,8 @@ export default function Plugins() {
   const [confirmUninstall, setConfirmUninstall] = useState(false);
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [testing, setTesting] = useState(false);
 
   useEffect(() => {
     loadPlugins();
@@ -81,12 +121,9 @@ export default function Plugins() {
       setActionLoading(key);
       const { data } = await api.post(`/plugins/${key}/install`);
       const result = data.data;
-
-      // Show API key modal if key was generated
       if (result.apiKey) {
         setApiKeyModal({ key, plaintext: result.apiKey });
       }
-
       await loadPlugins();
     } catch (err: any) {
       console.error('Install failed:', err);
@@ -135,11 +172,29 @@ export default function Plugins() {
     }
   }
 
+  async function handleTestConnection() {
+    try {
+      setTesting(true);
+      setTestResult(null);
+      const { data } = await api.get('/zapier/webhook/test', {
+        // This goes through the normal API proxy but we need the X-API-Key header
+        // We can't test from the frontend directly since we don't have the full key
+        // Instead, hit a test endpoint on the authenticated plugin route
+      });
+      setTestResult({ ok: true, message: `Connected to ${data.data?.company || 'your workspace'}` });
+    } catch {
+      setTestResult({ ok: false, message: 'Could not reach the webhook endpoint. This is normal — the test endpoint requires the API key header, not a browser session.' });
+    } finally {
+      setTesting(false);
+    }
+  }
+
   function openConfigure(plugin: PluginCatalogItem) {
     setConfiguring(plugin.key);
     setSettings(plugin.settings || {});
     setConfirmUninstall(false);
     setConfirmRegenerate(false);
+    setTestResult(null);
   }
 
   function copyToClipboard(text: string) {
@@ -150,38 +205,81 @@ export default function Plugins() {
 
   const filtered = category === 'All' ? plugins : plugins.filter((p) => p.category === category);
   const configuringPlugin = plugins.find((p) => p.key === configuring);
+  const webhookBase = getWebhookBaseUrl();
 
-  // ─── API Key Modal ─────────────────────────────────
+  // ─── API Key Modal (shown after install or regenerate) ──
 
   if (apiKeyModal) {
+    const webhookUrl = `${webhookBase}/api/v1/zapier/webhook`;
+
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-        <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100">
-              <Key size={20} weight="fill" className="text-amber-600" />
+        <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl">
+          {/* Header */}
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#FFF4EE]">
+              <PluginIcon pluginKey="zapier" size={24} />
             </div>
             <div>
-              <h3 className="text-[15px] font-semibold text-[#0a0a0a]">Your API Key</h3>
-              <p className="text-[13px] text-[#6b6b6b]">Save this key — you won't see it again</p>
+              <h3 className="text-[16px] font-semibold text-[#0a0a0a]">Zapier Connected</h3>
+              <p className="text-[13px] text-[#6b6b6b]">Your API key has been generated</p>
             </div>
           </div>
 
-          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
+          {/* What is this key for */}
+          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+            <p className="text-[12px] font-medium text-blue-900 mb-1">What is this key for?</p>
+            <p className="text-[12px] text-blue-800 leading-relaxed">
+              This API key authenticates Zapier when it calls your PickNPack webhook.
+              Paste it into Zapier's webhook header as <code className="rounded bg-blue-100 px-1 py-0.5 text-[11px] font-mono">X-API-Key</code> so
+              Zapier can pull your orders, inventory, and alerts.
+            </p>
+          </div>
+
+          {/* The key */}
+          <div className="mb-4">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#a0a0a0]">Your API Key</p>
+            <div className="flex items-center gap-2 rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5">
+              <code className="flex-1 break-all text-[13px] font-mono text-[#0a0a0a] select-all">
+                {apiKeyModal.plaintext}
+              </code>
+              <button
+                onClick={() => copyToClipboard(apiKeyModal.plaintext)}
+                className="flex-shrink-0 rounded-md p-1.5 text-[#a0a0a0] transition-colors hover:bg-[#ebebeb] hover:text-[#0a0a0a]"
+              >
+                {copied ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Warning */}
+          <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-3">
             <div className="flex items-start gap-2">
               <Warning size={16} weight="fill" className="mt-0.5 flex-shrink-0 text-amber-600" />
               <p className="text-[12px] text-amber-800">
-                This is the only time your full API key will be shown. Copy it now and store it securely.
+                <strong>Copy this key now.</strong> For security, the full key is only shown once.
+                After you close this dialog, only the first few characters will be visible.
+                If you lose it, you can regenerate a new one (which invalidates the old one).
               </p>
             </div>
           </div>
 
+          {/* Quick setup preview */}
           <div className="mb-5 rounded-lg border border-[#e5e5e5] bg-[#fafafa] p-3">
-            <code className="block break-all text-[13px] font-mono text-[#0a0a0a]">
-              {apiKeyModal.plaintext}
-            </code>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#a0a0a0] mb-2">Quick Setup — Use in Zapier</p>
+            <div className="space-y-2 text-[12px]">
+              <div className="flex items-start gap-2">
+                <Globe size={14} className="mt-0.5 flex-shrink-0 text-[#6b6b6b]" />
+                <span className="text-[#4a4a4a]">Webhook URL: <code className="rounded bg-white px-1 py-0.5 font-mono text-[11px] border border-[#e5e5e5]">{webhookUrl}</code></span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Key size={14} className="mt-0.5 flex-shrink-0 text-[#6b6b6b]" />
+                <span className="text-[#4a4a4a]">Header: <code className="rounded bg-white px-1 py-0.5 font-mono text-[11px] border border-[#e5e5e5]">X-API-Key: {apiKeyModal.plaintext.slice(0, 11)}...</code></span>
+              </div>
+            </div>
           </div>
 
+          {/* Actions */}
           <div className="flex gap-2">
             <button
               onClick={() => copyToClipboard(apiKeyModal.plaintext)}
@@ -195,7 +293,7 @@ export default function Plugins() {
               className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0a0a0a] px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#1a1a1a]"
             >
               <ShieldCheck size={16} />
-              I've Saved This Key
+              I've Copied My Key
             </button>
           </div>
         </div>
@@ -207,6 +305,8 @@ export default function Plugins() {
 
   if (configuring && configuringPlugin) {
     const brand = PLUGIN_BRANDS[configuringPlugin.key];
+    const webhookUrl = `${webhookBase}/api/v1/zapier/webhook`;
+    const testUrl = `${webhookBase}/api/v1/zapier/webhook/test`;
 
     return (
       <div>
@@ -236,77 +336,271 @@ export default function Plugins() {
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* API Key card */}
-          {configuringPlugin.requiresApiKey && (
+        {configuringPlugin.key === 'zapier' && (
+          <div className="space-y-6">
+
+            {/* ── How it works ── */}
             <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
               <div className="mb-4 flex items-center gap-2">
-                <Key size={18} weight="fill" className="text-[#6b6b6b]" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">API Key</h2>
+                <Lightning size={18} weight="fill" className="text-[#FF4A00]" />
+                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">How It Works</h2>
               </div>
-
-              <div className="mb-3 rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5">
-                <div className="flex items-center justify-between">
-                  <code className="text-[13px] font-mono text-[#0a0a0a]">
-                    {configuringPlugin.apiKeyPrefix}{'••••••••••••••••'}
-                  </code>
-                  <button
-                    onClick={() => {
-                      if (configuringPlugin.apiKeyPrefix) {
-                        copyToClipboard(configuringPlugin.apiKeyPrefix + '••••');
-                      }
-                    }}
-                    className="text-[#a0a0a0] transition-colors hover:text-[#0a0a0a]"
-                    title="Copy prefix"
-                  >
-                    <Copy size={14} />
-                  </button>
+              <p className="mb-4 text-[13px] leading-relaxed text-[#6b6b6b]">
+                Zapier calls your PickNPack webhook URL with an API key to fetch data.
+                You can use it to trigger actions in 5,000+ apps — for example, send a Slack message
+                when a new order comes in, or add a Google Sheets row when stock runs low.
+              </p>
+              <div className="flex items-center gap-4 rounded-lg bg-[#fafafa] p-3">
+                <div className="flex items-center gap-2 text-[12px] text-[#6b6b6b]">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#FFF4EE]">
+                    <PluginIcon pluginKey="zapier" size={16} />
+                  </div>
+                  <span className="font-medium text-[#0a0a0a]">Zapier</span>
+                </div>
+                <div className="flex-1 border-t border-dashed border-[#d4d4d4]" />
+                <div className="rounded-md bg-[#ebebeb] px-2 py-0.5 text-[10px] font-mono text-[#6b6b6b]">X-API-Key</div>
+                <div className="flex-1 border-t border-dashed border-[#d4d4d4]" />
+                <div className="flex items-center gap-2 text-[12px] text-[#6b6b6b]">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                    <span className="text-[11px] font-bold text-primary">P</span>
+                  </div>
+                  <span className="font-medium text-[#0a0a0a]">PickNPack</span>
                 </div>
               </div>
+            </div>
 
-              <p className="mb-4 text-[12px] text-[#a0a0a0]">
-                Only the key prefix is shown. If you've lost your key, regenerate a new one.
+            {/* ── Webhook URL & API Key ── */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Webhook endpoint */}
+              <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+                <div className="mb-4 flex items-center gap-2">
+                  <Globe size={18} weight="fill" className="text-[#6b6b6b]" />
+                  <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Webhook Endpoint</h2>
+                </div>
+
+                <div className="space-y-3">
+                  <CopyBlock label="Webhook URL (POST)" value={webhookUrl} />
+                  <CopyBlock label="Test URL (GET)" value={testUrl} />
+                </div>
+
+                <p className="mt-3 text-[11px] text-[#a0a0a0]">
+                  Use the POST URL as your Zapier webhook trigger. The GET URL is for testing that the connection works.
+                </p>
+              </div>
+
+              {/* API Key */}
+              <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+                <div className="mb-4 flex items-center gap-2">
+                  <Key size={18} weight="fill" className="text-[#6b6b6b]" />
+                  <h2 className="text-[14px] font-semibold text-[#0a0a0a]">API Key</h2>
+                </div>
+
+                <p className="mb-3 text-[12px] text-[#6b6b6b]">
+                  Add this as a header in every Zapier request to authenticate:
+                </p>
+
+                <div className="mb-3 rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#a0a0a0] mb-1">Header name</p>
+                  <code className="text-[12px] font-mono text-[#0a0a0a]">X-API-Key</code>
+                </div>
+
+                <div className="mb-3 rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#a0a0a0] mb-1">Header value (masked)</p>
+                  <code className="text-[12px] font-mono text-[#6b6b6b]">
+                    {configuringPlugin.apiKeyPrefix}<span className="text-[#d4d4d4]">{'•'.repeat(52)}</span>
+                  </code>
+                </div>
+
+                <p className="mb-4 text-[11px] text-[#a0a0a0]">
+                  The full key was shown when you installed the plugin. Only the prefix is stored for your security.
+                </p>
+
+                {confirmRegenerate ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                    <p className="mb-3 text-[12px] text-amber-800">
+                      <strong>Warning:</strong> This creates a new key and permanently invalidates the old one.
+                      Any Zapier Zaps using the old key will stop working until you update them.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleRegenerateKey(configuringPlugin.key)}
+                        disabled={actionLoading === configuringPlugin.key}
+                        className="rounded-md bg-amber-600 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-amber-700 disabled:opacity-50"
+                      >
+                        {actionLoading === configuringPlugin.key ? 'Regenerating...' : 'Yes, Regenerate'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmRegenerate(false)}
+                        className="rounded-md border border-[#e5e5e5] bg-white px-3 py-1.5 text-[12px] font-medium text-[#6b6b6b] transition-colors hover:bg-[#f5f5f5]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmRegenerate(true)}
+                    className="flex items-center gap-1.5 rounded-lg border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-medium text-[#6b6b6b] transition-colors hover:bg-[#f5f5f5]"
+                  >
+                    <ArrowsClockwise size={14} />
+                    Lost your key? Regenerate
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* ── Available actions ── */}
+            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <Code size={18} weight="fill" className="text-[#6b6b6b]" />
+                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Available Actions</h2>
+              </div>
+              <p className="mb-4 text-[12px] text-[#6b6b6b]">
+                Send a JSON body with an <code className="rounded bg-[#f5f5f5] px-1 py-0.5 font-mono text-[11px]">"action"</code> field to control what data you receive:
               </p>
+              <div className="space-y-2">
+                {[
+                  {
+                    action: 'test',
+                    desc: 'Verify the connection works — returns your company name',
+                    body: '{ "action": "test" }',
+                  },
+                  {
+                    action: 'new_orders',
+                    desc: 'Fetch orders from the last 24 hours',
+                    body: '{ "action": "new_orders" }',
+                  },
+                  {
+                    action: 'low_stock',
+                    desc: 'Get products that are at or below their low stock threshold',
+                    body: '{ "action": "low_stock" }',
+                  },
+                  {
+                    action: 'order_status',
+                    desc: 'Look up a specific order by ID',
+                    body: '{ "action": "order_status", "orderId": 123 }',
+                  },
+                ].map((item) => (
+                  <div key={item.action} className="flex items-start gap-3 rounded-lg border border-[#ebebeb] bg-[#fafafa] p-3">
+                    <code className="mt-0.5 flex-shrink-0 rounded bg-[#0a0a0a] px-2 py-0.5 text-[11px] font-mono text-white">
+                      {item.action}
+                    </code>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] text-[#4a4a4a]">{item.desc}</p>
+                      <code className="mt-1 block text-[11px] font-mono text-[#a0a0a0]">{item.body}</code>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-              {confirmRegenerate ? (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                  <p className="mb-3 text-[12px] text-amber-800">
-                    This will invalidate the current key. Any Zapier integrations using the old key will stop working.
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleRegenerateKey(configuringPlugin.key)}
-                      disabled={actionLoading === configuringPlugin.key}
-                      className="rounded-md bg-amber-600 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-amber-700 disabled:opacity-50"
-                    >
-                      {actionLoading === configuringPlugin.key ? 'Regenerating...' : 'Yes, Regenerate'}
-                    </button>
-                    <button
-                      onClick={() => setConfirmRegenerate(false)}
-                      className="rounded-md border border-[#e5e5e5] bg-white px-3 py-1.5 text-[12px] font-medium text-[#6b6b6b] transition-colors hover:bg-[#f5f5f5]"
-                    >
-                      Cancel
-                    </button>
+            {/* ── Step by step guide ── */}
+            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <ArrowSquareOut size={18} weight="fill" className="text-[#6b6b6b]" />
+                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Setup Guide</h2>
+              </div>
+
+              <div className="space-y-5">
+                {/* Step 1 */}
+                <div className="flex gap-3">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#FF4A00] text-[11px] font-bold text-white">1</span>
+                  <div className="flex-1">
+                    <p className="font-medium text-[13px] text-[#0a0a0a]">Create a new Zap on zapier.com</p>
+                    <p className="mt-0.5 text-[12px] text-[#6b6b6b]">
+                      Click "Create Zap", then for the trigger choose <strong>"Webhooks by Zapier"</strong> → <strong>"Custom Request"</strong>.
+                    </p>
                   </div>
                 </div>
-              ) : (
-                <button
-                  onClick={() => setConfirmRegenerate(true)}
-                  className="flex items-center gap-1.5 rounded-lg border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-medium text-[#6b6b6b] transition-colors hover:bg-[#f5f5f5]"
-                >
-                  <ArrowsClockwise size={14} />
-                  Regenerate Key
-                </button>
-              )}
-            </div>
-          )}
 
-          {/* Settings card */}
-          {configuringPlugin.key === 'zapier' && (
+                {/* Step 2 */}
+                <div className="flex gap-3">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#FF4A00] text-[11px] font-bold text-white">2</span>
+                  <div className="flex-1">
+                    <p className="font-medium text-[13px] text-[#0a0a0a]">Set the method and URL</p>
+                    <p className="mt-0.5 mb-2 text-[12px] text-[#6b6b6b]">Set the method to <strong>POST</strong> and paste this URL:</p>
+                    <CopyBlock value={webhookUrl} />
+                  </div>
+                </div>
+
+                {/* Step 3 */}
+                <div className="flex gap-3">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#FF4A00] text-[11px] font-bold text-white">3</span>
+                  <div className="flex-1">
+                    <p className="font-medium text-[13px] text-[#0a0a0a]">Add the API key header</p>
+                    <p className="mt-0.5 mb-2 text-[12px] text-[#6b6b6b]">In the "Headers" section, add one header:</p>
+                    <div className="rounded-lg border border-[#e5e5e5] bg-[#fafafa] p-3 font-mono text-[11px]">
+                      <div className="flex gap-4">
+                        <div>
+                          <span className="text-[#a0a0a0]">Key:</span>{' '}
+                          <span className="text-[#0a0a0a]">X-API-Key</span>
+                        </div>
+                        <div>
+                          <span className="text-[#a0a0a0]">Value:</span>{' '}
+                          <span className="text-[#0a0a0a]">[paste your API key from installation]</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 4 */}
+                <div className="flex gap-3">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#FF4A00] text-[11px] font-bold text-white">4</span>
+                  <div className="flex-1">
+                    <p className="font-medium text-[13px] text-[#0a0a0a]">Set the body</p>
+                    <p className="mt-0.5 mb-2 text-[12px] text-[#6b6b6b]">Set "Data" to <strong>Raw</strong> and paste the action you want:</p>
+                    <CopyBlock value='{ "action": "new_orders" }' />
+                  </div>
+                </div>
+
+                {/* Step 5 */}
+                <div className="flex gap-3">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#FF4A00] text-[11px] font-bold text-white">5</span>
+                  <div className="flex-1">
+                    <p className="font-medium text-[13px] text-[#0a0a0a]">Add an action</p>
+                    <p className="mt-0.5 text-[12px] text-[#6b6b6b]">
+                      Now add what should happen when data comes in. For example: send a Slack message,
+                      create a Google Sheets row, send an email, update a Notion database — anything Zapier supports.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 6 */}
+                <div className="flex gap-3">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-[11px] font-bold text-white">
+                    <Check size={12} weight="bold" />
+                  </span>
+                  <div className="flex-1">
+                    <p className="font-medium text-[13px] text-[#0a0a0a]">Test and turn on</p>
+                    <p className="mt-0.5 text-[12px] text-[#6b6b6b]">
+                      Click "Test" in Zapier to verify it receives data, then turn on the Zap. Done!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Test connection ── */}
+            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <CheckCircle size={18} weight="fill" className="text-[#6b6b6b]" />
+                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Test from Terminal</h2>
+              </div>
+              <p className="mb-3 text-[12px] text-[#6b6b6b]">
+                Run this in your terminal to verify the webhook works (replace <code className="rounded bg-[#f5f5f5] px-1 py-0.5 font-mono text-[11px]">YOUR_KEY</code> with your actual key):
+              </p>
+              <CopyBlock value={`curl -X POST ${webhookUrl} -H "Content-Type: application/json" -H "X-API-Key: YOUR_KEY" -d '{"action":"test"}'`} />
+              <p className="mt-2 text-[11px] text-[#a0a0a0]">
+                You should get back: <code className="font-mono">{'{"data":{"ok":true,"company":"Your Company"}}'}</code>
+              </p>
+            </div>
+
+            {/* ── Settings toggles ── */}
             <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
               <div className="mb-4 flex items-center gap-2">
                 <GearSix size={18} weight="fill" className="text-[#6b6b6b]" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Webhook Settings</h2>
+                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Notification Settings</h2>
               </div>
 
               <div className="space-y-3">
@@ -344,99 +638,43 @@ export default function Plugins() {
                 {savingSettings ? 'Saving...' : 'Save Settings'}
               </button>
             </div>
-          )}
 
-          {/* Setup instructions */}
-          {configuringPlugin.key === 'zapier' && (
-            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5 lg:col-span-2">
-              <div className="mb-4 flex items-center gap-2">
-                <ArrowSquareOut size={18} weight="fill" className="text-[#6b6b6b]" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Setup Instructions</h2>
-              </div>
+            {/* ── Danger zone ── */}
+            <div className="rounded-xl border border-red-200 bg-red-50/50 p-5">
+              <h2 className="mb-1 text-[14px] font-semibold text-red-700">Danger Zone</h2>
+              <p className="mb-4 text-[12px] text-red-600/70">
+                Uninstalling removes the plugin, deletes the API key, and breaks any active Zaps using it.
+              </p>
 
-              <div className="space-y-4 text-[13px] text-[#4a4a4a]">
-                <div className="flex gap-3">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#FF4A00]/10 text-[11px] font-bold text-[#FF4A00]">1</span>
-                  <div>
-                    <p className="font-medium text-[#0a0a0a]">Create a Zap in Zapier</p>
-                    <p className="mt-0.5 text-[#6b6b6b]">Go to zapier.com and create a new Zap. Choose "Webhooks by Zapier" as your trigger.</p>
-                  </div>
+              {confirmUninstall ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-[13px] text-red-700">Are you sure?</span>
+                  <button
+                    onClick={() => handleUninstall(configuringPlugin.key)}
+                    disabled={actionLoading === configuringPlugin.key}
+                    className="rounded-md bg-red-600 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {actionLoading === configuringPlugin.key ? 'Removing...' : 'Yes, Uninstall'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmUninstall(false)}
+                    className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-[12px] font-medium text-red-700 transition-colors hover:bg-red-50"
+                  >
+                    Cancel
+                  </button>
                 </div>
-                <div className="flex gap-3">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#FF4A00]/10 text-[11px] font-bold text-[#FF4A00]">2</span>
-                  <div>
-                    <p className="font-medium text-[#0a0a0a]">Configure the webhook</p>
-                    <p className="mt-0.5 text-[#6b6b6b]">
-                      Set the webhook URL to your PickNPack API endpoint:{' '}
-                      <code className="rounded bg-[#f5f5f5] px-1.5 py-0.5 text-[12px] font-mono">
-                        POST /api/v1/zapier/webhook
-                      </code>
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#FF4A00]/10 text-[11px] font-bold text-[#FF4A00]">3</span>
-                  <div>
-                    <p className="font-medium text-[#0a0a0a]">Add your API key</p>
-                    <p className="mt-0.5 text-[#6b6b6b]">
-                      In the webhook headers, add{' '}
-                      <code className="rounded bg-[#f5f5f5] px-1.5 py-0.5 text-[12px] font-mono">X-API-Key: your_key_here</code>
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#FF4A00]/10 text-[11px] font-bold text-[#FF4A00]">4</span>
-                  <div>
-                    <p className="font-medium text-[#0a0a0a]">Set the action in the body</p>
-                    <p className="mt-0.5 text-[#6b6b6b]">
-                      Send a JSON body with an <code className="rounded bg-[#f5f5f5] px-1.5 py-0.5 text-[12px] font-mono">action</code> field.
-                      Available actions:{' '}
-                      <code className="rounded bg-[#f5f5f5] px-1.5 py-0.5 text-[12px] font-mono">test</code>,{' '}
-                      <code className="rounded bg-[#f5f5f5] px-1.5 py-0.5 text-[12px] font-mono">new_orders</code>,{' '}
-                      <code className="rounded bg-[#f5f5f5] px-1.5 py-0.5 text-[12px] font-mono">low_stock</code>,{' '}
-                      <code className="rounded bg-[#f5f5f5] px-1.5 py-0.5 text-[12px] font-mono">order_status</code>
-                    </p>
-                  </div>
-                </div>
-              </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmUninstall(true)}
+                  className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
+                >
+                  <Trash size={14} />
+                  Uninstall Zapier
+                </button>
+              )}
             </div>
-          )}
-
-          {/* Danger zone */}
-          <div className="rounded-xl border border-red-200 bg-red-50/50 p-5 lg:col-span-2">
-            <h2 className="mb-1 text-[14px] font-semibold text-red-700">Danger Zone</h2>
-            <p className="mb-4 text-[12px] text-red-600/70">
-              Uninstalling will remove all plugin data and invalidate API keys.
-            </p>
-
-            {confirmUninstall ? (
-              <div className="flex items-center gap-3">
-                <span className="text-[13px] text-red-700">Are you sure?</span>
-                <button
-                  onClick={() => handleUninstall(configuringPlugin.key)}
-                  disabled={actionLoading === configuringPlugin.key}
-                  className="rounded-md bg-red-600 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
-                >
-                  {actionLoading === configuringPlugin.key ? 'Removing...' : 'Yes, Uninstall'}
-                </button>
-                <button
-                  onClick={() => setConfirmUninstall(false)}
-                  className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-[12px] font-medium text-red-700 transition-colors hover:bg-red-50"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setConfirmUninstall(true)}
-                className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
-              >
-                <Trash size={14} />
-                Uninstall {configuringPlugin.name}
-              </button>
-            )}
           </div>
-        </div>
+        )}
       </div>
     );
   }
