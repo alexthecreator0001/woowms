@@ -9,6 +9,7 @@ import {
   MapPin,
   ListBullets,
   GridFour,
+  Printer,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
@@ -63,6 +64,7 @@ export default function WarehouseDetail() {
 
   // Print labels modal
   const [printZone, setPrintZone] = useState<Zone | null>(null);
+  const [printAll, setPrintAll] = useState(false);
 
   // Tab: 'zones' or 'floorplan'
   const [activeTab, setActiveTab] = useState<'zones' | 'floorplan'>('zones');
@@ -244,6 +246,27 @@ export default function WarehouseDetail() {
         });
       }
 
+      // Regenerate bins if shelves/positions changed
+      const oldShelves = editingElement?.shelvesCount ?? 4;
+      const oldPositions = editingElement?.positionsPerShelf ?? 3;
+      if (editShelves !== oldShelves || editPositions !== oldPositions) {
+        try {
+          await api.post(`/warehouse/zones/${editingZone.id}/regenerate-bins`, {
+            shelvesCount: editShelves,
+            positionsPerShelf: editPositions,
+            prefix: editPrefix.trim() || undefined,
+          });
+        } catch (err: any) {
+          // Show warning but don't block the save — the config is already saved
+          if (err?.response?.data?.code === 'HAS_STOCK') {
+            setEditZoneError('Config saved, but locations could not be regenerated — some have stock. Move or clear inventory first.');
+            setEditZoneSaving(false);
+            fetchWarehouse();
+            return;
+          }
+        }
+      }
+
       setEditZoneSlideOpen(false);
       fetchWarehouse();
     } catch (err: any) {
@@ -332,6 +355,19 @@ export default function WarehouseDetail() {
           )}
         </div>
         <div className="flex items-center gap-1.5">
+          {totalBins > 0 && (
+            <button
+              type="button"
+              onClick={() => setPrintAll(true)}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-3 py-2 text-sm font-medium',
+                'text-muted-foreground hover:bg-muted hover:text-foreground transition-colors',
+              )}
+            >
+              <Printer size={16} />
+              Print All Labels
+            </button>
+          )}
           <button
             type="button"
             onClick={openEditWarehouse}
@@ -649,6 +685,7 @@ export default function WarehouseDetail() {
                 onChange={(e) => setEditShelves(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
                 className={inputClasses}
               />
+              <p className="mt-1 text-[10px] text-muted-foreground">Vertical levels (floor → top)</p>
             </div>
             <div>
               <label htmlFor="edit-zd-positions" className="mb-1.5 block text-sm font-medium">Positions / shelf</label>
@@ -661,20 +698,20 @@ export default function WarehouseDetail() {
                 onChange={(e) => setEditPositions(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
                 className={inputClasses}
               />
+              <p className="mt-1 text-[10px] text-muted-foreground">Horizontal slots (left → right)</p>
             </div>
           </div>
 
           {/* Summary */}
           <div className="rounded-lg bg-muted/50 px-3 py-2 text-center text-sm">
             <span className="font-semibold">{editShelves * editPositions}</span>
-            <span className="text-muted-foreground"> locations configured</span>
+            <span className="text-muted-foreground"> locations will be created</span>
           </div>
 
           {/* Current locations info */}
-          {editingZone?.bins && editingZone.bins.length > 0 && (
-            <p className="text-[11px] text-muted-foreground">
-              Currently has <span className="font-semibold text-foreground">{editingZone.bins.length}</span> locations.
-              Changing shelves/positions updates the config for future reference — existing locations are not deleted.
+          {editingZone?.bins && editingZone.bins.length > 0 && editingZone.bins.length !== editShelves * editPositions && (
+            <p className="text-[11px] text-amber-600">
+              Currently has {editingZone.bins.length} locations — saving will delete and recreate all {editShelves * editPositions} locations (only if none have stock).
             </p>
           )}
 
@@ -682,7 +719,7 @@ export default function WarehouseDetail() {
         </form>
       </SlideOver>
 
-      {/* Print Labels Modal */}
+      {/* Print Labels Modal (single zone) */}
       <PrintLabelsModal
         open={!!printZone}
         onClose={() => setPrintZone(null)}
@@ -690,6 +727,15 @@ export default function WarehouseDetail() {
         zoneName={printZone?.name || ''}
         warehouseName={warehouse.name}
         zoneType={printZone ? (zones.find((z) => z.id === printZone.id)?.type || '') : ''}
+      />
+
+      {/* Print All Labels Modal (entire warehouse) */}
+      <PrintLabelsModal
+        open={printAll}
+        onClose={() => setPrintAll(false)}
+        bins={zones.flatMap((z) => z.bins || [])}
+        zoneName="All Zones"
+        warehouseName={warehouse.name}
       />
     </div>
   );

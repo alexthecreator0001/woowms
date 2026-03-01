@@ -236,6 +236,7 @@ export default function ZoneModal({
                   onChange={(e) => setShelves(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
                   className={inputClasses}
                 />
+                <p className="mt-1 text-[10px] text-muted-foreground">Vertical levels (floor → top)</p>
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium">Positions / shelf</label>
@@ -247,6 +248,7 @@ export default function ZoneModal({
                   onChange={(e) => setPositions(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
                   className={inputClasses}
                 />
+                <p className="mt-1 text-[10px] text-muted-foreground">Horizontal slots (left → right)</p>
               </div>
             </div>
 

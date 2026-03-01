@@ -440,6 +440,84 @@ router.post('/:id/floor-plan/auto-zone', authorize('ADMIN', 'MANAGER'), async (r
   }
 });
 
+// POST /api/v1/warehouse/zones/:zoneId/regenerate-bins — delete old bins + create new ones from config
+router.post('/zones/:zoneId/regenerate-bins', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const zoneId = parseInt(req.params.zoneId);
+    const { shelvesCount, positionsPerShelf, prefix: customPrefix } = req.body as {
+      shelvesCount: number;
+      positionsPerShelf: number;
+      prefix?: string;
+    };
+
+    if (!shelvesCount || !positionsPerShelf || shelvesCount < 1 || positionsPerShelf < 1) {
+      return res.status(400).json({ error: true, message: 'shelvesCount and positionsPerShelf must be >= 1', code: 'VALIDATION_ERROR' });
+    }
+    if (shelvesCount * positionsPerShelf > 500) {
+      return res.status(400).json({ error: true, message: 'Cannot generate more than 500 locations at once', code: 'VALIDATION_ERROR' });
+    }
+
+    const zone = await req.prisma!.zone.findUnique({
+      where: { id: zoneId },
+      include: {
+        bins: {
+          include: { stockLocations: { where: { quantity: { gt: 0 } } } },
+        },
+      },
+    });
+
+    if (!zone) {
+      return res.status(404).json({ error: true, message: 'Zone not found', code: 'NOT_FOUND' });
+    }
+
+    // Block if any bin has stock
+    const hasStock = zone.bins.some((b) => b.stockLocations.length > 0);
+    if (hasStock) {
+      return res.status(409).json({ error: true, message: 'Cannot regenerate bins — some locations have stock. Move or clear inventory first.', code: 'HAS_STOCK' });
+    }
+
+    // Delete old bins
+    const oldBinIds = zone.bins.map((b) => b.id);
+    if (oldBinIds.length > 0) {
+      await req.prisma!.stockLocation.deleteMany({ where: { binId: { in: oldBinIds } } });
+      await req.prisma!.bin.deleteMany({ where: { id: { in: oldBinIds } } });
+    }
+
+    // Create new bins
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const prefix = customPrefix || zone.name.replace(/[^A-Za-z0-9]/g, '').substring(0, 3).toUpperCase() || 'LOC';
+    const binsData: { zoneId: number; label: string; row: string; shelf: string; position: string }[] = [];
+
+    for (let s = 1; s <= shelvesCount; s++) {
+      for (let p = 1; p <= positionsPerShelf; p++) {
+        binsData.push({
+          zoneId,
+          label: `${prefix}-${pad(s)}-${pad(p)}`,
+          row: prefix,
+          shelf: pad(s),
+          position: pad(p),
+        });
+      }
+    }
+
+    // Check for label conflicts with OTHER zones
+    const labels = binsData.map((b) => b.label);
+    const existing = await req.prisma!.bin.findMany({ where: { label: { in: labels } }, select: { label: true } });
+    if (existing.length > 0) {
+      for (const bd of binsData) {
+        bd.label = `${bd.label}-Z${zoneId}`;
+      }
+    }
+
+    await req.prisma!.bin.createMany({ data: binsData });
+    const bins = await req.prisma!.bin.findMany({ where: { zoneId } });
+
+    res.status(201).json({ data: { zone, bins }, meta: { count: bins.length } });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // PATCH /api/v1/warehouse/bins/:binId — update bin
 router.patch('/bins/:binId', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {

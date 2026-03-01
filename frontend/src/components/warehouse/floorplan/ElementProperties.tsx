@@ -141,6 +141,50 @@ export default function ElementProperties({
       {template.hasZone && (
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">Linked Zone</label>
+          {/* Storage Setup — always shown */}
+          <div className="rounded-lg border border-border/40 bg-muted/30 px-3 py-2.5">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Stack size={13} className="text-muted-foreground" />
+              <span className="text-[11px] font-medium text-muted-foreground">Storage Setup</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="mb-0.5 block text-[10px] text-muted-foreground">Shelves</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={element.shelvesCount ?? 4}
+                  onChange={(e) => {
+                    const v = Math.max(1, Math.min(20, parseInt(e.target.value) || 1));
+                    onUpdate({ ...element, shelvesCount: v });
+                  }}
+                  className={cn(inputClasses, 'text-center !py-1')}
+                />
+                <p className="mt-0.5 text-[9px] text-muted-foreground/70">Levels (floor→top)</p>
+              </div>
+              <div>
+                <label className="mb-0.5 block text-[10px] text-muted-foreground">Positions</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={element.positionsPerShelf ?? 3}
+                  onChange={(e) => {
+                    const v = Math.max(1, Math.min(20, parseInt(e.target.value) || 1));
+                    onUpdate({ ...element, positionsPerShelf: v });
+                  }}
+                  className={cn(inputClasses, 'text-center !py-1')}
+                />
+                <p className="mt-0.5 text-[9px] text-muted-foreground/70">Slots (left→right)</p>
+              </div>
+            </div>
+            <p className="mt-1.5 text-[10px] text-muted-foreground text-center">
+              {(element.shelvesCount ?? 4) * (element.positionsPerShelf ?? 3)} locations
+              {linkedZone ? '' : ' will be created'}
+            </p>
+          </div>
+
           {linkedZone ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2">
@@ -159,72 +203,21 @@ export default function ElementProperties({
                   Unlink
                 </button>
               </div>
-              {/* Zone stats + View link */}
-              <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
-                <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                  <span>
-                    <span className="font-semibold text-foreground">
-                      {new Set(linkedZone.bins?.filter((b) => b.shelf).map((b) => b.shelf!)).size}
-                    </span> shelves
-                  </span>
-                  <span>
-                    <span className="font-semibold text-foreground">{linkedZone.bins?.length || 0}</span> locations
-                  </span>
-                </div>
-                {onViewZone && (
+              {onViewZone && (
+                <div className="flex justify-end">
                   <button
                     type="button"
                     onClick={() => onViewZone(linkedZone.id)}
                     className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
                   >
-                    View
+                    View zone
                     <ArrowRight size={11} weight="bold" />
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
-              {/* Storage Setup */}
-              <div className="rounded-lg border border-border/40 bg-muted/30 px-3 py-2.5">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Stack size={13} className="text-muted-foreground" />
-                  <span className="text-[11px] font-medium text-muted-foreground">Storage Setup</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="mb-0.5 block text-[10px] text-muted-foreground">Shelves</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={20}
-                      value={element.shelvesCount ?? 4}
-                      onChange={(e) => {
-                        const v = Math.max(1, Math.min(20, parseInt(e.target.value) || 1));
-                        onUpdate({ ...element, shelvesCount: v });
-                      }}
-                      className={cn(inputClasses, 'text-center !py-1')}
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-0.5 block text-[10px] text-muted-foreground">Positions</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={20}
-                      value={element.positionsPerShelf ?? 3}
-                      onChange={(e) => {
-                        const v = Math.max(1, Math.min(20, parseInt(e.target.value) || 1));
-                        onUpdate({ ...element, positionsPerShelf: v });
-                      }}
-                      className={cn(inputClasses, 'text-center !py-1')}
-                    />
-                  </div>
-                </div>
-                <p className="mt-1.5 text-[10px] text-muted-foreground text-center">
-                  {(element.shelvesCount ?? 4) * (element.positionsPerShelf ?? 3)} locations will be created
-                </p>
-              </div>
               <select
                 value=""
                 onChange={(e) => {

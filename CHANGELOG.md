@@ -9,10 +9,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Professional label printing** — redesigned Print Labels modal with Code 128 barcodes (via bwip-js), zone-type color stripes, and a polished layout showing location code, zone name, warehouse name, and location breakdown
 - **5 label size options** — Zebra 4×6" (shipping label), Zebra 2×1" (small shelf label), Sheet Small (30/page), Sheet Medium (10/page), Sheet Large (6/page). Zebra sizes use custom paper dimensions for direct thermal printing
 - **Custom location prefix** — configurable prefix field (up to 5 chars, auto-uppercase) in both the Add Element modal and the Edit Element slide-over. Live preview shows what location codes will look like (e.g. "SHE-01-01"). Prefix is stored on the floor plan element and passed to the auto-zone API
+- **Print All Labels** — button in warehouse header prints labels for all locations across all zones at once
+- **Regenerate bins endpoint** — `POST /zones/:zoneId/regenerate-bins` deletes old empty bins and creates new ones when shelves/positions change
 
 ### Changed
 - **Label size selector** — split into two sections: "Direct Print (Zebra)" and "Sheet Labels (Letter)" with clearer descriptions
 - **Print modal header** — shows zone-type color accent bar and zone/warehouse name in subtitle
+- **Shelf/position descriptions** — fields now show helper text: "Vertical levels (floor → top)" and "Horizontal slots (left → right)" everywhere they appear
+- **Floor plan storage setup** — shelves/positions inputs now visible for linked zones too, not just unlinked elements
+- **Edit element save** — changing shelves/positions now regenerates the actual bin locations in the database (was only saving config without updating bins)
+- **Edit warning** — shows amber warning when shelf/position count differs from existing locations, explaining bins will be regenerated
 
 ## [3.21.0] - 2026-03-01
 

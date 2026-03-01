@@ -134,7 +134,8 @@ export default function Warehouse() {
       </p>
       <p>
         Select individual locations or check all, then click <strong>Generate PDF</strong>. The PDF
-        opens in a new tab for printing.
+        opens in a new tab for printing. You can also use the <strong>Print All Labels</strong> button
+        in the warehouse header to print labels for every location across all zones at once.
       </p>
 
       <h2>Custom Location Prefix</h2>
@@ -285,6 +286,13 @@ export default function Warehouse() {
       <p>
         Warehouses, zones, and bins can be edited using slide-over panels (right-anchored).
         Deletion is blocked if a bin has stock — move or adjust stock first, then delete.
+      </p>
+      <p>
+        When editing an element, <strong>Shelves</strong> (vertical levels, floor to top) and{' '}
+        <strong>Positions per shelf</strong> (horizontal slots, left to right) can be changed.
+        If the new count differs from the existing locations and none have stock, the system
+        will delete the old locations and create new ones matching the updated configuration.
+        The storage setup is also editable from the Floor Plan properties panel.
       </p>
     </article>
   );
