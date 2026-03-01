@@ -8,7 +8,7 @@ interface BinListViewProps {
   onBinClick: (bin: Bin) => void;
 }
 
-type SortKey = 'label' | 'row' | 'shelf' | 'position' | 'stock' | 'status';
+type SortKey = 'label' | 'row' | 'shelf' | 'position' | 'stock' | 'capacity' | 'size' | 'status';
 type SortDir = 'asc' | 'desc';
 
 const PAGE_SIZE = 25;
@@ -37,6 +37,12 @@ export default function BinListView({ bins, onBinClick }: BinListViewProps) {
           break;
         case 'stock':
           cmp = (a._stockCount ?? 0) - (b._stockCount ?? 0);
+          break;
+        case 'capacity':
+          cmp = (a.capacity ?? 0) - (b.capacity ?? 0);
+          break;
+        case 'size':
+          cmp = (a.binSize || 'MEDIUM').localeCompare(b.binSize || 'MEDIUM');
           break;
         case 'status':
           cmp = (a.isActive ? 1 : 0) - (b.isActive ? 1 : 0);
@@ -73,6 +79,8 @@ export default function BinListView({ bins, onBinClick }: BinListViewProps) {
     { key: 'shelf', label: 'Shelf' },
     { key: 'position', label: 'Position' },
     { key: 'stock', label: 'Stock' },
+    { key: 'size', label: 'Size' },
+    { key: 'capacity', label: 'Capacity' },
     { key: 'status', label: 'Status' },
   ];
 
@@ -128,6 +136,23 @@ export default function BinListView({ bins, onBinClick }: BinListViewProps) {
                     <span className={cn('font-semibold', stockCount > 0 ? 'text-foreground' : 'text-muted-foreground/40')}>
                       {stockCount}
                     </span>
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className="text-xs text-muted-foreground">
+                      {(bin.binSize || 'MEDIUM').charAt(0) + (bin.binSize || 'MEDIUM').slice(1).toLowerCase()}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2">
+                    {bin.capacity ? (
+                      <span className={cn(
+                        'text-xs font-medium',
+                        stockCount > bin.capacity ? 'text-red-600' : 'text-muted-foreground',
+                      )}>
+                        {stockCount}/{bin.capacity}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground/40">—</span>
+                    )}
                   </td>
                   <td className="px-3 py-2">
                     {bin.isActive ? (

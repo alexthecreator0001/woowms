@@ -1,8 +1,16 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authorize } from '../middleware/auth.js';
-import type { ZoneType } from '@prisma/client';
+import type { ZoneType, BinSize } from '@prisma/client';
 
 const router = Router();
+
+// Default capacity by bin size category
+const BIN_SIZE_DEFAULTS: Record<string, number> = {
+  SMALL: 25,
+  MEDIUM: 50,
+  LARGE: 100,
+  XLARGE: 200,
+};
 
 // GET /api/v1/warehouse — list all warehouses with zones, bins, and stock counts
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
@@ -14,7 +22,12 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
             bins: {
               include: {
                 stockLocations: {
-                  select: { quantity: true },
+                  select: {
+                    quantity: true,
+                    product: {
+                      select: { id: true, name: true, sku: true, imageUrl: true, sizeCategory: true },
+                    },
+                  },
                 },
               },
             },
@@ -218,15 +231,22 @@ router.delete('/zones/:zoneId', authorize('ADMIN', 'MANAGER'), async (req: Reque
 // POST /api/v1/warehouse/zones/:zoneId/bins — create single bin
 router.post('/zones/:zoneId/bins', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { label, row, shelf, position, capacity } = req.body as {
+    const { label, row, shelf, position, capacity, binSize } = req.body as {
       label: string;
       row?: string;
       shelf?: string;
       position?: string;
       capacity?: number;
+      binSize?: BinSize;
     };
+    const effectiveCapacity = capacity ?? (binSize ? BIN_SIZE_DEFAULTS[binSize] : BIN_SIZE_DEFAULTS.MEDIUM);
     const bin = await req.prisma!.bin.create({
-      data: { zoneId: parseInt(req.params.zoneId), label, row, shelf, position, capacity },
+      data: {
+        zoneId: parseInt(req.params.zoneId),
+        label, row, shelf, position,
+        capacity: effectiveCapacity,
+        binSize: binSize || 'MEDIUM',
+      },
     });
     res.status(201).json({ data: bin });
   } catch (err) {
@@ -242,6 +262,7 @@ router.post('/zones/:zoneId/bins/generate', authorize('ADMIN', 'MANAGER'), async
     const zoneId = parseInt(req.params.zoneId);
     const {
       aisles, aisleNaming, racksPerAisle, shelvesPerRack, positionsPerShelf,
+      binSize,
       // Legacy compat
       prefix, rows, positions,
     } = req.body as {
@@ -250,6 +271,7 @@ router.post('/zones/:zoneId/bins/generate', authorize('ADMIN', 'MANAGER'), async
       racksPerAisle?: number;
       shelvesPerRack?: number;
       positionsPerShelf?: number;
+      binSize?: BinSize;
       prefix?: string;
       rows?: number;
       positions?: number;
@@ -261,7 +283,9 @@ router.post('/zones/:zoneId/bins/generate', authorize('ADMIN', 'MANAGER'), async
     }
 
     const pad = (n: number) => String(n).padStart(2, '0');
-    const binsData: { zoneId: number; label: string; row: string; shelf: string; position: string }[] = [];
+    const effectiveBinSize = binSize || 'MEDIUM';
+    const effectiveCapacity = BIN_SIZE_DEFAULTS[effectiveBinSize] || 50;
+    const binsData: { zoneId: number; label: string; row: string; shelf: string; position: string; binSize: BinSize; capacity: number }[] = [];
 
     if (aisles && racksPerAisle && shelvesPerRack && positionsPerShelf) {
       // New WMS-style generation: Aisle-Rack-Shelf-Position
@@ -286,6 +310,8 @@ router.post('/zones/:zoneId/bins/generate', authorize('ADMIN', 'MANAGER'), async
                 row: aisleLabel,
                 shelf: pad(s),
                 position: pad(p),
+                binSize: effectiveBinSize as BinSize,
+                capacity: effectiveCapacity,
               });
             }
           }
@@ -307,6 +333,8 @@ router.post('/zones/:zoneId/bins/generate', authorize('ADMIN', 'MANAGER'), async
             row: prefix,
             shelf: pad(r),
             position: pad(p),
+            binSize: effectiveBinSize as BinSize,
+            capacity: effectiveCapacity,
           });
         }
       }
@@ -366,12 +394,13 @@ router.put('/:id/floor-plan', authorize('ADMIN', 'MANAGER'), async (req: Request
 router.post('/:id/floor-plan/auto-zone', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const warehouseId = parseInt(req.params.id);
-    const { elementType, label, prefix: customPrefix, shelvesCount, positionsPerShelf } = req.body as {
+    const { elementType, label, prefix: customPrefix, shelvesCount, positionsPerShelf, binSize: reqBinSize } = req.body as {
       elementType: string;
       label: string;
       prefix?: string;
       shelvesCount?: number;
       positionsPerShelf?: number;
+      binSize?: BinSize;
     };
 
     const warehouse = await req.prisma!.warehouse.findUnique({ where: { id: warehouseId } });
@@ -402,11 +431,13 @@ router.post('/:id/floor-plan/auto-zone', authorize('ADMIN', 'MANAGER'), async (r
     let bins: any[] = [];
     const shelves = shelvesCount || 0;
     const positions = positionsPerShelf || 0;
+    const effectiveBinSize = reqBinSize || 'MEDIUM';
+    const effectiveCapacity = BIN_SIZE_DEFAULTS[effectiveBinSize] || 50;
 
     if (shelves > 0 && positions > 0) {
       const pad = (n: number) => String(n).padStart(2, '0');
       const prefix = customPrefix || label.replace(/[^A-Za-z0-9]/g, '').substring(0, 3).toUpperCase() || 'LOC';
-      const binsData: { zoneId: number; label: string; row: string; shelf: string; position: string }[] = [];
+      const binsData: { zoneId: number; label: string; row: string; shelf: string; position: string; binSize: BinSize; capacity: number }[] = [];
 
       for (let s = 1; s <= shelves; s++) {
         for (let p = 1; p <= positions; p++) {
@@ -416,6 +447,8 @@ router.post('/:id/floor-plan/auto-zone', authorize('ADMIN', 'MANAGER'), async (r
             row: prefix,
             shelf: pad(s),
             position: pad(p),
+            binSize: effectiveBinSize as BinSize,
+            capacity: effectiveCapacity,
           });
         }
       }
@@ -444,10 +477,11 @@ router.post('/:id/floor-plan/auto-zone', authorize('ADMIN', 'MANAGER'), async (r
 router.post('/zones/:zoneId/regenerate-bins', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const zoneId = parseInt(req.params.zoneId);
-    const { shelvesCount, positionsPerShelf, prefix: customPrefix } = req.body as {
+    const { shelvesCount, positionsPerShelf, prefix: customPrefix, binSize: reqBinSize } = req.body as {
       shelvesCount: number;
       positionsPerShelf: number;
       prefix?: string;
+      binSize?: BinSize;
     };
 
     if (!shelvesCount || !positionsPerShelf || shelvesCount < 1 || positionsPerShelf < 1) {
@@ -486,7 +520,9 @@ router.post('/zones/:zoneId/regenerate-bins', authorize('ADMIN', 'MANAGER'), asy
     // Create new bins
     const pad = (n: number) => String(n).padStart(2, '0');
     const prefix = customPrefix || zone.name.replace(/[^A-Za-z0-9]/g, '').substring(0, 3).toUpperCase() || 'LOC';
-    const binsData: { zoneId: number; label: string; row: string; shelf: string; position: string }[] = [];
+    const effectiveBinSize = reqBinSize || 'MEDIUM';
+    const effectiveCapacity = BIN_SIZE_DEFAULTS[effectiveBinSize] || 50;
+    const binsData: { zoneId: number; label: string; row: string; shelf: string; position: string; binSize: BinSize; capacity: number }[] = [];
 
     for (let s = 1; s <= shelvesCount; s++) {
       for (let p = 1; p <= positionsPerShelf; p++) {
@@ -496,6 +532,8 @@ router.post('/zones/:zoneId/regenerate-bins', authorize('ADMIN', 'MANAGER'), asy
           row: prefix,
           shelf: pad(s),
           position: pad(p),
+          binSize: effectiveBinSize as BinSize,
+          capacity: effectiveCapacity,
         });
       }
     }
@@ -522,19 +560,28 @@ router.post('/zones/:zoneId/regenerate-bins', authorize('ADMIN', 'MANAGER'), asy
 router.patch('/bins/:binId', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const binId = parseInt(req.params.binId);
-    const { label, row, shelf, position, capacity, isActive } = req.body as {
+    const { label, row, shelf, position, capacity, isActive, binSize, pickable, sellable, maxWeight } = req.body as {
       label?: string;
       row?: string;
       shelf?: string;
       position?: string;
       capacity?: number | null;
       isActive?: boolean;
+      binSize?: BinSize;
+      pickable?: boolean;
+      sellable?: boolean;
+      maxWeight?: number | null;
     };
 
     const bin = await req.prisma!.bin.findUnique({ where: { id: binId } });
     if (!bin) {
       return res.status(404).json({ error: true, message: 'Bin not found', code: 'NOT_FOUND' });
     }
+
+    // If binSize changes and no explicit capacity, auto-set capacity from defaults
+    const effectiveCapacity = capacity !== undefined
+      ? capacity
+      : (binSize && binSize !== bin.binSize ? BIN_SIZE_DEFAULTS[binSize] : undefined);
 
     const updated = await req.prisma!.bin.update({
       where: { id: binId },
@@ -543,8 +590,12 @@ router.patch('/bins/:binId', authorize('ADMIN', 'MANAGER'), async (req: Request,
         ...(row !== undefined && { row }),
         ...(shelf !== undefined && { shelf }),
         ...(position !== undefined && { position }),
-        ...(capacity !== undefined && { capacity }),
+        ...(effectiveCapacity !== undefined && { capacity: effectiveCapacity }),
         ...(isActive !== undefined && { isActive }),
+        ...(binSize !== undefined && { binSize }),
+        ...(pickable !== undefined && { pickable }),
+        ...(sellable !== undefined && { sellable }),
+        ...(maxWeight !== undefined && { maxWeight }),
       },
     });
     res.json({ data: updated });

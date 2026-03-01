@@ -14,7 +14,8 @@ import {
 import { cn } from '../lib/utils';
 import api from '../services/api';
 import { useSidebar } from '../contexts/SidebarContext';
-import type { Warehouse, Zone, ZoneType, FloorPlanElement } from '../types';
+import type { Warehouse, Zone, ZoneType, FloorPlanElement, BinSize } from '../types';
+import { BIN_SIZE_LABELS } from '../types';
 import ZoneSummaryCard from '../components/warehouse/ZoneSummaryCard';
 import UtilizationBar from '../components/warehouse/UtilizationBar';
 import SlideOver from '../components/warehouse/SlideOver';
@@ -56,6 +57,7 @@ export default function WarehouseDetail() {
   const [editPrefix, setEditPrefix] = useState('');
   const [editShelves, setEditShelves] = useState(4);
   const [editPositions, setEditPositions] = useState(3);
+  const [editBinSize, setEditBinSize] = useState<BinSize>('MEDIUM');
   const [editZoneSaving, setEditZoneSaving] = useState(false);
   const [editZoneError, setEditZoneError] = useState<string | null>(null);
 
@@ -215,6 +217,7 @@ export default function WarehouseDetail() {
     setEditPrefix(el?.prefix ?? '');
     setEditShelves(el?.shelvesCount ?? 4);
     setEditPositions(el?.positionsPerShelf ?? 3);
+    setEditBinSize(el?.binSize ?? 'MEDIUM');
     setEditZoneError(null);
     setEditZoneSlideOpen(true);
   };
@@ -237,7 +240,7 @@ export default function WarehouseDetail() {
       if (editingElement && warehouse?.floorPlan) {
         const updatedElements = warehouse.floorPlan.elements.map((el) =>
           el.id === editingElement.id
-            ? { ...el, label: editZoneName.trim(), prefix: editPrefix.trim() || undefined, shelvesCount: editShelves, positionsPerShelf: editPositions }
+            ? { ...el, label: editZoneName.trim(), prefix: editPrefix.trim() || undefined, shelvesCount: editShelves, positionsPerShelf: editPositions, binSize: editBinSize }
             : el,
         );
         await api.put(`/warehouse/${warehouse.id}/floor-plan`, {
@@ -255,6 +258,7 @@ export default function WarehouseDetail() {
             shelvesCount: editShelves,
             positionsPerShelf: editPositions,
             prefix: editPrefix.trim() || undefined,
+            binSize: editBinSize,
           });
         } catch (err: any) {
           // Show warning but don't block the save — the config is already saved
@@ -700,6 +704,22 @@ export default function WarehouseDetail() {
               />
               <p className="mt-1 text-[10px] text-muted-foreground">Horizontal slots (left → right)</p>
             </div>
+          </div>
+
+          {/* Bin Size */}
+          <div>
+            <label htmlFor="edit-zd-binsize" className="mb-1.5 block text-sm font-medium">Location Size</label>
+            <select
+              id="edit-zd-binsize"
+              value={editBinSize}
+              onChange={(e) => setEditBinSize(e.target.value as BinSize)}
+              className={inputClasses}
+            >
+              {(Object.keys(BIN_SIZE_LABELS) as BinSize[]).map((size) => (
+                <option key={size} value={size}>{BIN_SIZE_LABELS[size]}</option>
+              ))}
+            </select>
+            <p className="mt-1 text-[10px] text-muted-foreground">Default capacity per location</p>
           </div>
 
           {/* Summary */}

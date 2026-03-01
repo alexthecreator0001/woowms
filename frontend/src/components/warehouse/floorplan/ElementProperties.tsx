@@ -11,7 +11,8 @@ import {
 } from '@phosphor-icons/react';
 import { cn } from '../../../lib/utils';
 import { getTemplate } from './ElementPalette';
-import type { FloorPlanElement, Zone } from '../../../types';
+import type { FloorPlanElement, Zone, BinSize } from '../../../types';
+import { BIN_SIZE_LABELS } from '../../../types';
 
 interface ElementPropertiesProps {
   element: FloorPlanElement;
@@ -183,6 +184,18 @@ export default function ElementProperties({
               {(element.shelvesCount ?? 4) * (element.positionsPerShelf ?? 3)} locations
               {linkedZone ? '' : ' will be created'}
             </p>
+            <div className="mt-2 pt-2 border-t border-border/30">
+              <label className="mb-0.5 block text-[10px] text-muted-foreground">Location Size</label>
+              <select
+                value={element.binSize || 'MEDIUM'}
+                onChange={(e) => onUpdate({ ...element, binSize: e.target.value as BinSize })}
+                className={cn(inputClasses, '!py-1 text-[11px]')}
+              >
+                {(Object.keys(BIN_SIZE_LABELS) as BinSize[]).map((size) => (
+                  <option key={size} value={size}>{BIN_SIZE_LABELS[size]}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {linkedZone ? (

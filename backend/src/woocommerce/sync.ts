@@ -67,6 +67,16 @@ interface WooSetting {
   value: string;
 }
 
+function calculateProductSize(length: number | null, width: number | null, height: number | null): string | null {
+  if (!length || !width || !height) return null;
+  const volume = length * width * height;
+  if (volume <= 500) return 'SMALL';
+  if (volume <= 3000) return 'MEDIUM';
+  if (volume <= 15000) return 'LARGE';
+  if (volume <= 50000) return 'XLARGE';
+  return 'OVERSIZED';
+}
+
 async function getTenantSettings(tenantId: number): Promise<Record<string, unknown>> {
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
@@ -293,6 +303,10 @@ export async function syncProducts(store: Store, options?: SyncOptions): Promise
               variantAttributes[attr.name] = attr.option;
             }
 
+            const vLength = variation.dimensions?.length ? parseFloat(variation.dimensions.length) : (product.dimensions?.length ? parseFloat(product.dimensions.length) : null);
+            const vWidth = variation.dimensions?.width ? parseFloat(variation.dimensions.width) : (product.dimensions?.width ? parseFloat(product.dimensions.width) : null);
+            const vHeight = variation.dimensions?.height ? parseFloat(variation.dimensions.height) : (product.dimensions?.height ? parseFloat(product.dimensions.height) : null);
+
             const updateData: Record<string, unknown> = {
               name: varName,
               sku: variation.sku || null,
@@ -300,14 +314,15 @@ export async function syncProducts(store: Store, options?: SyncOptions): Promise
               price: variation.price || product.price || '0',
               currency,
               weight: variation.weight ? parseFloat(variation.weight) : (product.weight ? parseFloat(product.weight) : null),
-              length: variation.dimensions?.length ? parseFloat(variation.dimensions.length) : (product.dimensions?.length ? parseFloat(product.dimensions.length) : null),
-              width: variation.dimensions?.width ? parseFloat(variation.dimensions.width) : (product.dimensions?.width ? parseFloat(product.dimensions.width) : null),
-              height: variation.dimensions?.height ? parseFloat(variation.dimensions.height) : (product.dimensions?.height ? parseFloat(product.dimensions.height) : null),
+              length: vLength,
+              width: vWidth,
+              height: vHeight,
               imageUrl: variation.image?.src || product.images?.[0]?.src || null,
               isActive: variation.status === 'publish' || product.status === 'publish',
               productType: 'variation',
               wooParentId: product.id,
               variantAttributes,
+              sizeCategory: calculateProductSize(vLength, vWidth, vHeight),
             };
 
             if (importStock) {
@@ -353,6 +368,10 @@ export async function syncProducts(store: Store, options?: SyncOptions): Promise
         continue;
       }
 
+      const pLength = product.dimensions?.length ? parseFloat(product.dimensions.length) : null;
+      const pWidth = product.dimensions?.width ? parseFloat(product.dimensions.width) : null;
+      const pHeight = product.dimensions?.height ? parseFloat(product.dimensions.height) : null;
+
       const updateData: Record<string, unknown> = {
         name: product.name,
         sku: product.sku || null,
@@ -360,12 +379,13 @@ export async function syncProducts(store: Store, options?: SyncOptions): Promise
         price: product.price || '0',
         currency,
         weight: product.weight ? parseFloat(product.weight) : null,
-        length: product.dimensions?.length ? parseFloat(product.dimensions.length) : null,
-        width: product.dimensions?.width ? parseFloat(product.dimensions.width) : null,
-        height: product.dimensions?.height ? parseFloat(product.dimensions.height) : null,
+        length: pLength,
+        width: pWidth,
+        height: pHeight,
         imageUrl: product.images?.[0]?.src || null,
         isActive: product.status === 'publish',
         productType: 'simple',
+        sizeCategory: calculateProductSize(pLength, pWidth, pHeight),
       };
 
       if (importStock) {

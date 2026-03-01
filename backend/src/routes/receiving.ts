@@ -291,12 +291,28 @@ router.patch('/:id/receive', async (req: Request, res: Response, next: NextFunct
           data: { stockQty: { increment: item.receivedQty } },
         });
 
+        // Resolve bin label for stock movement
+        let binLabel: string | null = null;
+        if (item.binId) {
+          const bin = await req.prisma!.bin.findUnique({ where: { id: item.binId } });
+          binLabel = bin?.label || null;
+
+          // Create/update StockLocation record — this is the key link between inventory and bins
+          if (bin) {
+            await req.prisma!.stockLocation.upsert({
+              where: { productId_binId: { productId: product.id, binId: item.binId } },
+              update: { quantity: { increment: item.receivedQty } },
+              create: { productId: product.id, binId: item.binId, quantity: item.receivedQty },
+            });
+          }
+        }
+
         await req.prisma!.stockMovement.create({
           data: {
             productId: product.id,
             type: 'RECEIVED',
             quantity: item.receivedQty,
-            toBin: item.binId ? String(item.binId) : null,
+            toBin: binLabel,
             reference: `PO-${poId}`,
           },
         });

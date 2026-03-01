@@ -18,11 +18,12 @@ import {
   ExternalLink,
   Link2,
   Pencil,
+  MapPin,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
 import { generatePoPdf } from '../lib/generatePoPdf';
-import type { PurchaseOrder, PurchaseOrderItem } from '../types';
+import type { PurchaseOrder, PurchaseOrderItem, Bin } from '../types';
 
 const poStatusConfig: Record<string, { label: string; bg: string; text: string; dot: string }> = {
   DRAFT: { label: 'Draft', bg: 'bg-gray-500/10', text: 'text-gray-500', dot: 'bg-gray-400' },
@@ -40,7 +41,8 @@ export default function PODetail() {
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [receiving, setReceiving] = useState(false);
-  const [receiveQtys, setReceiveQtys] = useState<Record<number, number>>({});
+  const [receiveQtys, setReceiveQtys] = useState<Record<number, { qty: number; binId?: number }>>({});
+  const [availableBins, setAvailableBins] = useState<Bin[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -50,6 +52,25 @@ export default function PODetail() {
       .catch(() => navigate('/receiving'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Fetch active bins when entering receive mode
+  useEffect(() => {
+    if (!receiving) return;
+    api.get('/warehouse')
+      .then(({ data }) => {
+        const bins: Bin[] = [];
+        for (const wh of data.data || []) {
+          for (const zone of wh.zones || []) {
+            for (const bin of zone.bins || []) {
+              if (bin.isActive) bins.push(bin);
+            }
+          }
+        }
+        bins.sort((a, b) => a.label.localeCompare(b.label));
+        setAvailableBins(bins);
+      })
+      .catch(() => setAvailableBins([]));
+  }, [receiving]);
 
   const updateStatus = useCallback(async (newStatus: string) => {
     if (!po) return;
@@ -79,8 +100,12 @@ export default function PODetail() {
   const handleReceive = useCallback(async () => {
     if (!po) return;
     const items = Object.entries(receiveQtys)
-      .filter(([, qty]) => qty > 0)
-      .map(([itemId, receivedQty]) => ({ itemId: parseInt(itemId), receivedQty }));
+      .filter(([, val]) => val.qty > 0)
+      .map(([itemId, val]) => ({
+        itemId: parseInt(itemId),
+        receivedQty: val.qty,
+        ...(val.binId ? { binId: val.binId } : {}),
+      }));
 
     if (items.length === 0) return;
 
@@ -185,7 +210,7 @@ export default function PODetail() {
                     Save
                   </button>
                   <button
-                    onClick={() => { setReceiving(false); setReceiveQtys({}); }}
+                    onClick={() => { setReceiving(false); setReceiveQtys({}); setAvailableBins([]); }}
                     className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border/60 px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -203,6 +228,7 @@ export default function PODetail() {
                     <th className="px-6 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ordered</th>
                     <th className="px-6 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Received</th>
                     {receiving && <th className="px-6 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Qty to Receive</th>}
+                    {receiving && <th className="px-6 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Put to Bin</th>}
                     <th className="px-6 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Unit Cost</th>
                     <th className="px-6 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Line Total</th>
                   </tr>
@@ -234,15 +260,40 @@ export default function PODetail() {
                               type="number"
                               min={0}
                               max={remaining > 0 ? remaining : 0}
-                              value={receiveQtys[item.id] || ''}
+                              value={receiveQtys[item.id]?.qty || ''}
                               onChange={(e) => setReceiveQtys((prev) => ({
                                 ...prev,
-                                [item.id]: Math.min(parseInt(e.target.value) || 0, Math.max(remaining, 0)),
+                                [item.id]: {
+                                  ...prev[item.id],
+                                  qty: Math.min(parseInt(e.target.value) || 0, Math.max(remaining, 0)),
+                                },
                               }))}
                               disabled={remaining <= 0}
                               className="h-8 w-20 rounded-lg border border-border/60 bg-background px-2 text-center text-sm font-medium shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-40"
                               placeholder={remaining > 0 ? String(remaining) : '0'}
                             />
+                          </td>
+                        )}
+                        {receiving && (
+                          <td className="px-6 py-3 text-center">
+                            <select
+                              value={receiveQtys[item.id]?.binId || ''}
+                              onChange={(e) => setReceiveQtys((prev) => ({
+                                ...prev,
+                                [item.id]: {
+                                  ...prev[item.id],
+                                  qty: prev[item.id]?.qty || 0,
+                                  binId: e.target.value ? parseInt(e.target.value) : undefined,
+                                },
+                              }))}
+                              disabled={remaining <= 0}
+                              className="h-8 w-36 rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-40"
+                            >
+                              <option value="">No bin</option>
+                              {availableBins.map((bin) => (
+                                <option key={bin.id} value={bin.id}>{bin.label}</option>
+                              ))}
+                            </select>
                           </td>
                         )}
                         <td className="px-6 py-3 text-right text-sm">

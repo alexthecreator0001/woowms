@@ -166,6 +166,7 @@ model Product {
 
   packageQty       Int?     @map("package_qty")
   isBundle         Boolean  @default(false) @map("is_bundle")
+  sizeCategory     ProductSize? @map("size_category")
 
   orderItems       OrderItem[]
   stockLocations   StockLocation[]
@@ -220,16 +221,35 @@ enum ZoneType {
   RETURNS
 }
 
+enum BinSize {
+  SMALL
+  MEDIUM
+  LARGE
+  XLARGE
+}
+
+enum ProductSize {
+  SMALL
+  MEDIUM
+  LARGE
+  XLARGE
+  OVERSIZED
+}
+
 model Bin {
-  id       Int    @id @default(autoincrement())
-  zoneId   Int    @map("zone_id")
-  zone     Zone   @relation(fields: [zoneId], references: [id])
-  label    String @unique
-  row      String?
-  shelf    String?
-  position String?
-  capacity Int?
-  isActive Boolean @default(true) @map("is_active")
+  id        Int      @id @default(autoincrement())
+  zoneId    Int      @map("zone_id")
+  zone      Zone     @relation(fields: [zoneId], references: [id])
+  label     String   @unique
+  row       String?
+  shelf     String?
+  position  String?
+  capacity  Int?
+  binSize   BinSize  @default(MEDIUM) @map("bin_size")
+  maxWeight Decimal? @db.Decimal(8, 3) @map("max_weight")
+  pickable  Boolean  @default(true)
+  sellable  Boolean  @default(true)
+  isActive  Boolean  @default(true) @map("is_active")
 
   stockLocations StockLocation[]
 

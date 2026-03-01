@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, CircleNotch, Rows, Stack, GridFour, MapPin } from '@phosphor-icons/react';
+import { X, CircleNotch, Rows, Stack, GridFour, MapPin, Package } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import api from '../../services/api';
+import type { BinSize } from '../../types';
+import { BIN_SIZE_LABELS } from '../../types';
 
 interface GenerateBinsModalProps {
   open: boolean;
@@ -23,6 +25,7 @@ export default function GenerateBinsModal({
   const [racks, setRacks] = useState(2);
   const [shelves, setShelves] = useState(4);
   const [positions, setPositions] = useState(3);
+  const [binSize, setBinSize] = useState<BinSize>('MEDIUM');
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +36,7 @@ export default function GenerateBinsModal({
       setRacks(2);
       setShelves(4);
       setPositions(3);
+      setBinSize('MEDIUM');
       setError(null);
     }
   }, [open]);
@@ -90,6 +94,7 @@ export default function GenerateBinsModal({
         racksPerAisle: racks,
         shelvesPerRack: shelves,
         positionsPerShelf: positions,
+        binSize,
       });
       onSaved();
       onClose();
@@ -210,6 +215,26 @@ export default function GenerateBinsModal({
                 <p className="mb-2 text-[11px] text-muted-foreground">Bin slots on each shelf (left to right)</p>
                 <input type="number" min={1} max={20} value={positions} onChange={(e) => setPositions(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))} className={inputCls} />
               </div>
+            </div>
+
+            {/* Location Size */}
+            <div>
+              <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-foreground">
+                <Package size={16} weight="duotone" className="text-rose-600" />
+                Location Size
+              </label>
+              <p className="mb-2 text-[11px] text-muted-foreground">
+                Sets the default capacity for each location. Small = 25 items, Medium = 50, Large = 100, X-Large = 200.
+              </p>
+              <select
+                value={binSize}
+                onChange={(e) => setBinSize(e.target.value as BinSize)}
+                className={inputCls}
+              >
+                {(Object.keys(BIN_SIZE_LABELS) as BinSize[]).map((size) => (
+                  <option key={size} value={size}>{BIN_SIZE_LABELS[size]}</option>
+                ))}
+              </select>
             </div>
 
             {/* Visual Rack Preview */}

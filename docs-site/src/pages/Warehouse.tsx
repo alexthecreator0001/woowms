@@ -282,6 +282,128 @@ export default function Warehouse() {
         </li>
       </ul>
 
+      <h2>Bin Sizing</h2>
+      <p>
+        Every bin has a <strong>size category</strong> that determines its default capacity:
+      </p>
+      <table className="doc-table">
+        <thead>
+          <tr>
+            <th>Size</th>
+            <th>Default Capacity</th>
+            <th>Use Case</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className="font-medium text-surface-800">Small</td>
+            <td>25 items</td>
+            <td>Small parts, accessories, jewelry</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Medium</td>
+            <td>50 items</td>
+            <td>Standard products, clothing, electronics</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Large</td>
+            <td>100 items</td>
+            <td>Bulkier items, multi-packs</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">X-Large</td>
+            <td>200 items</td>
+            <td>Pallet positions, oversized goods</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Bin size is set when generating locations, creating zones, or editing individual bins.
+        The capacity can also be overridden per-bin for special cases.
+        Capacity limits are <strong>soft</strong> &mdash; the system warns when a bin is over capacity
+        but does not block operations, matching how real warehouses work.
+      </p>
+
+      <h3>Bin Flags</h3>
+      <ul>
+        <li>
+          <strong>Pickable</strong> &mdash; whether this bin's inventory is available for pick lists.
+          Disable for bins used as overflow or reserve storage.
+        </li>
+        <li>
+          <strong>Sellable</strong> &mdash; whether this bin's inventory counts toward available stock.
+          Disable for damaged goods or QA hold areas.
+        </li>
+      </ul>
+
+      <h2>Product Size Categories</h2>
+      <p>
+        Products are automatically classified by size based on their WooCommerce dimensions
+        (length &times; width &times; height volume):
+      </p>
+      <table className="doc-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Volume Threshold</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className="font-medium text-surface-800">Small</td>
+            <td>&le; 500 cubic units</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Medium</td>
+            <td>&le; 3,000 cubic units</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Large</td>
+            <td>&le; 15,000 cubic units</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">X-Large</td>
+            <td>&le; 50,000 cubic units</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Oversized</td>
+            <td>&gt; 50,000 cubic units</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Size is auto-calculated during WooCommerce sync and when product dimensions are edited.
+        It can also be set manually. When assigning stock to a bin, the system warns if the
+        product size doesn't match the bin size (e.g., putting an Oversized product in a Small bin).
+      </p>
+
+      <h2>Stock-to-Bin Assignment</h2>
+      <p>
+        Stock is linked to physical locations via <strong>StockLocation</strong> records. There are
+        three ways stock gets assigned to bins:
+      </p>
+      <ul>
+        <li>
+          <strong>During receiving</strong> &mdash; when receiving a PO, select a bin from the
+          "Put to Bin" dropdown for each line item. The received quantity is automatically
+          recorded in that bin location.
+        </li>
+        <li>
+          <strong>Manual assign</strong> &mdash; use the assign-bin API endpoint to place
+          existing stock into a specific bin.
+        </li>
+        <li>
+          <strong>Transfer</strong> &mdash; move stock from one bin to another. The system
+          validates the source bin has enough stock and warns if the target bin would be
+          over capacity.
+        </li>
+      </ul>
+      <p>
+        All stock movements (assign, transfer, receive) are recorded as{' '}
+        <strong>StockMovement</strong> entries with the source and destination bin labels
+        for full audit trail.
+      </p>
+
       <h2>Editing & Deleting</h2>
       <p>
         Warehouses, zones, and bins can be edited using slide-over panels (right-anchored).

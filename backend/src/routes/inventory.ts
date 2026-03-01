@@ -460,7 +460,7 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
       return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     }
 
-    const { description, price, weight, length, width, height, lowStockThreshold, packageQty, isBundle } = req.body as {
+    const { description, price, weight, length, width, height, lowStockThreshold, packageQty, isBundle, sizeCategory } = req.body as {
       description?: string;
       price?: string;
       weight?: string | null;
@@ -470,6 +470,7 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
       lowStockThreshold?: number;
       packageQty?: number | null;
       isBundle?: boolean;
+      sizeCategory?: string | null;
     };
 
     const data: Record<string, unknown> = {};
@@ -482,6 +483,16 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
     if (lowStockThreshold !== undefined) data.lowStockThreshold = lowStockThreshold;
     if (packageQty !== undefined) data.packageQty = packageQty;
     if (isBundle !== undefined) data.isBundle = isBundle;
+
+    // Handle sizeCategory: explicit value or auto-calc from dimensions
+    if (sizeCategory !== undefined) {
+      data.sizeCategory = sizeCategory;
+    } else if (length !== undefined || width !== undefined || height !== undefined) {
+      const effL = length !== undefined ? (length ? parseFloat(length) : null) : (existing.length ? Number(existing.length) : null);
+      const effW = width !== undefined ? (width ? parseFloat(width) : null) : (existing.width ? Number(existing.width) : null);
+      const effH = height !== undefined ? (height ? parseFloat(height) : null) : (existing.height ? Number(existing.height) : null);
+      data.sizeCategory = calculateProductSize(effL, effW, effH);
+    }
 
     const product = await prisma.product.update({
       where: { id: productId },
@@ -881,6 +892,181 @@ router.delete('/:id/bundle/:itemId', authorize('ADMIN', 'MANAGER'), async (req: 
     await prismaClient.bundleItem.delete({ where: { id: itemId } });
     res.json({ data: { message: 'Bundle component removed' } });
   } catch (err) { next(err); }
+});
+
+// ─── Size Category Helpers ───────────────────────────
+
+const BIN_SIZE_DEFAULTS: Record<string, number> = {
+  SMALL: 25,
+  MEDIUM: 50,
+  LARGE: 100,
+  XLARGE: 200,
+};
+
+function calculateProductSize(length: number | null, width: number | null, height: number | null): string | null {
+  if (!length || !width || !height) return null;
+  const volume = length * width * height;
+  if (volume <= 500) return 'SMALL';
+  if (volume <= 3000) return 'MEDIUM';
+  if (volume <= 15000) return 'LARGE';
+  if (volume <= 50000) return 'XLARGE';
+  return 'OVERSIZED';
+}
+
+// ─── Assign Stock to Bin ─────────────────────────────
+
+// POST /api/v1/inventory/:id/assign-bin — Assign stock to a bin location
+router.post('/:id/assign-bin', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const { binId, quantity } = req.body as { binId: number; quantity: number };
+    const prisma = req.prisma!;
+
+    if (!binId || !quantity || quantity <= 0) {
+      return res.status(400).json({ error: true, message: 'binId and positive quantity are required', code: 'VALIDATION_ERROR' });
+    }
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { store: true },
+    });
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    const bin = await prisma.bin.findUnique({
+      where: { id: binId },
+      include: {
+        stockLocations: { select: { quantity: true } },
+        zone: true,
+      },
+    });
+    if (!bin) {
+      return res.status(404).json({ error: true, message: 'Bin not found', code: 'NOT_FOUND' });
+    }
+
+    // Upsert stock location
+    const stockLocation = await prisma.stockLocation.upsert({
+      where: { productId_binId: { productId, binId } },
+      update: { quantity: { increment: quantity } },
+      create: { productId, binId, quantity },
+    });
+
+    // Create stock movement
+    await prisma.stockMovement.create({
+      data: {
+        productId,
+        type: 'ADJUSTED',
+        quantity,
+        toBin: bin.label,
+        reason: 'Assigned to bin',
+      },
+    });
+
+    // Build warnings (soft limits — never block)
+    const warnings: string[] = [];
+
+    // Check capacity
+    const currentStock = bin.stockLocations.reduce((sum, sl) => sum + sl.quantity, 0);
+    const newTotal = currentStock + quantity;
+    if (bin.capacity && newTotal > bin.capacity) {
+      warnings.push(`Bin ${bin.label} is over capacity: ${newTotal}/${bin.capacity}`);
+    }
+
+    // Check product size vs bin size
+    const sizeRank: Record<string, number> = { SMALL: 1, MEDIUM: 2, LARGE: 3, XLARGE: 4, OVERSIZED: 5 };
+    if (product.sizeCategory && sizeRank[product.sizeCategory] > sizeRank[bin.binSize]) {
+      warnings.push(`Product size (${product.sizeCategory}) is larger than bin size (${bin.binSize})`);
+    }
+
+    res.json({ data: stockLocation, warnings });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/inventory/:id/transfer — Move stock between bins
+router.post('/:id/transfer', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const { fromBinId, toBinId, quantity } = req.body as { fromBinId: number; toBinId: number; quantity: number };
+    const prisma = req.prisma!;
+
+    if (!fromBinId || !toBinId || !quantity || quantity <= 0) {
+      return res.status(400).json({ error: true, message: 'fromBinId, toBinId, and positive quantity are required', code: 'VALIDATION_ERROR' });
+    }
+    if (fromBinId === toBinId) {
+      return res.status(400).json({ error: true, message: 'Source and destination bins must be different', code: 'VALIDATION_ERROR' });
+    }
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { store: true },
+    });
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    // Verify source bin has enough stock
+    const sourceLocation = await prisma.stockLocation.findUnique({
+      where: { productId_binId: { productId, binId: fromBinId } },
+    });
+    if (!sourceLocation || sourceLocation.quantity < quantity) {
+      return res.status(400).json({
+        error: true,
+        message: `Insufficient stock in source bin (available: ${sourceLocation?.quantity || 0}, requested: ${quantity})`,
+        code: 'INSUFFICIENT_STOCK',
+      });
+    }
+
+    const [fromBin, toBin] = await Promise.all([
+      prisma.bin.findUnique({ where: { id: fromBinId }, include: { stockLocations: { select: { quantity: true } } } }),
+      prisma.bin.findUnique({ where: { id: toBinId }, include: { stockLocations: { select: { quantity: true } } } }),
+    ]);
+    if (!fromBin || !toBin) {
+      return res.status(404).json({ error: true, message: 'Bin not found', code: 'NOT_FOUND' });
+    }
+
+    // Decrement source
+    if (sourceLocation.quantity === quantity) {
+      await prisma.stockLocation.delete({ where: { id: sourceLocation.id } });
+    } else {
+      await prisma.stockLocation.update({
+        where: { id: sourceLocation.id },
+        data: { quantity: { decrement: quantity } },
+      });
+    }
+
+    // Upsert target
+    const targetLocation = await prisma.stockLocation.upsert({
+      where: { productId_binId: { productId, binId: toBinId } },
+      update: { quantity: { increment: quantity } },
+      create: { productId, binId: toBinId, quantity },
+    });
+
+    // Create stock movement
+    await prisma.stockMovement.create({
+      data: {
+        productId,
+        type: 'TRANSFERRED',
+        quantity,
+        fromBin: fromBin.label,
+        toBin: toBin.label,
+        reason: `Transfer from ${fromBin.label} to ${toBin.label}`,
+      },
+    });
+
+    // Build warnings
+    const warnings: string[] = [];
+    const targetStock = toBin.stockLocations.reduce((sum, sl) => sum + sl.quantity, 0) + quantity;
+    if (toBin.capacity && targetStock > toBin.capacity) {
+      warnings.push(`Destination bin ${toBin.label} is over capacity: ${targetStock}/${toBin.capacity}`);
+    }
+
+    res.json({ data: targetLocation, warnings });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // ─── Incoming Stock Endpoint ──────────────────────────

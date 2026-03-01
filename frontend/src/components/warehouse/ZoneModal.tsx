@@ -3,7 +3,8 @@ import { X, ArrowLeft } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import api from '../../services/api';
 import { ELEMENT_TEMPLATES, getTemplate } from './floorplan/ElementPalette';
-import type { FloorPlanElementType } from '../../types';
+import type { FloorPlanElementType, BinSize } from '../../types';
+import { BIN_SIZE_LABELS } from '../../types';
 
 interface ZoneModalProps {
   open: boolean;
@@ -23,6 +24,7 @@ export default function ZoneModal({
   const [prefix, setPrefix] = useState('');
   const [shelves, setShelves] = useState(4);
   const [positions, setPositions] = useState(3);
+  const [binSize, setBinSize] = useState<BinSize>('MEDIUM');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +36,7 @@ export default function ZoneModal({
       setPrefix('');
       setShelves(4);
       setPositions(3);
+      setBinSize('MEDIUM');
       setError(null);
     }
   }, [open]);
@@ -63,6 +66,7 @@ export default function ZoneModal({
         prefix: prefix.trim() || undefined,
         shelvesCount: shelves,
         positionsPerShelf: positions,
+        binSize,
       });
       const zone = data.data.zone;
 
@@ -85,6 +89,7 @@ export default function ZoneModal({
             prefix: prefix.trim() || undefined,
             shelvesCount: shelves,
             positionsPerShelf: positions,
+            binSize,
           };
           await api.put(`/warehouse/${warehouseId}/floor-plan`, {
             ...floorPlan,
@@ -250,6 +255,21 @@ export default function ZoneModal({
                 />
                 <p className="mt-1 text-[10px] text-muted-foreground">Horizontal slots (left → right)</p>
               </div>
+            </div>
+
+            {/* Bin Size */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">Location Size</label>
+              <select
+                value={binSize}
+                onChange={(e) => setBinSize(e.target.value as BinSize)}
+                className={inputClasses}
+              >
+                {(Object.keys(BIN_SIZE_LABELS) as BinSize[]).map((size) => (
+                  <option key={size} value={size}>{BIN_SIZE_LABELS[size]}</option>
+                ))}
+              </select>
+              <p className="mt-1 text-[10px] text-muted-foreground">Default capacity per location</p>
             </div>
 
             <div className="rounded-lg bg-muted/50 px-3 py-2 text-center text-sm">

@@ -270,6 +270,8 @@ function BinCell({
   const stockCount = bin._stockCount ?? 0;
   const isEmpty = stockCount === 0;
   const inactive = !bin.isActive;
+  const capacity = bin.capacity;
+  const isOverCapacity = capacity != null && capacity > 0 && stockCount > capacity;
 
   return (
     <button
@@ -280,6 +282,7 @@ function BinCell({
         colors.bg,
         'hover:brightness-95 hover:shadow-sm cursor-pointer',
         inactive && 'opacity-35 grayscale',
+        isOverCapacity && 'ring-1 ring-red-400/60',
       )}
     >
       <span className={cn('text-[10px] font-semibold leading-tight', inactive ? 'text-muted-foreground' : colors.text)}>
@@ -287,10 +290,18 @@ function BinCell({
       </span>
       <span className={cn(
         'mt-0.5 text-base font-bold leading-tight',
-        isEmpty ? 'text-muted-foreground/30' : 'text-foreground',
+        isEmpty ? 'text-muted-foreground/30' : isOverCapacity ? 'text-red-600' : 'text-foreground',
       )}>
         {isEmpty ? '—' : stockCount}
       </span>
+      {capacity != null && capacity > 0 && (
+        <span className={cn(
+          'text-[8px] leading-tight',
+          isOverCapacity ? 'text-red-500 font-semibold' : 'text-muted-foreground/50',
+        )}>
+          /{capacity}
+        </span>
+      )}
     </button>
   );
 }

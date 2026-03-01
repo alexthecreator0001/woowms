@@ -24,6 +24,32 @@ export interface PaginationMeta {
   pages: number;
 }
 
+// ─── Bin & Product Size Categories ───────────────────
+export type BinSize = 'SMALL' | 'MEDIUM' | 'LARGE' | 'XLARGE';
+export type ProductSize = 'SMALL' | 'MEDIUM' | 'LARGE' | 'XLARGE' | 'OVERSIZED';
+
+export const BIN_SIZE_CAPACITY: Record<BinSize, number> = {
+  SMALL: 25,
+  MEDIUM: 50,
+  LARGE: 100,
+  XLARGE: 200,
+};
+
+export const BIN_SIZE_LABELS: Record<BinSize, string> = {
+  SMALL: 'Small (25)',
+  MEDIUM: 'Medium (50)',
+  LARGE: 'Large (100)',
+  XLARGE: 'X-Large (200)',
+};
+
+export const PRODUCT_SIZE_LABELS: Record<ProductSize, string> = {
+  SMALL: 'Small',
+  MEDIUM: 'Medium',
+  LARGE: 'Large',
+  XLARGE: 'X-Large',
+  OVERSIZED: 'Oversized',
+};
+
 // Domain models
 export interface User {
   id: number;
@@ -101,6 +127,7 @@ export interface Product {
   lowStockThreshold: number;
   imageUrl: string | null;
   isActive: boolean;
+  sizeCategory?: ProductSize | null;
   stockLocations?: StockLocation[];
 }
 
@@ -117,9 +144,16 @@ export interface Bin {
   shelf: string | null;
   position: string | null;
   capacity: number | null;
+  binSize: BinSize;
+  maxWeight: string | null;
+  pickable: boolean;
+  sellable: boolean;
   isActive: boolean;
   zone?: Zone;
-  stockLocations?: { quantity: number }[];
+  stockLocations?: {
+    quantity: number;
+    product?: { id: number; name: string; sku: string | null; imageUrl: string | null; sizeCategory: string | null };
+  }[];
   _stockCount?: number;
 }
 
@@ -149,6 +183,7 @@ export interface FloorPlanElement {
   prefix?: string;
   shelvesCount?: number;
   positionsPerShelf?: number;
+  binSize?: BinSize;
 }
 
 export interface FloorPlan {
@@ -241,6 +276,7 @@ export interface ProductDetail extends Product {
   height: string | null;
   packageQty: number | null;
   isBundle: boolean;
+  sizeCategory?: ProductSize | null;
   createdAt: string;
   updatedAt: string;
   stockMovements?: StockMovement[];

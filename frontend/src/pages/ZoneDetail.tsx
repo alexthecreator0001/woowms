@@ -18,7 +18,8 @@ import {
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
-import type { Warehouse, Zone, Bin, ZoneType } from '../types';
+import type { Warehouse, Zone, Bin, ZoneType, BinSize } from '../types';
+import { BIN_SIZE_LABELS } from '../types';
 import BinGrid from '../components/warehouse/BinGrid';
 import BinListView from '../components/warehouse/BinListView';
 import SlideOver from '../components/warehouse/SlideOver';
@@ -77,6 +78,9 @@ export default function ZoneDetail() {
   const [editBinShelf, setEditBinShelf] = useState('');
   const [editBinPosition, setEditBinPosition] = useState('');
   const [editBinCapacity, setEditBinCapacity] = useState('');
+  const [editBinSize, setEditBinSize] = useState<BinSize>('MEDIUM');
+  const [editBinPickable, setEditBinPickable] = useState(true);
+  const [editBinSellable, setEditBinSellable] = useState(true);
   const [editBinActive, setEditBinActive] = useState(true);
   const [editBinSaving, setEditBinSaving] = useState(false);
   const [editBinDeleting, setEditBinDeleting] = useState(false);
@@ -162,6 +166,9 @@ export default function ZoneDetail() {
     setEditBinShelf(bin.shelf ?? '');
     setEditBinPosition(bin.position ?? '');
     setEditBinCapacity(bin.capacity != null ? String(bin.capacity) : '');
+    setEditBinSize(bin.binSize || 'MEDIUM');
+    setEditBinPickable(bin.pickable ?? true);
+    setEditBinSellable(bin.sellable ?? true);
     setEditBinActive(bin.isActive);
     setEditBinSlideOpen(true);
   };
@@ -177,6 +184,9 @@ export default function ZoneDetail() {
         shelf: editBinShelf.trim() || null,
         position: editBinPosition.trim() || null,
         capacity: editBinCapacity ? Number(editBinCapacity) : null,
+        binSize: editBinSize,
+        pickable: editBinPickable,
+        sellable: editBinSellable,
         isActive: editBinActive,
       });
       setEditBinSlideOpen(false);
@@ -658,13 +668,64 @@ export default function ZoneDetail() {
             </div>
           </div>
           <div>
-            <label htmlFor="ebc" className="mb-1.5 block text-sm font-medium">Capacity</label>
-            <input id="ebc" type="number" min={0} value={editBinCapacity} onChange={(e) => setEditBinCapacity(e.target.value)} placeholder="Optional" className={inputClasses} />
+            <label htmlFor="ebc-size" className="mb-1.5 block text-sm font-medium">Location Size</label>
+            <select
+              id="ebc-size"
+              value={editBinSize}
+              onChange={(e) => setEditBinSize(e.target.value as BinSize)}
+              className={inputClasses}
+            >
+              {(Object.keys(BIN_SIZE_LABELS) as BinSize[]).map((size) => (
+                <option key={size} value={size}>{BIN_SIZE_LABELS[size]}</option>
+              ))}
+            </select>
           </div>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={editBinActive} onChange={(e) => setEditBinActive(e.target.checked)} className="h-4 w-4 rounded border-border accent-primary" />
-            <span className="text-sm">Active</span>
-          </label>
+          <div>
+            <label htmlFor="ebc" className="mb-1.5 block text-sm font-medium">Capacity Override</label>
+            <input id="ebc" type="number" min={0} value={editBinCapacity} onChange={(e) => setEditBinCapacity(e.target.value)} placeholder="From bin size" className={inputClasses} />
+            <p className="mt-1 text-[10px] text-muted-foreground">Leave empty to use default from size category</p>
+          </div>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={editBinPickable} onChange={(e) => setEditBinPickable(e.target.checked)} className="h-4 w-4 rounded border-border accent-primary" />
+              <span className="text-sm">Pickable</span>
+              <span className="text-[10px] text-muted-foreground">— available for order picking</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={editBinSellable} onChange={(e) => setEditBinSellable(e.target.checked)} className="h-4 w-4 rounded border-border accent-primary" />
+              <span className="text-sm">Sellable</span>
+              <span className="text-[10px] text-muted-foreground">— counts toward available stock</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={editBinActive} onChange={(e) => setEditBinActive(e.target.checked)} className="h-4 w-4 rounded border-border accent-primary" />
+              <span className="text-sm">Active</span>
+            </label>
+          </div>
+
+          {/* Contents */}
+          {editingBin?.stockLocations && editingBin.stockLocations.length > 0 && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">Contents</label>
+              <div className="space-y-1.5">
+                {editingBin.stockLocations.map((sl, idx) => (
+                  <div key={idx} className="flex items-center gap-2 rounded-lg border border-border/40 px-3 py-2">
+                    {sl.product?.imageUrl ? (
+                      <img src={sl.product.imageUrl} alt="" className="h-8 w-8 rounded object-cover" />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded bg-muted text-muted-foreground">
+                        <Package size={14} />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{sl.product?.name || 'Unknown'}</p>
+                      <p className="text-[10px] text-muted-foreground">{sl.product?.sku || '—'}</p>
+                    </div>
+                    <span className="text-sm font-bold">{sl.quantity}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </form>
       </SlideOver>
 

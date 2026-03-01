@@ -3,6 +3,25 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.23.0 / 2.23.0] - 2026-03-01
+
+### Added
+- **Bin sizing (S/M/L/XL)** — bins now have a size category (Small=25, Medium=50, Large=100, XLarge=200 capacity). Selectable when generating locations, creating zones, and editing individual bins
+- **Product size categories** — products auto-classified as Small/Medium/Large/XLarge/Oversized based on WooCommerce dimensions (L×W×H volume). Also settable manually via product edit
+- **Assign stock to bin** — `POST /inventory/:id/assign-bin` endpoint upserts stock into a specific bin location with soft capacity warnings
+- **Transfer stock between bins** — `POST /inventory/:id/transfer` endpoint moves stock from one bin to another with validation and capacity warnings
+- **Bin selection during PO receiving** — when receiving items, a "Put to Bin" dropdown lets you assign each line item to a specific bin location
+- **Bin contents in edit panel** — editing a bin now shows a "Contents" section listing all products stored in that bin with quantities
+- **Pickable/Sellable flags** — bins can be marked as pickable (available for pick lists) and sellable (inventory counts toward available stock)
+
+### Fixed
+- **Stock-to-bin pipeline** — receiving items now creates `StockLocation` records linking stock to physical bin locations. Previously stock was only tracked as a global number on the product with no bin association
+- **StockMovement toBin field** — now stores the human-readable bin label instead of the numeric bin ID
+
+### Changed
+- **Capacity indicators** — bin grid cells and list view now show stock/capacity fractions with red highlighting when over capacity
+- **Bin edit panel** — replaced plain capacity number input with bin size selector + capacity override, plus pickable/sellable/active checkboxes
+
 ## [3.22.0 / 2.22.0] - 2026-03-01
 
 ### Added
