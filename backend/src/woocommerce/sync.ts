@@ -47,6 +47,19 @@ interface WooProduct {
   } | null;
   images: { src: string }[];
   status: string;
+  type: string;
+}
+
+interface WooVariation {
+  id: number;
+  sku: string | null;
+  price: string;
+  stock_quantity: number | null;
+  weight: string | null;
+  dimensions: { length: string; width: string; height: string } | null;
+  image: { src: string } | null;
+  attributes: { name: string; option: string }[];
+  status: string;
 }
 
 interface WooSetting {
@@ -223,6 +236,110 @@ export async function syncProducts(store: Store, options?: SyncOptions): Promise
     }
 
     for (const product of products) {
+      // Skip grouped and external products entirely
+      if (product.type === 'grouped' || product.type === 'external') {
+        result.skipped++;
+        continue;
+      }
+
+      // Variable products: skip parent, import each variation instead
+      if (product.type === 'variable') {
+        // Deactivate any previously imported parent product
+        const existingParent = await prisma.product.findUnique({
+          where: { wooId_storeId: { wooId: product.id, storeId: store.id } },
+        });
+        if (existingParent) {
+          await prisma.product.update({
+            where: { id: existingParent.id },
+            data: { isActive: false, productType: 'variable' },
+          });
+        }
+
+        // Fetch all variations for this variable product
+        let varPage = 1;
+        let hasMoreVars = true;
+        while (hasMoreVars) {
+          const { data: variations } = await woo.get<WooVariation[]>(
+            `products/${product.id}/variations`,
+            { page: varPage, per_page: 100 }
+          );
+
+          if (variations.length === 0) {
+            hasMoreVars = false;
+            break;
+          }
+
+          for (const variation of variations) {
+            const existing = await prisma.product.findUnique({
+              where: { wooId_storeId: { wooId: variation.id, storeId: store.id } },
+            });
+
+            if (existing && mode === 'add_only') {
+              result.skipped++;
+              continue;
+            }
+            if (!existing && mode === 'update_only') {
+              result.skipped++;
+              continue;
+            }
+
+            // Build variation name: "Parent Name - Attr1 / Attr2"
+            const attrString = variation.attributes.map(a => a.option).join(' / ');
+            const varName = attrString ? `${product.name} - ${attrString}` : product.name;
+
+            // Build variant attributes JSON: { "Size": "Large", "Color": "Red" }
+            const variantAttributes: Record<string, string> = {};
+            for (const attr of variation.attributes) {
+              variantAttributes[attr.name] = attr.option;
+            }
+
+            const updateData: Record<string, unknown> = {
+              name: varName,
+              sku: variation.sku || null,
+              description: product.short_description || null,
+              price: variation.price || product.price || '0',
+              currency,
+              weight: variation.weight ? parseFloat(variation.weight) : (product.weight ? parseFloat(product.weight) : null),
+              length: variation.dimensions?.length ? parseFloat(variation.dimensions.length) : (product.dimensions?.length ? parseFloat(product.dimensions.length) : null),
+              width: variation.dimensions?.width ? parseFloat(variation.dimensions.width) : (product.dimensions?.width ? parseFloat(product.dimensions.width) : null),
+              height: variation.dimensions?.height ? parseFloat(variation.dimensions.height) : (product.dimensions?.height ? parseFloat(product.dimensions.height) : null),
+              imageUrl: variation.image?.src || product.images?.[0]?.src || null,
+              isActive: variation.status === 'publish' || product.status === 'publish',
+              productType: 'variation',
+              wooParentId: product.id,
+              variantAttributes,
+            };
+
+            if (importStock) {
+              updateData.stockQty = variation.stock_quantity || 0;
+            }
+
+            if (existing) {
+              await prisma.product.update({
+                where: { id: existing.id },
+                data: updateData,
+              });
+              result.updated++;
+            } else {
+              await prisma.product.create({
+                data: {
+                  wooId: variation.id,
+                  storeId: store.id,
+                  ...updateData,
+                  stockQty: (importStock ? variation.stock_quantity : 0) || 0,
+                  lowStockThreshold,
+                } as any,
+              });
+              result.added++;
+            }
+          }
+
+          varPage++;
+        }
+        continue;
+      }
+
+      // Simple products: import as before
       const existing = await prisma.product.findUnique({
         where: { wooId_storeId: { wooId: product.id, storeId: store.id } },
       });
@@ -248,6 +365,7 @@ export async function syncProducts(store: Store, options?: SyncOptions): Promise
         height: product.dimensions?.height ? parseFloat(product.dimensions.height) : null,
         imageUrl: product.images?.[0]?.src || null,
         isActive: product.status === 'publish',
+        productType: 'simple',
       };
 
       if (importStock) {
@@ -379,7 +497,13 @@ export async function pushStockToWoo(store: Store, productId: number): Promise<P
   const payload = buildWooStockPayload(availableQty, behavior);
 
   const woo = getWooClient(store);
-  await woo.put(`products/${product.wooId}`, payload);
+
+  // Variations use a different API endpoint
+  if (product.productType === 'variation' && product.wooParentId) {
+    await woo.put(`products/${product.wooParentId}/variations/${product.wooId}`, payload);
+  } else {
+    await woo.put(`products/${product.wooId}`, payload);
+  }
 
   console.log(`[SYNC] Pushed stock for ${product.sku}: qty=${availableQty}, status=${payload.stock_status}, backorders=${payload.backorders}`);
 
@@ -411,7 +535,12 @@ export async function pushProductToWoo(store: Store, productId: number): Promise
     },
   };
 
-  await woo.put(`products/${product.wooId}`, payload);
+  // Variations use a different API endpoint
+  if (product.productType === 'variation' && product.wooParentId) {
+    await woo.put(`products/${product.wooParentId}/variations/${product.wooId}`, payload);
+  } else {
+    await woo.put(`products/${product.wooId}`, payload);
+  }
   console.log(`[SYNC] Pushed product details for ${product.sku} to WooCommerce`);
 }
 

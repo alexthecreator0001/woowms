@@ -3,6 +3,19 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.13.0 / 2.17.0] - 2026-03-01
+
+### Added
+- **WooCommerce product variations support** — Variable products are now expanded into individual variations during sync (e.g., "T-Shirt - Large / Red"), each with its own SKU, price, stock quantity, and image. Parent "variable" products are skipped since they aren't sellable items.
+- **Variation schema fields** — `product_type` (simple/variation), `woo_parent_id` (WooCommerce parent ID for grouping), `variant_attributes` (JSON of attribute name/value pairs like `{"Size": "Large", "Color": "Red"}`)
+- **Variation-aware stock push** — Push stock and product edits to WooCommerce now uses the correct variation API endpoint (`products/{parent}/variations/{id}`) for variation products
+- **Documentation site** (`docs-site/`) — Public docs at `docs.picknpack.io` built with React + Vite + Tailwind, featuring clean editorial design with sidebar navigation and 11 documentation pages covering all modules
+- **CLAUDE.md docs rule** — New mandatory rule to keep documentation in sync with feature changes
+- Database migration `20260301180000_product_variations`
+
+### Changed
+- **Product sync logic** — WooCommerce sync now handles product types: simple products imported as before, variable products expanded into variations, grouped/external products skipped entirely. Previously imported variable parent products are deactivated.
+
 ## [3.12.0 / 2.16.0] - 2026-03-01
 
 ### Added

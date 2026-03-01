@@ -1,26 +1,17 @@
 {
-  "name": "picknpack-frontend",
+  "name": "picknpack-docs",
   "private": true,
-  "version": "3.13.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.2.0",
-    "axios": "^1.7.9",
-    "lucide-react": "^0.469.0",
-    "@phosphor-icons/react": "^2.1.7",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "jspdf": "^2.5.2",
-    "jspdf-autotable": "^3.8.4",
-    "tailwind-merge": "^2.6.0"
+    "react-router-dom": "^7.2.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

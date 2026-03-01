@@ -1,3 +1,8 @@
+# ⚠️ DOCS RULE
+**DOCS RULE**: After every feature addition or change, update the corresponding docs page in `docs-site/src/pages/`. Keep docs in sync with features.
+
+---
+
 # ⚠️ CRITICAL WORKFLOW — READ FIRST
 
 All development is local. The VPS pulls from GitHub via `git pull`.

@@ -158,6 +158,9 @@ model Product {
   imageUrl      String?  @map("image_url")
   isActive      Boolean  @default(true) @map("is_active")
   syncSettings  Json?    @map("sync_settings")
+  productType        String   @default("simple") @map("product_type")
+  wooParentId        Int?     @map("woo_parent_id")
+  variantAttributes  Json?    @map("variant_attributes")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
