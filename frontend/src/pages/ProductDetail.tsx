@@ -329,8 +329,6 @@ export default function ProductDetail() {
       await api.post(`/inventory/${id}/bundle`, { componentProductId, quantity: 1 });
       const { data } = await api.get(`/inventory/${id}/bundle`);
       setBundleItems(data.data);
-      setBundleSearch('');
-      setBundleSearchResults([]);
       // Ensure product is marked as bundle
       setProduct((prev) => prev ? { ...prev, isBundle: true } : prev);
     } catch { /* ignore */ }
@@ -1188,7 +1186,7 @@ export default function ProductDetail() {
               {/* Add component search */}
               <ProductSearchDropdown
                 onSelect={(p) => handleAddBundleComponent(p.id)}
-                excludeIds={[parseInt(id || '0'), ...bundleItems.map((i) => i.componentProduct.id)]}
+                excludeIds={[parseInt(id || '0'), ...bundleItems.map((i) => i.componentProduct?.id).filter((x): x is number => x != null)]}
                 placeholder="Search product to add as component..."
               />
             </div>
