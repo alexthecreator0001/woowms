@@ -110,7 +110,10 @@ export default function ZoneModal({
 
   if (!open) return null;
 
-  const zonableTemplates = ELEMENT_TEMPLATES.filter((t) => t.hasZone);
+  // Only show rack/storage types in Zones tab — other elements (dock doors, packing tables, etc.)
+  // are placed from the Floor Plan tab
+  const RACK_TYPES: FloorPlanElementType[] = ['shelf', 'pallet_rack', 'pallet_storage'];
+  const zonableTemplates = ELEMENT_TEMPLATES.filter((t) => RACK_TYPES.includes(t.type));
   const inputClasses = cn(
     'w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm',
     'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30',

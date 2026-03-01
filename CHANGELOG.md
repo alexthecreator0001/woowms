@@ -3,6 +3,12 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.23.1] - 2026-03-01
+
+### Changed
+- **Zone modal shows racks only** — Add Element on the Zones tab now only shows Shelving Rack, Pallet Rack, and Pallet Storage. Non-storage elements (Packing Table, Dock Door, Receiving Area, Shipping Area, Staging Area) are placed from the Floor Plan tab only
+- **Warehouse docs rewritten** — comprehensive step-by-step usage guide with links to /warehouse, covering hierarchy, rack setup, bin sizing, stock-to-bin flow, floor plan builder, label printing, editing, and typical workflow
+
 ## [3.23.0 / 2.23.0] - 2026-03-01
 
 ### Added
