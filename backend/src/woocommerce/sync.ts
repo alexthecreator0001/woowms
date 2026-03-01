@@ -363,6 +363,29 @@ export async function pushStockToWoo(store: Store, productId: number): Promise<P
   };
 }
 
+// ─── Push Product Details to WooCommerce ──────────────
+
+export async function pushProductToWoo(store: Store, productId: number): Promise<void> {
+  const product = await prisma.product.findUnique({ where: { id: productId } });
+  if (!product) throw new Error('Product not found');
+
+  const woo = getWooClient(store);
+  const payload: Record<string, unknown> = {
+    description: product.description || '',
+    short_description: product.description || '',
+    regular_price: String(product.price),
+    weight: product.weight ? String(product.weight) : '',
+    dimensions: {
+      length: product.length ? String(product.length) : '',
+      width: product.width ? String(product.width) : '',
+      height: product.height ? String(product.height) : '',
+    },
+  };
+
+  await woo.put(`products/${product.wooId}`, payload);
+  console.log(`[SYNC] Pushed product details for ${product.sku} to WooCommerce`);
+}
+
 function mapWooStatus(wooStatus: string, tenantSettings?: Record<string, unknown>): string {
   const defaults: Record<string, string> = {
     pending: 'PENDING',

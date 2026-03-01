@@ -19,6 +19,7 @@ const OOS_OPTIONS = [
 export default function InventoryDefaultsSection() {
   const [lowStockThreshold, setLowStockThreshold] = useState(5);
   const [pushStockToWoo, setPushStockToWoo] = useState(false);
+  const [pushProductEditsToWoo, setPushProductEditsToWoo] = useState(false);
   const [outOfStockBehavior, setOutOfStockBehavior] = useState('show_sold_out');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -33,6 +34,7 @@ export default function InventoryDefaultsSection() {
         const settings = data.data || {};
         if (typeof settings.lowStockThreshold === 'number') setLowStockThreshold(settings.lowStockThreshold);
         if (typeof settings.pushStockToWoo === 'boolean') setPushStockToWoo(settings.pushStockToWoo);
+        if (typeof settings.pushProductEditsToWoo === 'boolean') setPushProductEditsToWoo(settings.pushProductEditsToWoo);
         if (typeof settings.outOfStockBehavior === 'string') setOutOfStockBehavior(settings.outOfStockBehavior);
       })
       .catch(() => {})
@@ -47,6 +49,7 @@ export default function InventoryDefaultsSection() {
       await api.patch('/account/tenant-settings', {
         lowStockThreshold,
         pushStockToWoo,
+        pushProductEditsToWoo,
         outOfStockBehavior,
       });
       setMsg('Inventory settings saved');
@@ -137,6 +140,33 @@ export default function InventoryDefaultsSection() {
                 className={cn(
                   'h-5 w-5 rounded-full bg-white shadow-sm transition-transform',
                   pushStockToWoo ? 'translate-x-5' : 'translate-x-0'
+                )}
+              />
+            </div>
+          </button>
+
+          {/* Push product edits toggle */}
+          <button
+            type="button"
+            onClick={() => setPushProductEditsToWoo(!pushProductEditsToWoo)}
+            className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-muted/40 rounded-lg"
+          >
+            <div>
+              <p className="text-sm font-medium">Push product edits to WooCommerce</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                When you edit price, description, or dimensions in the WMS, also update WooCommerce
+              </p>
+            </div>
+            <div
+              className={cn(
+                'flex h-6 w-11 flex-shrink-0 items-center rounded-full px-0.5 transition-colors',
+                pushProductEditsToWoo ? 'bg-primary' : 'bg-border'
+              )}
+            >
+              <div
+                className={cn(
+                  'h-5 w-5 rounded-full bg-white shadow-sm transition-transform',
+                  pushProductEditsToWoo ? 'translate-x-5' : 'translate-x-0'
                 )}
               />
             </div>

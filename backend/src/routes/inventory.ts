@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authorize } from '../middleware/auth.js';
-import { syncProducts, pushStockToWoo, shouldPushStock } from '../woocommerce/sync.js';
+import { syncProducts, pushStockToWoo, pushProductToWoo, shouldPushStock } from '../woocommerce/sync.js';
 import prisma from '../lib/prisma.js';
 
 const router = Router();
@@ -336,6 +336,206 @@ router.patch('/:id/sync-settings', authorize('ADMIN', 'MANAGER'), async (req: Re
     });
 
     res.json({ data: updated.syncSettings });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/v1/inventory/:id — update product fields (ADMIN/MANAGER only)
+router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const prisma = req.prisma!;
+
+    const existing = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { store: true },
+    });
+    if (!existing || existing.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    const { description, price, weight, length, width, height, lowStockThreshold } = req.body as {
+      description?: string;
+      price?: string;
+      weight?: string | null;
+      length?: string | null;
+      width?: string | null;
+      height?: string | null;
+      lowStockThreshold?: number;
+    };
+
+    const data: Record<string, unknown> = {};
+    if (description !== undefined) data.description = description;
+    if (price !== undefined) data.price = parseFloat(price) || 0;
+    if (weight !== undefined) data.weight = weight ? parseFloat(weight) : null;
+    if (length !== undefined) data.length = length ? parseFloat(length) : null;
+    if (width !== undefined) data.width = width ? parseFloat(width) : null;
+    if (height !== undefined) data.height = height ? parseFloat(height) : null;
+    if (lowStockThreshold !== undefined) data.lowStockThreshold = lowStockThreshold;
+
+    const product = await prisma.product.update({
+      where: { id: productId },
+      data,
+      include: {
+        store: true,
+        stockLocations: { include: { bin: { include: { zone: true } } } },
+        stockMovements: { orderBy: { createdAt: 'desc' }, take: 20 },
+      },
+    });
+
+    // Push product edits to WooCommerce if enabled
+    try {
+      const tenantSettings = await getTenantSettings(req.tenantId!);
+      if (tenantSettings.pushProductEditsToWoo === true) {
+        await pushProductToWoo(existing.store as any, productId);
+      }
+    } catch (pushErr) {
+      console.error('[SYNC] Failed to push product edit to WooCommerce:', pushErr);
+    }
+
+    res.json({ data: product });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/inventory/:id/orders — orders containing this product
+router.get('/:id/orders', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const prisma = req.prisma!;
+    const page = Math.max(parseInt(String(req.query.page)) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit)) || 10, 1), 50);
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { store: true },
+    });
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    // Find orders that have order items referencing this product (by productId or SKU)
+    const where: any = {
+      store: { tenantId: req.tenantId },
+      items: {
+        some: {
+          OR: [
+            { productId },
+            ...(product.sku ? [{ sku: product.sku }] : []),
+          ],
+        },
+      },
+    };
+
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        include: {
+          items: {
+            where: {
+              OR: [
+                { productId },
+                ...(product.sku ? [{ sku: product.sku }] : []),
+              ],
+            },
+          },
+        },
+        orderBy: { wooCreatedAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.order.count({ where }),
+    ]);
+
+    res.json({
+      data: orders,
+      meta: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/inventory/:id/purchase-orders — POs containing this product's SKU
+router.get('/:id/purchase-orders', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const prisma = req.prisma!;
+    const page = Math.max(parseInt(String(req.query.page)) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit)) || 10, 1), 50);
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { store: true },
+    });
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    if (!product.sku) {
+      return res.json({ data: [], meta: { page, limit, total: 0, pages: 0 } });
+    }
+
+    const where = {
+      tenantId: req.tenantId!,
+      items: { some: { sku: product.sku } },
+    };
+
+    const [purchaseOrders, total] = await Promise.all([
+      prisma.purchaseOrder.findMany({
+        where,
+        include: {
+          items: { where: { sku: product.sku } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.purchaseOrder.count({ where }),
+    ]);
+
+    res.json({
+      data: purchaseOrders,
+      meta: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/inventory/:id/stock-movements — paginated stock movements
+router.get('/:id/stock-movements', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const prisma = req.prisma!;
+    const page = Math.max(parseInt(String(req.query.page)) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit)) || 20, 1), 100);
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { store: true },
+    });
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    const where = { productId };
+    const [movements, total] = await Promise.all([
+      prisma.stockMovement.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.stockMovement.count({ where }),
+    ]);
+
+    res.json({
+      data: movements,
+      meta: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
   } catch (err) {
     next(err);
   }

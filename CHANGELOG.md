@@ -3,6 +3,23 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.9.0 / 2.13.0] - 2026-03-01
+
+### Added
+- **Product Detail page redesigned** — professional tabbed layout with 5 tabs: Overview, Orders, Purchase Orders, Stock History, Settings
+- **Editable product fields** — click Edit to modify description, price, weight, dimensions, and low stock threshold inline, with save to database
+- **Orders tab** — shows all orders containing this product with order number, customer, quantity, status badge, total, and date; clickable rows navigate to order detail
+- **Purchase Orders tab** — shows all POs matching this product's SKU with PO number, supplier, ordered/received quantities, status badge, expected date; "Create PO" button; clickable rows navigate to PO detail
+- **Stock History tab** — paginated stock movement history with PO reference links (clickable "PO-123" navigates to PO detail)
+- **Settings tab** — per-product WooCommerce sync overrides (moved from inline card)
+- `PATCH /api/v1/inventory/:id` — update product fields (description, price, weight, dimensions, low stock threshold) with optional push to WooCommerce
+- `GET /api/v1/inventory/:id/orders` — paginated orders containing a product (by productId or SKU)
+- `GET /api/v1/inventory/:id/purchase-orders` — paginated POs matching a product's SKU
+- `GET /api/v1/inventory/:id/stock-movements` — paginated stock movement history
+- `pushProductToWoo()` — push product details (description, price, dimensions) to WooCommerce
+- **Push product edits setting** — new tenant setting "Push product edits to WooCommerce" in Inventory Settings, controls whether product edits auto-sync to WooCommerce
+- Action buttons in product header: Edit, Create PO, Push to WooCommerce
+
 ## [3.8.0 / 2.12.0] - 2026-03-01
 
 ### Added
