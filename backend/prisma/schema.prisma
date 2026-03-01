@@ -189,6 +189,7 @@ model Warehouse {
   name      String
   address   String?
   isDefault Boolean  @default(false) @map("is_default")
+  floorPlan Json?    @map("floor_plan")
   createdAt DateTime @default(now()) @map("created_at")
 
   zones Zone[]

@@ -334,6 +334,108 @@ router.post('/zones/:zoneId/bins/generate', authorize('ADMIN', 'MANAGER'), async
   }
 });
 
+// PUT /api/v1/warehouse/:id/floor-plan — save/update floor plan
+router.put('/:id/floor-plan', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { width, height, elements } = req.body as { width: number; height: number; elements: unknown[] };
+
+    if (!width || !height || width < 3 || height < 3 || width > 100 || height > 100) {
+      return res.status(400).json({ error: true, message: 'Width and height must be between 3 and 100', code: 'VALIDATION_ERROR' });
+    }
+    if (!Array.isArray(elements)) {
+      return res.status(400).json({ error: true, message: 'Elements must be an array', code: 'VALIDATION_ERROR' });
+    }
+
+    const warehouse = await req.prisma!.warehouse.findUnique({ where: { id } });
+    if (!warehouse) {
+      return res.status(404).json({ error: true, message: 'Warehouse not found', code: 'NOT_FOUND' });
+    }
+
+    const updated = await req.prisma!.warehouse.update({
+      where: { id },
+      data: { floorPlan: { width, height, elements } },
+    });
+    res.json({ data: updated });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/warehouse/:id/floor-plan/auto-zone — auto-create zone + bins for floor plan element
+router.post('/:id/floor-plan/auto-zone', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const warehouseId = parseInt(req.params.id);
+    const { elementType, label, shelvesCount, positionsPerShelf } = req.body as {
+      elementType: string;
+      label: string;
+      shelvesCount?: number;
+      positionsPerShelf?: number;
+    };
+
+    const warehouse = await req.prisma!.warehouse.findUnique({ where: { id: warehouseId } });
+    if (!warehouse) {
+      return res.status(404).json({ error: true, message: 'Warehouse not found', code: 'NOT_FOUND' });
+    }
+
+    // Map element type to zone type
+    const typeMap: Record<string, string> = {
+      shelf: 'STORAGE',
+      pallet_rack: 'STORAGE',
+      packing_table: 'PACKING',
+      receiving_area: 'RECEIVING',
+      shipping_area: 'SHIPPING',
+    };
+    const zoneType = typeMap[elementType];
+    if (!zoneType) {
+      return res.status(400).json({ error: true, message: `Element type "${elementType}" cannot have a zone`, code: 'VALIDATION_ERROR' });
+    }
+
+    const zone = await req.prisma!.zone.create({
+      data: { warehouseId, name: label, type: zoneType as any, description: `Auto-created from floor plan (${elementType})` },
+    });
+
+    let bins: any[] = [];
+    const shelves = shelvesCount || 0;
+    const positions = positionsPerShelf || 0;
+
+    if (shelves > 0 && positions > 0) {
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const prefix = label.replace(/[^A-Za-z0-9]/g, '').substring(0, 3).toUpperCase() || 'LOC';
+      const binsData: { zoneId: number; label: string; row: string; shelf: string; position: string }[] = [];
+
+      for (let s = 1; s <= shelves; s++) {
+        for (let p = 1; p <= positions; p++) {
+          binsData.push({
+            zoneId: zone.id,
+            label: `${prefix}-${pad(s)}-${pad(p)}`,
+            row: prefix,
+            shelf: pad(s),
+            position: pad(p),
+          });
+        }
+      }
+
+      // Check for label conflicts
+      const labels = binsData.map((b) => b.label);
+      const existing = await req.prisma!.bin.findMany({ where: { label: { in: labels } }, select: { label: true } });
+      if (existing.length > 0) {
+        // Add zone id suffix to avoid conflicts
+        for (const bd of binsData) {
+          bd.label = `${bd.label}-Z${zone.id}`;
+        }
+      }
+
+      await req.prisma!.bin.createMany({ data: binsData });
+      bins = await req.prisma!.bin.findMany({ where: { zoneId: zone.id } });
+    }
+
+    res.status(201).json({ data: { zone, bins } });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // PATCH /api/v1/warehouse/bins/:binId — update bin
 router.patch('/bins/:binId', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {

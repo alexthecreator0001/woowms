@@ -133,11 +133,33 @@ export interface Zone {
   bins?: Bin[];
 }
 
+export type FloorPlanElementType = 'shelf' | 'pallet_rack' | 'packing_table' | 'receiving_area' | 'shipping_area' | 'aisle' | 'wall';
+
+export interface FloorPlanElement {
+  id: string;
+  type: FloorPlanElementType;
+  label: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rotation: 0 | 90;
+  zoneId: number | null;
+  color?: string;
+}
+
+export interface FloorPlan {
+  width: number;
+  height: number;
+  elements: FloorPlanElement[];
+}
+
 export interface Warehouse {
   id: number;
   name: string;
   address: string | null;
   isDefault: boolean;
+  floorPlan?: FloorPlan | null;
   zones?: Zone[];
 }
 

@@ -3,6 +3,21 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.15.0 / 2.19.0] - 2026-03-01
+
+### Added
+- **Visual Floor Plan Builder** — new "Floor Plan" tab on the Warehouse Detail page with a 2D grid editor for designing warehouse layouts. Set warehouse dimensions in meters, then place elements (shelving racks, pallet racks, packing tables, receiving/shipping areas, aisles, walls) on a visual grid.
+- **Floor plan element palette** — 7 element types with color-coded icons, default sizes, and drag-to-place interaction
+- **Element properties panel** — edit label, resize, rotate (0/90°), link to existing zones, or auto-create new zones with bins
+- **Auto-zone creation** — `POST /api/v1/warehouse/:id/floor-plan/auto-zone` creates a zone + optional bins from a floor plan element, mapping element types to zone types (shelf→STORAGE, packing_table→PACKING, etc.)
+- **Floor plan persistence** — `PUT /api/v1/warehouse/:id/floor-plan` saves the complete floor plan (dimensions + elements) as JSONB
+- **Floor plan schema** — `floor_plan` JSONB column on warehouses table (migration `20260301200000_warehouse_floor_plan`)
+- Drag-to-move elements on the grid with collision detection
+- Undo history (up to 20 steps) for floor plan edits
+
+### Changed
+- Warehouse Detail page now has a **Zones / Floor Plan** tab toggle — Zones tab shows the existing zone cards view (unchanged), Floor Plan tab shows the visual editor
+
 ## [3.14.0 / 2.18.0] - 2026-03-01
 
 ### Added

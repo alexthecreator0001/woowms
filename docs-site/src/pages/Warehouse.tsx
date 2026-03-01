@@ -122,6 +122,74 @@ export default function Warehouse() {
         the location code in bold with zone and warehouse name.
       </p>
 
+      <h2>Visual Floor Plan Builder</h2>
+      <p>
+        The <strong>Floor Plan</strong> tab on the Warehouse Detail page lets you design a 2D visual
+        layout of your warehouse. Set your warehouse dimensions in meters, then place elements on
+        a grid where each cell represents 1m&sup2;.
+      </p>
+      <h3>Placeable Elements</h3>
+      <table className="doc-table">
+        <thead>
+          <tr>
+            <th>Element</th>
+            <th>Default Size</th>
+            <th>Zone Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className="font-medium text-surface-800">Shelving Rack</td>
+            <td>1 &times; 4</td>
+            <td>Storage</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Pallet Rack</td>
+            <td>2 &times; 3</td>
+            <td>Storage</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Packing Table</td>
+            <td>2 &times; 2</td>
+            <td>Packing</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Receiving Area</td>
+            <td>3 &times; 3</td>
+            <td>Receiving</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Shipping Area</td>
+            <td>3 &times; 3</td>
+            <td>Shipping</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Aisle</td>
+            <td>1 &times; 4</td>
+            <td><em>None</em> (walkway)</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Wall</td>
+            <td>1 &times; 1</td>
+            <td><em>None</em> (barrier)</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>How to Use</h3>
+      <ol>
+        <li>Navigate to a warehouse and click the <strong>Floor Plan</strong> tab</li>
+        <li>If no floor plan exists, set width and height in meters and click <strong>Create Floor Plan</strong></li>
+        <li>Select an element from the left palette, then click on the grid to place it</li>
+        <li>Click a placed element to select it — the right panel shows its properties</li>
+        <li>Edit the element label, resize, rotate, or link it to an existing zone</li>
+        <li>Use <strong>Create Zone</strong> to auto-create a zone with bins for the element</li>
+        <li>Click <strong>Save</strong> to persist your floor plan</li>
+      </ol>
+      <p>
+        Elements can be dragged to new positions on the grid. Overlap is prevented automatically.
+        The editor includes undo support (up to 20 steps).
+      </p>
+
       <h2>Editing & Deleting</h2>
       <p>
         Warehouses, zones, and bins can be edited using slide-over panels (right-anchored).

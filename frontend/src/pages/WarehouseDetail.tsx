@@ -7,6 +7,8 @@ import {
   Trash,
   Star,
   MapPin,
+  ListBullets,
+  GridFour,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
@@ -17,6 +19,7 @@ import SlideOver from '../components/warehouse/SlideOver';
 import ZoneModal from '../components/warehouse/ZoneModal';
 import GenerateBinsModal from '../components/warehouse/GenerateBinsModal';
 import PrintLabelsModal from '../components/warehouse/PrintLabelsModal';
+import FloorPlanEditor from '../components/warehouse/floorplan/FloorPlanEditor';
 
 const ZONE_TYPES: ZoneType[] = ['RECEIVING', 'STORAGE', 'PICKING', 'PACKING', 'SHIPPING', 'RETURNS'];
 
@@ -69,6 +72,9 @@ export default function WarehouseDetail() {
 
   // Print labels modal
   const [printZone, setPrintZone] = useState<Zone | null>(null);
+
+  // Tab: 'zones' or 'floorplan'
+  const [activeTab, setActiveTab] = useState<'zones' | 'floorplan'>('zones');
 
   const fetchWarehouse = useCallback(() => {
     if (!warehouseId) return;
@@ -318,93 +324,133 @@ export default function WarehouseDetail() {
         </div>
       )}
 
-      {/* Zone Type Filter */}
-      {zones.length > 0 && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 overflow-x-auto">
-            <button
-              type="button"
-              onClick={() => setTypeFilter('ALL')}
-              className={cn(
-                'rounded-full px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap',
-                typeFilter === 'ALL'
-                  ? 'bg-foreground text-background'
-                  : 'bg-muted text-muted-foreground hover:text-foreground',
-              )}
-            >
-              All ({zones.length})
-            </button>
-            {ZONE_TYPES.filter((t) => typeCounts[t]).map((t) => (
+      {/* Zones / Floor Plan Tab Toggle */}
+      <div className="flex items-center gap-1 rounded-lg bg-muted p-1 w-fit">
+        <button
+          type="button"
+          onClick={() => setActiveTab('zones')}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+            activeTab === 'zones'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          <ListBullets size={15} />
+          Zones
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('floorplan')}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+            activeTab === 'floorplan'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          <GridFour size={15} />
+          Floor Plan
+        </button>
+      </div>
+
+      {/* ===== Zones Tab ===== */}
+      {activeTab === 'zones' && (
+        <>
+          {/* Zone Type Filter */}
+          {zones.length > 0 && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setTypeFilter('ALL')}
+                  className={cn(
+                    'rounded-full px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap',
+                    typeFilter === 'ALL'
+                      ? 'bg-foreground text-background'
+                      : 'bg-muted text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  All ({zones.length})
+                </button>
+                {ZONE_TYPES.filter((t) => typeCounts[t]).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTypeFilter(t)}
+                    className={cn(
+                      'rounded-full px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap',
+                      typeFilter === t
+                        ? 'bg-foreground text-background'
+                        : 'bg-muted text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    {t.charAt(0) + t.slice(1).toLowerCase()} ({typeCounts[t]})
+                  </button>
+                ))}
+              </div>
               <button
-                key={t}
                 type="button"
-                onClick={() => setTypeFilter(t)}
+                onClick={() => setCreateZoneOpen(true)}
                 className={cn(
-                  'rounded-full px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap',
-                  typeFilter === t
-                    ? 'bg-foreground text-background'
-                    : 'bg-muted text-muted-foreground hover:text-foreground',
+                  'inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground',
+                  'hover:bg-primary/90 shadow-sm transition-colors shrink-0',
                 )}
               >
-                {t.charAt(0) + t.slice(1).toLowerCase()} ({typeCounts[t]})
+                <Plus size={16} weight="bold" />
+                Add Zone
               </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => setCreateZoneOpen(true)}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground',
-              'hover:bg-primary/90 shadow-sm transition-colors shrink-0',
-            )}
-          >
-            <Plus size={16} weight="bold" />
-            Add Zone
-          </button>
-        </div>
+            </div>
+          )}
+
+          {/* Zone Cards */}
+          {filteredZones.length > 0 && (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {filteredZones.map((zone) => (
+                <ZoneSummaryCard
+                  key={zone.id}
+                  zone={zone}
+                  warehouseId={warehouse.id}
+                  onEdit={handleEditZone}
+                  onDelete={handleDeleteZone}
+                  onGenerate={(z) => setGenerateZone(z)}
+                  onPrint={(z) => setPrintZone(z)}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Empty zones */}
+          {zones.length === 0 && (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 py-12">
+              <p className="text-sm text-muted-foreground">No zones in this warehouse yet.</p>
+              <p className="mt-1 text-xs text-muted-foreground/60">Add zones like Storage, Picking, or Receiving to organize locations.</p>
+              <button
+                type="button"
+                onClick={() => setCreateZoneOpen(true)}
+                className={cn(
+                  'mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground',
+                  'hover:bg-primary/90 shadow-sm transition-colors',
+                )}
+              >
+                <Plus size={16} weight="bold" />
+                Add Zone
+              </button>
+            </div>
+          )}
+
+          {/* No matches for filter */}
+          {zones.length > 0 && filteredZones.length === 0 && (
+            <div className="rounded-xl border border-border/60 bg-card py-10 text-center">
+              <p className="text-sm text-muted-foreground">No zones match the selected filter.</p>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Zone Cards */}
-      {filteredZones.length > 0 && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {filteredZones.map((zone) => (
-            <ZoneSummaryCard
-              key={zone.id}
-              zone={zone}
-              warehouseId={warehouse.id}
-              onEdit={handleEditZone}
-              onDelete={handleDeleteZone}
-              onGenerate={(z) => setGenerateZone(z)}
-              onPrint={(z) => setPrintZone(z)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Empty zones */}
-      {zones.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 py-12">
-          <p className="text-sm text-muted-foreground">No zones in this warehouse yet.</p>
-          <p className="mt-1 text-xs text-muted-foreground/60">Add zones like Storage, Picking, or Receiving to organize locations.</p>
-          <button
-            type="button"
-            onClick={() => setCreateZoneOpen(true)}
-            className={cn(
-              'mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground',
-              'hover:bg-primary/90 shadow-sm transition-colors',
-            )}
-          >
-            <Plus size={16} weight="bold" />
-            Add Zone
-          </button>
-        </div>
-      )}
-
-      {/* No matches for filter */}
-      {zones.length > 0 && filteredZones.length === 0 && (
-        <div className="rounded-xl border border-border/60 bg-card py-10 text-center">
-          <p className="text-sm text-muted-foreground">No zones match the selected filter.</p>
-        </div>
+      {/* ===== Floor Plan Tab ===== */}
+      {activeTab === 'floorplan' && (
+        <FloorPlanEditor warehouse={warehouse} onSaved={fetchWarehouse} />
       )}
 
       {/* Create Zone Modal */}
