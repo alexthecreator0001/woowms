@@ -253,16 +253,114 @@ export async function syncProducts(store: Store): Promise<void> {
   console.log(`[SYNC] Product sync complete for store: ${store.name}`);
 }
 
-export async function pushStockToWoo(store: Store, productId: number): Promise<void> {
+// ─── Stock Push Types ─────────────────────────────────
+
+interface ProductSyncSettings {
+  pushEnabled?: boolean;
+  outOfStockBehavior?: 'hide' | 'show_sold_out' | 'allow_backorders' | 'allow_backorders_notify';
+  lowStockThreshold?: number;
+}
+
+interface PushStockResult {
+  productId: number;
+  sku: string | null;
+  stockQuantity: number;
+  stockStatus: string;
+  backorders: string;
+}
+
+// ─── Helpers ──────────────────────────────────────────
+
+export function shouldPushStock(
+  tenantSettings: Record<string, unknown>,
+  productSyncSettings?: ProductSyncSettings | null
+): boolean {
+  // Per-product override takes priority
+  if (productSyncSettings?.pushEnabled !== undefined && productSyncSettings.pushEnabled !== null) {
+    return productSyncSettings.pushEnabled;
+  }
+  // Fall back to tenant-level setting
+  return tenantSettings.pushStockToWoo === true;
+}
+
+function getEffectiveBehavior(
+  tenantSettings: Record<string, unknown>,
+  productSyncSettings?: ProductSyncSettings | null
+): string {
+  if (productSyncSettings?.outOfStockBehavior) {
+    return productSyncSettings.outOfStockBehavior;
+  }
+  return (tenantSettings.outOfStockBehavior as string) || 'show_sold_out';
+}
+
+function buildWooStockPayload(availableQty: number, behavior: string) {
+  const isInStock = availableQty > 0;
+
+  let stockStatus: string;
+  let backorders: string;
+
+  if (isInStock) {
+    stockStatus = 'instock';
+  } else {
+    // Out of stock — behavior determines status
+    switch (behavior) {
+      case 'allow_backorders':
+        stockStatus = 'onbackorder';
+        break;
+      case 'allow_backorders_notify':
+        stockStatus = 'onbackorder';
+        break;
+      default: // 'hide' or 'show_sold_out'
+        stockStatus = 'outofstock';
+        break;
+    }
+  }
+
+  switch (behavior) {
+    case 'allow_backorders':
+      backorders = 'yes';
+      break;
+    case 'allow_backorders_notify':
+      backorders = 'notify';
+      break;
+    default:
+      backorders = 'no';
+      break;
+  }
+
+  return {
+    stock_quantity: availableQty,
+    manage_stock: true,
+    stock_status: stockStatus,
+    backorders,
+  };
+}
+
+// ─── Push Stock to WooCommerce ────────────────────────
+
+export async function pushStockToWoo(store: Store, productId: number): Promise<PushStockResult> {
   const product = await prisma.product.findUnique({ where: { id: productId } });
   if (!product) throw new Error('Product not found');
 
-  const woo = getWooClient(store);
-  await woo.put(`products/${product.wooId}`, {
-    stock_quantity: product.stockQty - product.reservedQty,
-  });
+  const tenantSettings = await getTenantSettings(store.tenantId);
+  const productSyncSettings = product.syncSettings as ProductSyncSettings | null;
 
-  console.log(`[SYNC] Pushed stock for ${product.sku}: ${product.stockQty - product.reservedQty}`);
+  const behavior = getEffectiveBehavior(tenantSettings, productSyncSettings);
+  const availableQty = product.stockQty - product.reservedQty;
+  const payload = buildWooStockPayload(availableQty, behavior);
+
+  const woo = getWooClient(store);
+  await woo.put(`products/${product.wooId}`, payload);
+
+  console.log(`[SYNC] Pushed stock for ${product.sku}: qty=${availableQty}, status=${payload.stock_status}, backorders=${payload.backorders}`);
+
+  return {
+    productId: product.id,
+    sku: product.sku,
+    stockQuantity: availableQty,
+    stockStatus: payload.stock_status,
+    backorders: payload.backorders,
+  };
 }
 
 function mapWooStatus(wooStatus: string, tenantSettings?: Record<string, unknown>): string {

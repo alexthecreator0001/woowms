@@ -1,6 +1,16 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { pushStockToWoo, shouldPushStock } from '../woocommerce/sync.js';
+import prisma from '../lib/prisma.js';
 
 const router = Router();
+
+async function getTenantSettings(tenantId: number): Promise<Record<string, unknown>> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { settings: true },
+  });
+  return (tenant?.settings as Record<string, unknown>) || {};
+}
 
 interface ReceiveItem {
   itemId: number;
@@ -226,12 +236,12 @@ router.patch('/:id/receive', async (req: Request, res: Response, next: NextFunct
       });
 
       if (product) {
-        await prisma.product.update({
+        await req.prisma!.product.update({
           where: { id: product.id },
           data: { stockQty: { increment: item.receivedQty } },
         });
 
-        await prisma.stockMovement.create({
+        await req.prisma!.stockMovement.create({
           data: {
             productId: product.id,
             type: 'RECEIVED',
@@ -240,6 +250,23 @@ router.patch('/:id/receive', async (req: Request, res: Response, next: NextFunct
             reference: `PO-${poId}`,
           },
         });
+
+        // Push stock to WooCommerce if enabled
+        try {
+          const tenantSettings = await getTenantSettings(req.tenantId!);
+          const productWithStore = await req.prisma!.product.findUnique({
+            where: { id: product.id },
+            include: { store: true },
+          });
+          if (productWithStore) {
+            const productSyncSettings = productWithStore.syncSettings as Record<string, unknown> | null;
+            if (shouldPushStock(tenantSettings, productSyncSettings)) {
+              await pushStockToWoo(productWithStore.store as any, product.id);
+            }
+          }
+        } catch (pushErr) {
+          console.error('[SYNC] Failed to push stock after receive:', pushErr);
+        }
       }
     }
 

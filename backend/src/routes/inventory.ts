@@ -1,16 +1,20 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authorize } from '../middleware/auth.js';
-import { syncProducts } from '../woocommerce/sync.js';
+import { syncProducts, pushStockToWoo, shouldPushStock } from '../woocommerce/sync.js';
 import prisma from '../lib/prisma.js';
 
 const router = Router();
 
-async function getLowStockThreshold(tenantId: number): Promise<number> {
+async function getTenantSettings(tenantId: number): Promise<Record<string, unknown>> {
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
     select: { settings: true },
   });
-  const settings = (tenant?.settings as Record<string, unknown>) || {};
+  return (tenant?.settings as Record<string, unknown>) || {};
+}
+
+async function getLowStockThreshold(tenantId: number): Promise<number> {
+  const settings = await getTenantSettings(tenantId);
   return typeof settings.lowStockThreshold === 'number' ? settings.lowStockThreshold : 5;
 }
 
@@ -172,7 +176,64 @@ router.patch('/:id/adjust', async (req: Request, res: Response, next: NextFuncti
       },
     });
 
+    // Push stock to WooCommerce if enabled
+    try {
+      const tenantSettings = await getTenantSettings(req.tenantId!);
+      const productSyncSettings = product.syncSettings as Record<string, unknown> | null;
+      if (shouldPushStock(tenantSettings, productSyncSettings)) {
+        await pushStockToWoo(existing.store as any, productId);
+      }
+    } catch (pushErr) {
+      console.error('[SYNC] Failed to push stock after adjust:', pushErr);
+    }
+
     res.json({ data: product });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/inventory/push-stock-all (ADMIN/MANAGER only)
+router.post('/push-stock-all', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = req.prisma!;
+    const tenantSettings = await getTenantSettings(req.tenantId!);
+
+    if (!tenantSettings.pushStockToWoo) {
+      return res.status(400).json({ error: true, message: 'Stock push is not enabled', code: 'PUSH_DISABLED' });
+    }
+
+    const products = await prisma.product.findMany({
+      where: { isActive: true, store: { tenantId: req.tenantId } },
+      include: { store: true },
+    });
+
+    const results: Array<{ productId: number; sku: string | null; success: boolean; error?: string }> = [];
+
+    for (const product of products) {
+      try {
+        const productSyncSettings = product.syncSettings as Record<string, unknown> | null;
+        if (!shouldPushStock(tenantSettings, productSyncSettings)) {
+          continue; // Skip products with push explicitly disabled
+        }
+        const result = await pushStockToWoo(product.store as any, product.id);
+        results.push({ productId: result.productId, sku: result.sku, success: true });
+      } catch (err: unknown) {
+        results.push({
+          productId: product.id,
+          sku: product.sku,
+          success: false,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      }
+    }
+
+    const pushed = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
+
+    res.json({
+      data: { message: `Pushed ${pushed} products, ${failed} failed`, pushed, failed, results },
+    });
   } catch (err) {
     next(err);
   }
@@ -195,6 +256,86 @@ router.get('/low-stock', async (req: Request, res: Response, next: NextFunction)
     });
 
     res.json({ data: products });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/inventory/:id/push-stock (ADMIN/MANAGER only)
+router.post('/:id/push-stock', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const prisma = req.prisma!;
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { store: true },
+    });
+
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    const result = await pushStockToWoo(product.store as any, productId);
+    res.json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/inventory/:id/sync-settings
+router.get('/:id/sync-settings', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const prisma = req.prisma!;
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { store: true },
+    });
+
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    res.json({ data: product.syncSettings || {} });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/v1/inventory/:id/sync-settings (ADMIN/MANAGER only)
+router.patch('/:id/sync-settings', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const prisma = req.prisma!;
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { store: true },
+    });
+
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    const { pushEnabled, outOfStockBehavior, lowStockThreshold } = req.body as {
+      pushEnabled?: boolean;
+      outOfStockBehavior?: string;
+      lowStockThreshold?: number;
+    };
+
+    const syncSettings: Record<string, unknown> = {};
+    if (pushEnabled !== undefined) syncSettings.pushEnabled = pushEnabled;
+    if (outOfStockBehavior !== undefined) syncSettings.outOfStockBehavior = outOfStockBehavior;
+    if (lowStockThreshold !== undefined) syncSettings.lowStockThreshold = lowStockThreshold;
+
+    const updated = await prisma.product.update({
+      where: { id: productId },
+      data: { syncSettings },
+    });
+
+    res.json({ data: updated.syncSettings });
   } catch (err) {
     next(err);
   }

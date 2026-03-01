@@ -3,6 +3,24 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.8.0 / 2.12.0] - 2026-03-01
+
+### Added
+- **WMS → WooCommerce stock sync** — full stock push feature with global defaults and per-product overrides
+- `pushStockToWoo()` now sends `stock_quantity`, `manage_stock`, `stock_status`, and `backorders` to WooCommerce (was only `stock_quantity`)
+- `shouldPushStock()` helper — checks tenant-level push toggle with per-product override support
+- **Out-of-stock behavior setting** — 4 options: hide product, show as sold out, allow backorders silently, allow backorders with notification
+- `syncSettings` JSON column on Product model for per-product sync overrides (push enabled, out-of-stock behavior)
+- `POST /api/v1/inventory/:id/push-stock` — manually push a single product's stock to WooCommerce (ADMIN/MANAGER)
+- `POST /api/v1/inventory/push-stock-all` — push all active products to WooCommerce in bulk (ADMIN/MANAGER)
+- `GET /api/v1/inventory/:id/sync-settings` — read per-product sync settings
+- `PATCH /api/v1/inventory/:id/sync-settings` — update per-product sync overrides (ADMIN/MANAGER)
+- **Automatic stock push on adjust** — `PATCH /:id/adjust` now auto-pushes to WooCommerce when push is enabled
+- **Automatic stock push on receive** — receiving PO items now auto-pushes to WooCommerce when push is enabled
+- **Inventory Settings redesigned** — 3 cards: low stock threshold, stock push with out-of-stock behavior dropdown, bulk actions with "Push all stock now" button
+- **WooCommerce Sync card** in Product Detail — override global sync settings per product, toggle push, set behavior, manual push button with result display
+- Database migration `20260301120000_product_sync_settings`
+
 ## [3.7.0 / 2.11.1] - 2026-03-01
 
 ### Added

@@ -15,6 +15,10 @@ import {
   Loader2,
   Calendar,
   Hash,
+  RefreshCw,
+  Check,
+  ChevronDown,
+  CloudUpload,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { proxyUrl } from '../lib/image';
@@ -36,6 +40,15 @@ export default function ProductDetail() {
   const [product, setProduct] = useState<ProductDetailType | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Sync settings state
+  const [syncOverride, setSyncOverride] = useState(false);
+  const [syncPushEnabled, setSyncPushEnabled] = useState(true);
+  const [syncBehavior, setSyncBehavior] = useState('');
+  const [syncSaving, setSyncSaving] = useState(false);
+  const [syncPushing, setSyncPushing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState('');
+  const [pushResult, setPushResult] = useState<{ stockQuantity: number; stockStatus: string } | null>(null);
+
   useEffect(() => {
     if (!id) return;
     api.get(`/inventory/${id}`)
@@ -45,6 +58,17 @@ export default function ProductDetail() {
         navigate('/inventory');
       })
       .finally(() => setLoading(false));
+
+    // Load per-product sync settings
+    api.get(`/inventory/${id}/sync-settings`)
+      .then(({ data }) => {
+        const s = data.data || {};
+        const hasOverride = s.pushEnabled !== undefined || s.outOfStockBehavior !== undefined;
+        setSyncOverride(hasOverride);
+        if (s.pushEnabled !== undefined) setSyncPushEnabled(s.pushEnabled);
+        if (s.outOfStockBehavior) setSyncBehavior(s.outOfStockBehavior);
+      })
+      .catch(() => {});
   }, [id]);
 
   if (loading) {
@@ -248,6 +272,172 @@ export default function ProductDetail() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* WooCommerce Sync Card — Full Width */}
+      <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
+        <div className="border-b border-border/50 px-6 py-4">
+          <h3 className="flex items-center gap-2 text-sm font-semibold">
+            <CloudUpload className="h-4 w-4 text-muted-foreground" />
+            WooCommerce Sync
+          </h3>
+        </div>
+        <div className="p-6">
+          {/* Override toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              const next = !syncOverride;
+              setSyncOverride(next);
+              if (!next) {
+                // Clear overrides — save empty settings
+                setSyncSaving(true);
+                api.patch(`/inventory/${id}/sync-settings`, {}).then(() => {
+                  setSyncMsg('Sync overrides cleared');
+                  setTimeout(() => setSyncMsg(''), 3000);
+                }).catch(() => {}).finally(() => setSyncSaving(false));
+              }
+            }}
+            className="flex w-full items-center justify-between rounded-lg px-1 py-1 text-left transition-colors hover:bg-muted/40"
+          >
+            <div>
+              <p className="text-sm font-medium">Override global sync settings</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {syncOverride ? 'Using per-product settings' : 'Using global defaults'}
+              </p>
+            </div>
+            <div
+              className={cn(
+                'flex h-6 w-11 flex-shrink-0 items-center rounded-full px-0.5 transition-colors',
+                syncOverride ? 'bg-primary' : 'bg-border'
+              )}
+            >
+              <div
+                className={cn(
+                  'h-5 w-5 rounded-full bg-white shadow-sm transition-transform',
+                  syncOverride ? 'translate-x-5' : 'translate-x-0'
+                )}
+              />
+            </div>
+          </button>
+
+          {/* Override fields */}
+          {syncOverride && (
+            <div className="mt-4 space-y-4 rounded-xl border border-border/40 bg-muted/10 p-4">
+              {/* Push enabled toggle */}
+              <button
+                type="button"
+                onClick={() => setSyncPushEnabled(!syncPushEnabled)}
+                className="flex w-full items-center justify-between rounded-lg px-1 py-1 text-left"
+              >
+                <div>
+                  <p className="text-sm font-medium">Push stock for this product</p>
+                </div>
+                <div
+                  className={cn(
+                    'flex h-6 w-11 flex-shrink-0 items-center rounded-full px-0.5 transition-colors',
+                    syncPushEnabled ? 'bg-primary' : 'bg-border'
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'h-5 w-5 rounded-full bg-white shadow-sm transition-transform',
+                      syncPushEnabled ? 'translate-x-5' : 'translate-x-0'
+                    )}
+                  />
+                </div>
+              </button>
+
+              {/* Out-of-stock behavior */}
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">Out-of-stock behavior</label>
+                <div className="relative">
+                  <select
+                    value={syncBehavior}
+                    onChange={(e) => setSyncBehavior(e.target.value)}
+                    className="h-10 w-full appearance-none rounded-lg border border-border/60 bg-background px-3 pr-8 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="">Use global default</option>
+                    <option value="show_sold_out">Show as sold out (no purchase)</option>
+                    <option value="hide">Hide product from store</option>
+                    <option value="allow_backorders">Allow backorders silently</option>
+                    <option value="allow_backorders_notify">Allow backorders (notify customer)</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                </div>
+              </div>
+
+              {/* Save button */}
+              <button
+                type="button"
+                onClick={async () => {
+                  setSyncSaving(true);
+                  setSyncMsg('');
+                  try {
+                    const payload: Record<string, unknown> = {
+                      pushEnabled: syncPushEnabled,
+                    };
+                    if (syncBehavior) payload.outOfStockBehavior = syncBehavior;
+                    await api.patch(`/inventory/${id}/sync-settings`, payload);
+                    setSyncMsg('Sync settings saved');
+                    setTimeout(() => setSyncMsg(''), 3000);
+                  } catch {
+                    setSyncMsg('Failed to save');
+                  } finally {
+                    setSyncSaving(false);
+                  }
+                }}
+                disabled={syncSaving}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:opacity-50"
+              >
+                {syncSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                Save Sync Settings
+              </button>
+            </div>
+          )}
+
+          {/* Push stock now button */}
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={async () => {
+                setSyncPushing(true);
+                setPushResult(null);
+                try {
+                  const { data } = await api.post(`/inventory/${id}/push-stock`);
+                  setPushResult({ stockQuantity: data.data.stockQuantity, stockStatus: data.data.stockStatus });
+                  setTimeout(() => setPushResult(null), 5000);
+                } catch {
+                  setSyncMsg('Push failed');
+                  setTimeout(() => setSyncMsg(''), 3000);
+                } finally {
+                  setSyncPushing(false);
+                }
+              }}
+              disabled={syncPushing}
+              className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-background px-3.5 py-2 text-sm font-medium shadow-sm transition-all hover:bg-muted/60 disabled:opacity-50"
+            >
+              {syncPushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              Push stock now
+            </button>
+
+            {pushResult && (
+              <span className="flex items-center gap-1.5 text-sm text-emerald-600">
+                <Check className="h-4 w-4" />
+                Pushed qty {pushResult.stockQuantity}, status: {pushResult.stockStatus}
+              </span>
+            )}
+          </div>
+
+          {syncMsg && (
+            <p className={cn(
+              'mt-3 text-sm',
+              syncMsg.includes('Failed') || syncMsg.includes('failed') ? 'text-destructive' : 'text-emerald-600'
+            )}>
+              {syncMsg}
+            </p>
+          )}
         </div>
       </div>
 
