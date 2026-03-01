@@ -38,6 +38,8 @@ model User {
   emailVerified             Boolean   @default(false) @map("email_verified")
   verificationCode          String?   @map("verification_code")
   verificationCodeExpiresAt DateTime? @map("verification_code_expires_at")
+  passwordResetCode          String?   @map("password_reset_code")
+  passwordResetCodeExpiresAt DateTime? @map("password_reset_code_expires_at")
   onboardingCompleted       Boolean   @default(false) @map("onboarding_completed")
   preferences               Json?     @default("{}")
   createdAt                 DateTime  @default(now()) @map("created_at")
@@ -92,7 +94,7 @@ model Order {
   storeId         Int          @map("store_id")
   store           Store        @relation(fields: [storeId], references: [id])
   orderNumber     String       @map("order_number")
-  status          OrderStatus  @default(PENDING)
+  status          String       @default("PENDING")
   wooStatus       String       @map("woo_status")
   customerName    String       @map("customer_name")
   customerEmail   String       @map("customer_email")
@@ -114,18 +116,6 @@ model Order {
   @@index([status])
   @@index([wooCreatedAt])
   @@map("orders")
-}
-
-enum OrderStatus {
-  PENDING
-  AWAITING_PICK
-  PICKING
-  PICKED
-  PACKING
-  SHIPPED
-  DELIVERED
-  CANCELLED
-  ON_HOLD
 }
 
 model OrderItem {

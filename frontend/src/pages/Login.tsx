@@ -113,9 +113,9 @@ export default function Login() {
             {loading ? <CircleNotch size={18} className="animate-spin" /> : 'Log In'}
           </button>
 
-          <p className="text-center text-sm text-primary/80 hover:text-primary transition-colors cursor-pointer">
+          <Link to="/forgot-password" className="block text-center text-sm font-medium text-primary/80 hover:text-primary transition-colors">
             Forgot Password?
-          </p>
+          </Link>
         </form>
       </div>
 

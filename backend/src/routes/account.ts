@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import config from '../config/index.js';
 import prisma from '../lib/prisma.js';
 import { authorize } from '../middleware/auth.js';
+import { BUILT_IN_STATUSES } from '../lib/statuses.js';
 import type { User } from '@prisma/client';
 
 const router = Router();
@@ -209,6 +210,90 @@ router.patch('/branding', authorize('ADMIN'), async (req: Request, res: Response
     });
 
     res.json({ data: { companyName: tenant.name } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/account/custom-statuses — get all statuses (built-in + custom)
+router.get('/custom-statuses', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: req.user!.tenantId },
+      select: { settings: true },
+    });
+    const settings = (tenant?.settings as Record<string, unknown>) || {};
+    const customStatuses = (settings.customStatuses as Array<{ value: string; label: string; color: string }>) || [];
+    const all = [...BUILT_IN_STATUSES, ...customStatuses];
+    res.json({ data: all });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/account/custom-statuses — add a custom status (admin only)
+router.post('/custom-statuses', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { value, label, color } = req.body;
+    if (!value || !label) {
+      return res.status(400).json({ error: true, message: 'Value and label are required', code: 'VALIDATION_ERROR' });
+    }
+
+    const normalized = value.toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+
+    // Check for duplicates against built-in
+    if (BUILT_IN_STATUSES.some((s) => s.value === normalized)) {
+      return res.status(409).json({ error: true, message: 'Status already exists as built-in', code: 'DUPLICATE_STATUS' });
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: req.user!.tenantId },
+      select: { settings: true },
+    });
+    const settings = (tenant?.settings as Record<string, unknown>) || {};
+    const customStatuses = (settings.customStatuses as Array<{ value: string; label: string; color: string }>) || [];
+
+    if (customStatuses.some((s) => s.value === normalized)) {
+      return res.status(409).json({ error: true, message: 'Custom status already exists', code: 'DUPLICATE_STATUS' });
+    }
+
+    const newStatus = { value: normalized, label, color: color || 'gray' };
+    customStatuses.push(newStatus);
+
+    await prisma.tenant.update({
+      where: { id: req.user!.tenantId },
+      data: { settings: { ...settings, customStatuses } },
+    });
+
+    res.status(201).json({ data: newStatus });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/v1/account/custom-statuses/:value — remove a custom status (admin only)
+router.delete('/custom-statuses/:value', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { value } = req.params;
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: req.user!.tenantId },
+      select: { settings: true },
+    });
+    const settings = (tenant?.settings as Record<string, unknown>) || {};
+    const customStatuses = (settings.customStatuses as Array<{ value: string; label: string; color: string }>) || [];
+
+    const filtered = customStatuses.filter((s) => s.value !== value);
+    if (filtered.length === customStatuses.length) {
+      return res.status(404).json({ error: true, message: 'Custom status not found', code: 'NOT_FOUND' });
+    }
+
+    await prisma.tenant.update({
+      where: { id: req.user!.tenantId },
+      data: { settings: { ...settings, customStatuses: filtered } },
+    });
+
+    res.json({ data: { message: 'Custom status removed' } });
   } catch (err) {
     next(err);
   }

@@ -1,5 +1,4 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import type { OrderStatus } from '@prisma/client';
 
 const router = Router();
 
@@ -13,7 +12,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const limitNum = parseInt(limit || '25');
 
     const where: any = {};
-    if (status) where.status = status as OrderStatus;
+    if (status) where.status = status;
     if (search) {
       where.OR = [
         { orderNumber: { contains: search } },
@@ -68,7 +67,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 router.patch('/:id/status', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const prisma = req.prisma!;
-    const { status } = req.body as { status: OrderStatus };
+    const { status } = req.body as { status: string };
 
     // Verify ownership
     const existing = await prisma.order.findUnique({

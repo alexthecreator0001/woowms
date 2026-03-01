@@ -17,20 +17,9 @@ import {
   CaretRight,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
+import { getStatusDotBadge } from '../lib/statuses';
 import api from '../services/api';
 import type { Order } from '../types';
-
-const statusColorMap: Record<string, { dot: string; badge: string }> = {
-  PENDING: { dot: 'bg-amber-400', badge: 'bg-amber-500/10 text-amber-600' },
-  AWAITING_PICK: { dot: 'bg-blue-500', badge: 'bg-blue-500/10 text-blue-600' },
-  PICKING: { dot: 'bg-violet-500', badge: 'bg-violet-500/10 text-violet-600' },
-  PICKED: { dot: 'bg-purple-500', badge: 'bg-purple-500/10 text-purple-600' },
-  PACKING: { dot: 'bg-amber-500', badge: 'bg-amber-500/10 text-amber-600' },
-  SHIPPED: { dot: 'bg-emerald-500', badge: 'bg-emerald-500/10 text-emerald-600' },
-  DELIVERED: { dot: 'bg-green-500', badge: 'bg-green-500/10 text-green-600' },
-  CANCELLED: { dot: 'bg-red-500', badge: 'bg-red-500/10 text-red-600' },
-  ON_HOLD: { dot: 'bg-gray-400', badge: 'bg-gray-400/10 text-gray-500' },
-};
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -177,7 +166,7 @@ export default function Dashboard() {
               </div>
             ) : (
               recentOrders.map((order) => {
-                const colors = statusColorMap[order.status] || statusColorMap.ON_HOLD;
+                const colors = getStatusDotBadge(order.status);
                 return (
                   <div
                     key={order.id}

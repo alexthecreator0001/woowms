@@ -62,16 +62,7 @@ export interface TeamMember {
   createdAt: string;
 }
 
-export type OrderStatus =
-  | 'PENDING'
-  | 'AWAITING_PICK'
-  | 'PICKING'
-  | 'PICKED'
-  | 'PACKING'
-  | 'SHIPPED'
-  | 'DELIVERED'
-  | 'CANCELLED'
-  | 'ON_HOLD';
+export type OrderStatus = string;
 
 export interface OrderItem {
   id: number;

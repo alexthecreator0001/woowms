@@ -8,8 +8,8 @@ import type { User } from '@prisma/client';
 
 // Lazy-load email service only when needed (avoids crash if resend not installed)
 async function loadEmailService() {
-  const { sendVerificationEmail } = await import('../services/email.js');
-  return sendVerificationEmail;
+  const mod = await import('../services/email.js');
+  return mod;
 }
 
 const router = Router();
@@ -61,6 +61,9 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const verificationCode = generateCode();
+    const verificationCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
     // Create tenant + admin user in a single transaction
     const { tenant, user } = await prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.create({
@@ -74,19 +77,29 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
           password: hashedPassword,
           name,
           role: 'ADMIN',
-          emailVerified: true,
+          emailVerified: false,
+          verificationCode,
+          verificationCodeExpiresAt,
         },
       });
 
       return { tenant, user };
     });
 
+    // Send verification email (non-blocking — don't fail registration if email fails)
+    try {
+      const emailService = await loadEmailService();
+      await emailService.sendVerificationEmail(email, verificationCode);
+    } catch (emailErr) {
+      console.error('[Auth] Failed to send verification email during registration:', emailErr);
+    }
+
     const token = generateToken(user, tenant.id);
 
     res.status(201).json({
       data: {
         token,
-        user: { id: user.id, email: user.email, name: user.name, role: user.role, emailVerified: true, onboardingCompleted: false },
+        user: { id: user.id, email: user.email, name: user.name, role: user.role, emailVerified: false, onboardingCompleted: false },
         tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
       },
     });
@@ -150,8 +163,8 @@ router.post('/send-verification', authenticate, async (req: Request, res: Respon
       data: { verificationCode: code, verificationCodeExpiresAt: codeExpiry },
     });
 
-    const sendEmail = await loadEmailService();
-    await sendEmail(user.email, code);
+    const emailService = await loadEmailService();
+    await emailService.sendVerificationEmail(user.email, code);
 
     res.json({ data: { message: 'Verification code sent' } });
   } catch (err) {
@@ -201,6 +214,80 @@ router.post('/verify-email', authenticate, async (req: Request, res: Response, n
     const token = generateToken(updated, updated.tenantId);
 
     res.json({ data: { message: 'Email verified successfully', emailVerified: true, token } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/auth/forgot-password — request a password reset code (public)
+router.post('/forgot-password', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: true, message: 'Email is required', code: 'VALIDATION_ERROR' });
+    }
+
+    // Always return success to prevent email enumeration
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (user) {
+      const code = generateCode();
+      const codeExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordResetCode: code, passwordResetCodeExpiresAt: codeExpiry },
+      });
+
+      try {
+        const emailService = await loadEmailService();
+        await emailService.sendPasswordResetEmail(user.email, code);
+      } catch (emailErr) {
+        console.error('[Auth] Failed to send reset email:', emailErr);
+      }
+    }
+
+    res.json({ data: { message: 'If that email exists, a reset code has been sent' } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/auth/reset-password — verify code and set new password (public)
+router.post('/reset-password', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, code, newPassword } = req.body;
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ error: true, message: 'Email, code, and new password are required', code: 'VALIDATION_ERROR' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: true, message: 'Password must be at least 8 characters', code: 'VALIDATION_ERROR' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !user.passwordResetCode || !user.passwordResetCodeExpiresAt) {
+      return res.status(400).json({ error: true, message: 'Invalid or expired reset code', code: 'INVALID_CODE' });
+    }
+
+    if (new Date() > user.passwordResetCodeExpiresAt) {
+      return res.status(400).json({ error: true, message: 'Reset code has expired. Request a new one.', code: 'CODE_EXPIRED' });
+    }
+
+    if (user.passwordResetCode !== code) {
+      return res.status(400).json({ error: true, message: 'Invalid reset code', code: 'INVALID_CODE' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        passwordResetCode: null,
+        passwordResetCodeExpiresAt: null,
+      },
+    });
+
+    res.json({ data: { message: 'Password reset successfully' } });
   } catch (err) {
     next(err);
   }

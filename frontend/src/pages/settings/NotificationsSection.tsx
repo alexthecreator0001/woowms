@@ -4,20 +4,8 @@ import {
   CircleNotch,
 } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
+import { fetchAllStatuses, type StatusDef } from '../../lib/statuses';
 import api from '../../services/api';
-
-const ORDER_STATUSES = [
-  { value: '', label: 'No default (show all)' },
-  { value: 'PENDING', label: 'Pending' },
-  { value: 'AWAITING_PICK', label: 'Awaiting Pick' },
-  { value: 'PICKING', label: 'Picking' },
-  { value: 'PICKED', label: 'Picked' },
-  { value: 'PACKING', label: 'Packing' },
-  { value: 'SHIPPED', label: 'Shipped' },
-  { value: 'DELIVERED', label: 'Delivered' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-  { value: 'ON_HOLD', label: 'On Hold' },
-];
 
 export default function NotificationsSection() {
   const [lowStockAlerts, setLowStockAlerts] = useState(true);
@@ -27,17 +15,19 @@ export default function NotificationsSection() {
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
+  const [allStatuses, setAllStatuses] = useState<StatusDef[]>([]);
 
   useEffect(() => {
-    api.get('/account/preferences')
-      .then(({ data }) => {
-        const prefs = data.data || {};
-        if (typeof prefs.lowStockAlerts === 'boolean') setLowStockAlerts(prefs.lowStockAlerts);
-        if (typeof prefs.newOrderAlerts === 'boolean') setNewOrderAlerts(prefs.newOrderAlerts);
-        if (prefs.defaultOrderFilter) setDefaultOrderFilter(prefs.defaultOrderFilter);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    Promise.all([
+      api.get('/account/preferences'),
+      fetchAllStatuses(),
+    ]).then(([prefsRes, statuses]) => {
+      const prefs = prefsRes.data.data || {};
+      if (typeof prefs.lowStockAlerts === 'boolean') setLowStockAlerts(prefs.lowStockAlerts);
+      if (typeof prefs.newOrderAlerts === 'boolean') setNewOrderAlerts(prefs.newOrderAlerts);
+      if (prefs.defaultOrderFilter) setDefaultOrderFilter(prefs.defaultOrderFilter);
+      setAllStatuses(statuses);
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const handleSave = async () => {
@@ -139,7 +129,8 @@ export default function NotificationsSection() {
             onChange={(e) => setDefaultOrderFilter(e.target.value)}
             className="h-10 w-full max-w-xs rounded-lg border border-border/60 bg-background px-3 text-sm shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
-            {ORDER_STATUSES.map((s) => (
+            <option value="">No default (show all)</option>
+            {allStatuses.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
               </option>

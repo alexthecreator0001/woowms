@@ -3,6 +3,30 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.6.0 / 2.11.0] - 2026-03-01
+
+### Added
+- **Custom order statuses** — admins can create/remove custom WMS statuses (Settings > Order Workflow), stored in tenant settings, available across all status dropdowns and filters
+- **PROCESSING** built-in status — added as a 10th default WMS status for WooCommerce "processing" orders
+- `GET /api/v1/account/custom-statuses` — returns built-in + custom statuses merged
+- `POST /api/v1/account/custom-statuses` — create a custom status (admin only)
+- `DELETE /api/v1/account/custom-statuses/:value` — remove a custom status (admin only)
+- **Forgot password flow** — full email-based password reset using 6-digit code via Resend (`/forgot-password` page, `POST /auth/forgot-password`, `POST /auth/reset-password`)
+- **Email verification on signup** — new accounts now require email verification before accessing the app; verification code sent automatically on registration
+- Shared status utility (`frontend/src/lib/statuses.ts`) with `getStatusStyle()`, `fetchAllStatuses()`, and color fallbacks for unknown/custom statuses
+- Backend status constants (`backend/src/lib/statuses.ts`) with 10 built-in status definitions
+
+### Changed
+- Order `status` column migrated from Prisma `OrderStatus` enum to `String` — enables custom statuses without schema changes
+- `mapWooStatus()` now maps WooCommerce "processing" to `PROCESSING` (was incorrectly mapped to `PENDING`)
+- Orders page, Order Detail, Dashboard, Settings (Order Workflow, Notifications) all use dynamic status list from API
+- Registration now sets `emailVerified: false` and sends verification email
+- `PrivateRoute` now redirects unverified users to `/onboarding/verify-email`
+- Login "Forgot Password?" text changed from static `<p>` to `<Link>` to `/forgot-password`
+
+### Fixed
+- WooCommerce "processing" orders no longer incorrectly mapped to PENDING status
+
 ## [3.5.0 / 2.10.0] - 2026-03-01
 
 ### Added

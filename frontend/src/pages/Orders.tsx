@@ -6,6 +6,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { getStatusStyle, fetchAllStatuses, type StatusDef } from '../lib/statuses';
 import api from '../services/api';
 import Pagination from '../components/Pagination';
 import TableConfigDropdown from '../components/TableConfigDropdown';
@@ -21,28 +22,6 @@ const orderColumnDefs: TableColumnDef[] = [
   { id: 'date', label: 'Date' },
 ];
 
-const statusConfig: Record<string, { label: string; bg: string; text: string; dot: string }> = {
-  PENDING: { label: 'Pending', bg: 'bg-amber-500/10', text: 'text-amber-600', dot: 'bg-amber-400' },
-  AWAITING_PICK: { label: 'Awaiting Pick', bg: 'bg-blue-500/10', text: 'text-blue-600', dot: 'bg-blue-500' },
-  PICKING: { label: 'Picking', bg: 'bg-violet-500/10', text: 'text-violet-600', dot: 'bg-violet-500' },
-  PICKED: { label: 'Picked', bg: 'bg-purple-500/10', text: 'text-purple-600', dot: 'bg-purple-500' },
-  PACKING: { label: 'Packing', bg: 'bg-orange-500/10', text: 'text-orange-600', dot: 'bg-orange-500' },
-  SHIPPED: { label: 'Shipped', bg: 'bg-emerald-500/10', text: 'text-emerald-600', dot: 'bg-emerald-500' },
-  DELIVERED: { label: 'Delivered', bg: 'bg-green-500/10', text: 'text-green-600', dot: 'bg-green-500' },
-  CANCELLED: { label: 'Cancelled', bg: 'bg-red-500/10', text: 'text-red-600', dot: 'bg-red-500' },
-  ON_HOLD: { label: 'On Hold', bg: 'bg-gray-500/10', text: 'text-gray-500', dot: 'bg-gray-400' },
-};
-
-const filterOptions = [
-  { value: '', label: 'All Statuses' },
-  { value: 'PENDING', label: 'Pending' },
-  { value: 'AWAITING_PICK', label: 'Awaiting Pick' },
-  { value: 'PICKING', label: 'Picking' },
-  { value: 'SHIPPED', label: 'Shipped' },
-  { value: 'DELIVERED', label: 'Delivered' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-];
-
 export default function Orders() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -50,7 +29,12 @@ export default function Orders() {
   const [filter, setFilter] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [allStatuses, setAllStatuses] = useState<StatusDef[]>([]);
   const { visibleIds, toggleColumn, isVisible } = useTableConfig('orderColumns', orderColumnDefs);
+
+  useEffect(() => {
+    fetchAllStatuses().then(setAllStatuses);
+  }, []);
 
   useEffect(() => {
     setPage(1);
@@ -100,9 +84,10 @@ export default function Orders() {
             onChange={(e) => setFilter(e.target.value)}
             className="h-9 appearance-none rounded-lg border border-border/60 bg-card pl-3.5 pr-8 text-sm font-medium text-foreground shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
-            {filterOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
+            <option value="">All Statuses</option>
+            {allStatuses.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
               </option>
             ))}
           </select>
@@ -134,7 +119,7 @@ export default function Orders() {
           </thead>
           <tbody className="divide-y divide-border/40">
             {orders.map((order) => {
-              const status = statusConfig[order.status] || statusConfig.ON_HOLD;
+              const status = getStatusStyle(order.status, allStatuses);
               return (
                 <tr
                   key={order.id}

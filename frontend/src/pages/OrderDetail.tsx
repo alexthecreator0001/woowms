@@ -16,24 +16,9 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { proxyUrl } from '../lib/image';
+import { getStatusStyle, fetchAllStatuses, type StatusDef } from '../lib/statuses';
 import api from '../services/api';
-import type { OrderDetail as OrderDetailType, OrderStatus, WooAddress, Shipment } from '../types';
-
-const statusConfig: Record<string, { label: string; bg: string; text: string; dot: string }> = {
-  PENDING: { label: 'Pending', bg: 'bg-amber-500/10', text: 'text-amber-600', dot: 'bg-amber-400' },
-  AWAITING_PICK: { label: 'Awaiting Pick', bg: 'bg-blue-500/10', text: 'text-blue-600', dot: 'bg-blue-500' },
-  PICKING: { label: 'Picking', bg: 'bg-violet-500/10', text: 'text-violet-600', dot: 'bg-violet-500' },
-  PICKED: { label: 'Picked', bg: 'bg-purple-500/10', text: 'text-purple-600', dot: 'bg-purple-500' },
-  PACKING: { label: 'Packing', bg: 'bg-orange-500/10', text: 'text-orange-600', dot: 'bg-orange-500' },
-  SHIPPED: { label: 'Shipped', bg: 'bg-emerald-500/10', text: 'text-emerald-600', dot: 'bg-emerald-500' },
-  DELIVERED: { label: 'Delivered', bg: 'bg-green-500/10', text: 'text-green-600', dot: 'bg-green-500' },
-  CANCELLED: { label: 'Cancelled', bg: 'bg-red-500/10', text: 'text-red-600', dot: 'bg-red-500' },
-  ON_HOLD: { label: 'On Hold', bg: 'bg-gray-500/10', text: 'text-gray-500', dot: 'bg-gray-400' },
-};
-
-const allStatuses: OrderStatus[] = [
-  'PENDING', 'AWAITING_PICK', 'PICKING', 'PICKED', 'PACKING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'ON_HOLD',
-];
+import type { OrderDetail as OrderDetailType, WooAddress, Shipment } from '../types';
 
 const shipmentStatusConfig: Record<string, { bg: string; text: string }> = {
   PENDING: { bg: 'bg-amber-500/10', text: 'text-amber-600' },
@@ -62,6 +47,11 @@ export default function OrderDetail() {
   const [order, setOrder] = useState<OrderDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [allStatuses, setAllStatuses] = useState<StatusDef[]>([]);
+
+  useEffect(() => {
+    fetchAllStatuses().then(setAllStatuses);
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -75,7 +65,7 @@ export default function OrderDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  const updateStatus = useCallback(async (newStatus: OrderStatus) => {
+  const updateStatus = useCallback(async (newStatus: string) => {
     if (!order) return;
     try {
       setStatusUpdating(true);
@@ -99,7 +89,7 @@ export default function OrderDetail() {
 
   if (!order) return null;
 
-  const status = statusConfig[order.status] || statusConfig.ON_HOLD;
+  const status = getStatusStyle(order.status, allStatuses);
   const subtotal = order.items?.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0) ?? 0;
   const shippingAddr = formatAddress(order.shippingAddress);
   const billingAddr = formatAddress(order.billingAddress);
@@ -140,12 +130,12 @@ export default function OrderDetail() {
           <div className="relative flex-shrink-0">
             <select
               value={order.status}
-              onChange={(e) => updateStatus(e.target.value as OrderStatus)}
+              onChange={(e) => updateStatus(e.target.value)}
               disabled={statusUpdating}
               className="h-9 appearance-none rounded-lg border border-border/60 bg-card pl-3.5 pr-8 text-sm font-medium shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
             >
               {allStatuses.map((s) => (
-                <option key={s} value={s}>{statusConfig[s]?.label || s}</option>
+                <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
             <ChevronDown className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />

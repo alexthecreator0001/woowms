@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
 import VerifyEmail from './pages/onboarding/VerifyEmail';
 import ConnectStore from './pages/onboarding/ConnectStore';
 import Dashboard from './pages/Dashboard';
@@ -40,6 +41,11 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" />;
   }
 
+  // If email not verified, redirect to verify-email
+  if (!payload.emailVerified && !location.pathname.startsWith('/onboarding')) {
+    return <Navigate to="/onboarding/verify-email" />;
+  }
+
   // If onboarding not completed, redirect to connect store
   if (!payload.onboardingCompleted && !location.pathname.startsWith('/onboarding')) {
     return <Navigate to="/onboarding/connect-store" />;
@@ -61,6 +67,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
 
       {/* Onboarding routes */}
       <Route

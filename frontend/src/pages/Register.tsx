@@ -23,7 +23,7 @@ export default function Register() {
     try {
       const { data } = await api.post('/auth/register', form);
       localStorage.setItem('token', data.data.token);
-      navigate('/onboarding/connect-store');
+      navigate('/onboarding/verify-email');
     } catch (err) {
       setError(
         (err as AxiosError<{ message: string }>).response?.data?.message ||

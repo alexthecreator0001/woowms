@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import type { Store, OrderStatus } from '@prisma/client';
+import type { Store } from '@prisma/client';
 import { getWooClient } from './client.js';
 
 const prisma = new PrismaClient();
@@ -265,10 +265,10 @@ export async function pushStockToWoo(store: Store, productId: number): Promise<v
   console.log(`[SYNC] Pushed stock for ${product.sku}: ${product.stockQty - product.reservedQty}`);
 }
 
-function mapWooStatus(wooStatus: string, tenantSettings?: Record<string, unknown>): OrderStatus {
-  const defaults: Record<string, OrderStatus> = {
+function mapWooStatus(wooStatus: string, tenantSettings?: Record<string, unknown>): string {
+  const defaults: Record<string, string> = {
     pending: 'PENDING',
-    processing: 'PENDING',
+    processing: 'PROCESSING',
     'on-hold': 'ON_HOLD',
     completed: 'DELIVERED',
     cancelled: 'CANCELLED',
@@ -278,9 +278,9 @@ function mapWooStatus(wooStatus: string, tenantSettings?: Record<string, unknown
 
   const customMapping = tenantSettings?.statusMapping as Record<string, string> | undefined;
   if (customMapping && customMapping[wooStatus]) {
-    return customMapping[wooStatus] as OrderStatus;
+    return customMapping[wooStatus];
   }
 
   const defaultNewOrderStatus = tenantSettings?.defaultNewOrderStatus as string | undefined;
-  return defaults[wooStatus] || (defaultNewOrderStatus as OrderStatus) || 'PENDING';
+  return defaults[wooStatus] || defaultNewOrderStatus || 'PENDING';
 }
