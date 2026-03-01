@@ -731,6 +731,7 @@ export default function ZoneDetail() {
         bins={bins}
         zoneName={zone.name}
         warehouseName={warehouse.name}
+        zoneType={zone.type}
       />
     </div>
   );

@@ -3,6 +3,17 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.22.0 / 2.22.0] - 2026-03-01
+
+### Added
+- **Professional label printing** — redesigned Print Labels modal with Code 128 barcodes (via bwip-js), zone-type color stripes, and a polished layout showing location code, zone name, warehouse name, and location breakdown
+- **5 label size options** — Zebra 4×6" (shipping label), Zebra 2×1" (small shelf label), Sheet Small (30/page), Sheet Medium (10/page), Sheet Large (6/page). Zebra sizes use custom paper dimensions for direct thermal printing
+- **Custom location prefix** — configurable prefix field (up to 5 chars, auto-uppercase) in both the Add Element modal and the Edit Element slide-over. Live preview shows what location codes will look like (e.g. "SHE-01-01"). Prefix is stored on the floor plan element and passed to the auto-zone API
+
+### Changed
+- **Label size selector** — split into two sections: "Direct Print (Zebra)" and "Sheet Labels (Letter)" with clearer descriptions
+- **Print modal header** — shows zone-type color accent bar and zone/warehouse name in subtitle
+
 ## [3.21.0] - 2026-03-01
 
 ### Changed

@@ -20,6 +20,7 @@ export default function ZoneModal({
 }: ZoneModalProps) {
   const [selectedType, setSelectedType] = useState<FloorPlanElementType | null>(null);
   const [label, setLabel] = useState('');
+  const [prefix, setPrefix] = useState('');
   const [shelves, setShelves] = useState(4);
   const [positions, setPositions] = useState(3);
   const [saving, setSaving] = useState(false);
@@ -30,6 +31,7 @@ export default function ZoneModal({
     if (open) {
       setSelectedType(null);
       setLabel('');
+      setPrefix('');
       setShelves(4);
       setPositions(3);
       setError(null);
@@ -41,6 +43,7 @@ export default function ZoneModal({
     setSelectedType(type);
     const tpl = getTemplate(type);
     setLabel(tpl.label);
+    setPrefix(tpl.label.replace(/[^A-Za-z0-9]/g, '').substring(0, 3).toUpperCase());
   };
 
   const handleCreate = async () => {
@@ -57,6 +60,7 @@ export default function ZoneModal({
       const { data } = await api.post(`/warehouse/${warehouseId}/floor-plan/auto-zone`, {
         elementType: selectedType,
         label: label.trim(),
+        prefix: prefix.trim() || undefined,
         shelvesCount: shelves,
         positionsPerShelf: positions,
       });
@@ -78,6 +82,7 @@ export default function ZoneModal({
             h: getTemplate(selectedType).defaultH,
             rotation: 0,
             zoneId: zone.id,
+            prefix: prefix.trim() || undefined,
             shelvesCount: shelves,
             positionsPerShelf: positions,
           };
@@ -192,10 +197,31 @@ export default function ZoneModal({
               <input
                 type="text"
                 value={label}
-                onChange={(e) => setLabel(e.target.value)}
+                onChange={(e) => {
+                  setLabel(e.target.value);
+                  if (!prefix || prefix === label.replace(/[^A-Za-z0-9]/g, '').substring(0, 3).toUpperCase()) {
+                    setPrefix(e.target.value.replace(/[^A-Za-z0-9]/g, '').substring(0, 3).toUpperCase());
+                  }
+                }}
                 placeholder="e.g. Shelving Rack A"
                 className={inputClasses}
               />
+            </div>
+
+            {/* Prefix */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">Prefix</label>
+              <input
+                type="text"
+                value={prefix}
+                onChange={(e) => setPrefix(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().substring(0, 5))}
+                maxLength={5}
+                placeholder="e.g. SHE"
+                className={inputClasses}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Location codes will look like: <span className="font-mono font-medium text-foreground">{prefix || 'LOC'}-01-01</span>
+              </p>
             </div>
 
             {/* Shelves + Positions */}

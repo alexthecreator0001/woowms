@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { X, Printer } from '@phosphor-icons/react';
 import { jsPDF } from 'jspdf';
+import bwipjs from 'bwip-js';
 import { cn } from '../../lib/utils';
 
 interface PrintLabelsModalProps {
@@ -16,9 +17,10 @@ interface PrintLabelsModalProps {
   }>;
   zoneName: string;
   warehouseName: string;
+  zoneType?: string;
 }
 
-type LabelSize = 'small' | 'medium' | 'large';
+type LabelSize = 'zebra-4x6' | 'zebra-2x1' | 'sheet-small' | 'sheet-medium' | 'sheet-large';
 
 interface LabelSizeOption {
   key: LabelSize;
@@ -28,29 +30,55 @@ interface LabelSizeOption {
   description: string;
 }
 
-const LABEL_SIZES: LabelSizeOption[] = [
+const ZEBRA_SIZES: LabelSizeOption[] = [
   {
-    key: 'small',
-    title: 'Small',
-    dimensions: '1" × 2.63"',
-    perPage: 30,
-    description: 'Best for shelf edges',
+    key: 'zebra-4x6',
+    title: '4×6"',
+    dimensions: '4" × 6"',
+    perPage: 1,
+    description: 'Standard shipping label',
   },
   {
-    key: 'medium',
-    title: 'Medium',
-    dimensions: '2" × 4"',
-    perPage: 10,
-    description: 'Best for rack labels',
-  },
-  {
-    key: 'large',
-    title: 'Large',
-    dimensions: '4" × 3"',
-    perPage: 6,
-    description: 'Best for aisle signs',
+    key: 'zebra-2x1',
+    title: '2×1"',
+    dimensions: '2" × 1"',
+    perPage: 1,
+    description: 'Small shelf label',
   },
 ];
+
+const SHEET_SIZES: LabelSizeOption[] = [
+  {
+    key: 'sheet-small',
+    title: 'Small',
+    dimensions: '2.63" × 1"',
+    perPage: 30,
+    description: '30/page — shelf edges',
+  },
+  {
+    key: 'sheet-medium',
+    title: 'Medium',
+    dimensions: '4" × 2"',
+    perPage: 10,
+    description: '10/page — rack labels',
+  },
+  {
+    key: 'sheet-large',
+    title: 'Large',
+    dimensions: '4" × 3.33"',
+    perPage: 6,
+    description: '6/page — aisle signs',
+  },
+];
+
+const ZONE_COLORS: Record<string, [number, number, number]> = {
+  STORAGE:   [59, 130, 246],
+  PICKING:   [139, 92, 246],
+  RECEIVING: [245, 158, 11],
+  PACKING:   [249, 115, 22],
+  SHIPPING:  [16, 185, 129],
+  RETURNS:   [239, 68, 68],
+};
 
 function parseLabel(label: string): string {
   const parts = label.split('-');
@@ -63,25 +91,36 @@ function parseLabel(label: string): string {
   return label;
 }
 
+function barcodeDataUrl(text: string): string {
+  const canvas = document.createElement('canvas');
+  bwipjs.toCanvas(canvas, {
+    bcid: 'code128',
+    text,
+    scale: 3,
+    height: 10,
+    includetext: false,
+  });
+  return canvas.toDataURL('image/png');
+}
+
 export default function PrintLabelsModal({
   open,
   onClose,
   bins,
   zoneName,
   warehouseName,
+  zoneType = '',
 }: PrintLabelsModalProps) {
-  const [labelSize, setLabelSize] = useState<LabelSize>('medium');
+  const [labelSize, setLabelSize] = useState<LabelSize>('sheet-medium');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
-  // Reset state when modal opens
   useEffect(() => {
     if (open) {
-      setLabelSize('medium');
+      setLabelSize('sheet-medium');
       setSelectedIds(new Set(bins.map((b) => b.id)));
     }
   }, [open, bins]);
 
-  // Group bins by aisle (row)
   const groupedBins = useMemo(() => {
     const groups = new Map<string, typeof bins>();
     for (const bin of bins) {
@@ -91,7 +130,6 @@ export default function PrintLabelsModal({
       }
       groups.get(aisle)!.push(bin);
     }
-    // Sort groups alphabetically
     return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [bins]);
 
@@ -123,8 +161,10 @@ export default function PrintLabelsModal({
     const selected = bins.filter((b) => selectedIds.has(b.id));
     if (selected.length === 0) return;
 
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' });
+    const color = ZONE_COLORS[zoneType] || [107, 114, 128];
+    const isZebra = labelSize === 'zebra-4x6' || labelSize === 'zebra-2x1';
 
+    let doc: jsPDF;
     let cols: number;
     let rows: number;
     let labelW: number;
@@ -134,41 +174,48 @@ export default function PrintLabelsModal({
     let fontLocation: number;
     let fontZone: number;
     let fontBreakdown: number;
+    let barcodeH: number;
+    let showBreakdown: boolean;
 
-    if (labelSize === 'small') {
-      cols = 3;
-      rows = 10;
-      labelW = 2.63;
-      labelH = 1;
-      marginLeft = 0.19;
-      marginTop = 0.5;
-      fontLocation = 11;
-      fontZone = 6;
-      fontBreakdown = 5;
-    } else if (labelSize === 'medium') {
-      cols = 2;
-      rows = 5;
-      labelW = 4;
-      labelH = 2;
-      marginLeft = 0.16;
-      marginTop = 0.5;
-      fontLocation = 18;
-      fontZone = 9;
-      fontBreakdown = 7;
+    if (labelSize === 'zebra-4x6') {
+      doc = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
+      cols = 1; rows = 1;
+      labelW = 4; labelH = 6;
+      marginLeft = 0; marginTop = 0;
+      fontLocation = 28; fontZone = 12; fontBreakdown = 10;
+      barcodeH = 0.6; showBreakdown = true;
+    } else if (labelSize === 'zebra-2x1') {
+      doc = new jsPDF({ orientation: 'landscape', unit: 'in', format: [1, 2] });
+      cols = 1; rows = 1;
+      labelW = 2; labelH = 1;
+      marginLeft = 0; marginTop = 0;
+      fontLocation = 10; fontZone = 5; fontBreakdown = 0;
+      barcodeH = 0.25; showBreakdown = false;
+    } else if (labelSize === 'sheet-small') {
+      doc = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' });
+      cols = 3; rows = 10;
+      labelW = 2.63; labelH = 1;
+      marginLeft = 0.19; marginTop = 0.5;
+      fontLocation = 10; fontZone = 5; fontBreakdown = 0;
+      barcodeH = 0.2; showBreakdown = false;
+    } else if (labelSize === 'sheet-medium') {
+      doc = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' });
+      cols = 2; rows = 5;
+      labelW = 4; labelH = 2;
+      marginLeft = 0.16; marginTop = 0.5;
+      fontLocation = 16; fontZone = 8; fontBreakdown = 6;
+      barcodeH = 0.35; showBreakdown = true;
     } else {
-      cols = 2;
-      rows = 3;
-      labelW = 4;
-      labelH = 3.33;
-      marginLeft = 0.25;
-      marginTop = 0.25;
-      fontLocation = 24;
-      fontZone = 11;
-      fontBreakdown = 8;
+      // sheet-large
+      doc = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' });
+      cols = 2; rows = 3;
+      labelW = 4; labelH = 3.33;
+      marginLeft = 0.25; marginTop = 0.25;
+      fontLocation = 22; fontZone = 10; fontBreakdown = 8;
+      barcodeH = 0.5; showBreakdown = true;
     }
 
     const perPage = cols * rows;
-    const radius = 0.08;
 
     selected.forEach((bin, index) => {
       const pageIndex = Math.floor(index / perPage);
@@ -184,38 +231,131 @@ export default function PrintLabelsModal({
       const x = marginLeft + col * labelW;
       const y = marginTop + row * labelH;
 
-      // Draw rounded border
-      doc.setDrawColor(180, 180, 180);
-      doc.setLineWidth(0.01);
-      doc.roundedRect(x + 0.05, y + 0.05, labelW - 0.1, labelH - 0.1, radius, radius, 'S');
+      const pad = 0.05;
+      const innerX = x + pad;
+      const innerY = y + pad;
+      const innerW = labelW - pad * 2;
+      const innerH = labelH - pad * 2;
 
-      const centerX = x + labelW / 2;
-      const centerY = y + labelH / 2;
+      // Border
+      if (!isZebra) {
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.008);
+        doc.roundedRect(innerX, innerY, innerW, innerH, 0.06, 0.06, 'S');
+      }
 
-      // Location code — large bold text
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(fontLocation);
-      doc.setTextColor(30, 30, 30);
-      doc.text(bin.label, centerX, centerY - labelH * 0.1, { align: 'center' });
+      // Color stripe (left edge)
+      const stripeW = isZebra ? 0.06 : 0.04;
+      doc.setFillColor(color[0], color[1], color[2]);
+      doc.rect(innerX, innerY, stripeW, innerH, 'F');
 
-      // Zone and warehouse name
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(fontZone);
-      doc.setTextColor(120, 120, 120);
-      const zoneLine = `${zoneName} — ${warehouseName}`;
-      doc.text(zoneLine, centerX, centerY + labelH * 0.1, { align: 'center' });
+      const contentX = innerX + stripeW + (isZebra ? 0.15 : 0.08);
+      const contentW = innerW - stripeW - (isZebra ? 0.3 : 0.16);
+      const centerX = contentX + contentW / 2;
 
-      // Breakdown
-      const breakdown = parseLabel(bin.label);
-      doc.setFontSize(fontBreakdown);
-      doc.setTextColor(160, 160, 160);
-      doc.text(breakdown, centerX, centerY + labelH * 0.22, { align: 'center' });
+      // Layout vertical spacing
+      let cursorY: number;
+
+      if (isZebra && labelSize === 'zebra-4x6') {
+        // Large Zebra: generous spacing
+        cursorY = innerY + 0.6;
+
+        // Barcode
+        try {
+          const dataUrl = barcodeDataUrl(bin.label);
+          const barcodeW = contentW * 0.85;
+          doc.addImage(dataUrl, 'PNG', centerX - barcodeW / 2, cursorY, barcodeW, barcodeH);
+        } catch { /* skip barcode on error */ }
+        cursorY += barcodeH + 0.4;
+
+        // Location code
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(fontLocation);
+        doc.setTextColor(25, 25, 25);
+        doc.text(bin.label, centerX, cursorY, { align: 'center' });
+        cursorY += 0.5;
+
+        // Zone + warehouse
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(fontZone);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`${zoneName} — ${warehouseName}`, centerX, cursorY, { align: 'center' });
+        cursorY += 0.35;
+
+        // Breakdown
+        if (showBreakdown) {
+          const breakdown = parseLabel(bin.label);
+          doc.setFontSize(fontBreakdown);
+          doc.setTextColor(140, 140, 140);
+          doc.text(breakdown, centerX, cursorY, { align: 'center' });
+        }
+      } else if (isZebra && labelSize === 'zebra-2x1') {
+        // Small Zebra: compact
+        cursorY = innerY + 0.15;
+
+        // Barcode
+        try {
+          const dataUrl = barcodeDataUrl(bin.label);
+          const barcodeW = contentW * 0.8;
+          doc.addImage(dataUrl, 'PNG', centerX - barcodeW / 2, cursorY, barcodeW, barcodeH);
+        } catch { /* skip */ }
+        cursorY += barcodeH + 0.08;
+
+        // Location code
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(fontLocation);
+        doc.setTextColor(25, 25, 25);
+        doc.text(bin.label, centerX, cursorY + 0.08, { align: 'center' });
+        cursorY += 0.2;
+
+        // Zone line
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(fontZone);
+        doc.setTextColor(120, 120, 120);
+        doc.text(`${zoneName}`, centerX, cursorY + 0.06, { align: 'center' });
+      } else {
+        // Sheet labels
+        const topPad = labelH * 0.1;
+        cursorY = innerY + topPad;
+
+        // Barcode
+        try {
+          const dataUrl = barcodeDataUrl(bin.label);
+          const barcodeW = contentW * 0.75;
+          doc.addImage(dataUrl, 'PNG', centerX - barcodeW / 2, cursorY, barcodeW, barcodeH);
+        } catch { /* skip */ }
+        cursorY += barcodeH + labelH * 0.08;
+
+        // Location code
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(fontLocation);
+        doc.setTextColor(25, 25, 25);
+        doc.text(bin.label, centerX, cursorY + fontLocation / 72, { align: 'center' });
+        cursorY += fontLocation / 72 + labelH * 0.08;
+
+        // Zone + warehouse
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(fontZone);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`${zoneName} — ${warehouseName}`, centerX, cursorY + fontZone / 72, { align: 'center' });
+        cursorY += fontZone / 72 + labelH * 0.06;
+
+        // Breakdown
+        if (showBreakdown) {
+          const breakdown = parseLabel(bin.label);
+          doc.setFontSize(fontBreakdown);
+          doc.setTextColor(150, 150, 150);
+          doc.text(breakdown, centerX, cursorY + fontBreakdown / 72, { align: 'center' });
+        }
+      }
     });
 
     window.open(doc.output('bloburl').toString(), '_blank');
   }
 
   if (!open) return null;
+
+  const sizeColor = ZONE_COLORS[zoneType];
 
   return (
     <div
@@ -228,11 +368,19 @@ export default function PrintLabelsModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/40 px-6 py-4">
-          <div>
-            <h2 className="text-lg font-semibold">Print Location Labels</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Generate printable PDF labels for your warehouse locations.
-            </p>
+          <div className="flex items-center gap-3">
+            {sizeColor && (
+              <div
+                className="h-8 w-1 rounded-full"
+                style={{ backgroundColor: `rgb(${sizeColor[0]}, ${sizeColor[1]}, ${sizeColor[2]})` }}
+              />
+            )}
+            <div>
+              <h2 className="text-lg font-semibold">Print Location Labels</h2>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {zoneName} — {warehouseName}
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -247,9 +395,11 @@ export default function PrintLabelsModal({
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
           {/* Label Size Selector */}
           <div>
-            <p className="mb-2 text-sm font-medium text-foreground">Label Size</p>
-            <div className="grid grid-cols-3 gap-3">
-              {LABEL_SIZES.map((size) => (
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Direct Print (Zebra)
+            </p>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {ZEBRA_SIZES.map((size) => (
                 <button
                   key={size.key}
                   type="button"
@@ -257,14 +407,35 @@ export default function PrintLabelsModal({
                   className={cn(
                     'rounded-lg border p-3 text-left transition-colors',
                     labelSize === size.key
-                      ? 'border-primary bg-primary/5'
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
                       : 'border-border/60 hover:border-border hover:bg-muted/30',
                   )}
                 >
                   <span className="block text-sm font-semibold text-foreground">{size.title}</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">{size.dimensions}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">{size.description}</span>
+                </button>
+              ))}
+            </div>
+
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Sheet Labels (Letter)
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {SHEET_SIZES.map((size) => (
+                <button
+                  key={size.key}
+                  type="button"
+                  onClick={() => setLabelSize(size.key)}
+                  className={cn(
+                    'rounded-lg border p-3 text-left transition-colors',
+                    labelSize === size.key
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                      : 'border-border/60 hover:border-border hover:bg-muted/30',
+                  )}
+                >
+                  <span className="block text-sm font-semibold text-foreground">{size.title}</span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">{size.perPage}/page</span>
-                  <span className="mt-1.5 block text-[11px] text-muted-foreground/80">{size.description}</span>
+                  <span className="mt-0.5 block text-[11px] text-muted-foreground/80">{size.description}</span>
                 </button>
               ))}
             </div>

@@ -52,6 +52,7 @@ export default function WarehouseDetail() {
   const [editingZone, setEditingZone] = useState<Zone | null>(null);
   const [editingElement, setEditingElement] = useState<FloorPlanElement | null>(null);
   const [editZoneName, setEditZoneName] = useState('');
+  const [editPrefix, setEditPrefix] = useState('');
   const [editShelves, setEditShelves] = useState(4);
   const [editPositions, setEditPositions] = useState(3);
   const [editZoneSaving, setEditZoneSaving] = useState(false);
@@ -209,6 +210,7 @@ export default function WarehouseDetail() {
     setEditingZone(zone);
     setEditingElement(el);
     setEditZoneName(zone.name);
+    setEditPrefix(el?.prefix ?? '');
     setEditShelves(el?.shelvesCount ?? 4);
     setEditPositions(el?.positionsPerShelf ?? 3);
     setEditZoneError(null);
@@ -233,7 +235,7 @@ export default function WarehouseDetail() {
       if (editingElement && warehouse?.floorPlan) {
         const updatedElements = warehouse.floorPlan.elements.map((el) =>
           el.id === editingElement.id
-            ? { ...el, label: editZoneName.trim(), shelvesCount: editShelves, positionsPerShelf: editPositions }
+            ? { ...el, label: editZoneName.trim(), prefix: editPrefix.trim() || undefined, shelvesCount: editShelves, positionsPerShelf: editPositions }
             : el,
         );
         await api.put(`/warehouse/${warehouse.id}/floor-plan`, {
@@ -617,6 +619,23 @@ export default function WarehouseDetail() {
             />
           </div>
 
+          {/* Prefix */}
+          <div>
+            <label htmlFor="edit-zd-prefix" className="mb-1.5 block text-sm font-medium">Prefix</label>
+            <input
+              id="edit-zd-prefix"
+              type="text"
+              value={editPrefix}
+              onChange={(e) => setEditPrefix(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().substring(0, 5))}
+              maxLength={5}
+              placeholder="e.g. SHE"
+              className={inputClasses}
+            />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Location codes will look like: <span className="font-mono font-medium text-foreground">{editPrefix || 'LOC'}-01-01</span>
+            </p>
+          </div>
+
           {/* Shelves + Positions */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -670,6 +689,7 @@ export default function WarehouseDetail() {
         bins={printZone?.bins || []}
         zoneName={printZone?.name || ''}
         warehouseName={warehouse.name}
+        zoneType={printZone ? (zones.find((z) => z.id === printZone.id)?.type || '') : ''}
       />
     </div>
   );

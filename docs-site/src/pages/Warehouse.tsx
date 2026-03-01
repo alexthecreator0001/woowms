@@ -110,16 +110,43 @@ export default function Warehouse() {
 
       <h2>Print Labels</h2>
       <p>
-        Generate PDF labels for your location bins in three sizes:
+        Generate professional PDF labels with <strong>Code 128 barcodes</strong>, zone-type color
+        stripes, and clear location information. Five label sizes are available in two categories:
       </p>
+
+      <h3>Direct Print (Zebra)</h3>
+      <ul>
+        <li><strong>Zebra 4×6"</strong> — Standard shipping-size label with large barcode and full location details. 1 label per page on 4×6" thermal paper.</li>
+        <li><strong>Zebra 2×1"</strong> — Compact shelf label with barcode and location code. 1 label per page on 2×1" thermal paper.</li>
+      </ul>
+
+      <h3>Sheet Labels (Letter)</h3>
       <ul>
         <li><strong>Small</strong> (30 per page) — For shelf edge labels</li>
         <li><strong>Medium</strong> (10 per page) — For rack labels</li>
         <li><strong>Large</strong> (6 per page) — For aisle signs</li>
       </ul>
+
       <p>
-        Select individual locations or check all, then click Print Labels. Each label shows
-        the location code in bold with zone and warehouse name.
+        Each label includes a scannable Code 128 barcode, the location code in large bold text,
+        zone and warehouse name, and a human-readable breakdown (e.g., "Row SHE · Shelf 01 · Pos 03").
+        A color stripe on the left edge matches the zone type color for quick visual identification.
+      </p>
+      <p>
+        Select individual locations or check all, then click <strong>Generate PDF</strong>. The PDF
+        opens in a new tab for printing.
+      </p>
+
+      <h2>Custom Location Prefix</h2>
+      <p>
+        When creating or editing an element, you can set a custom <strong>prefix</strong> (up to 5
+        characters) that determines how location codes are generated. For example, setting the prefix
+        to "RACK" produces codes like <code>RACK-01-01</code>, <code>RACK-01-02</code>, etc.
+      </p>
+      <p>
+        By default, the prefix is auto-derived from the first 3 alphanumeric characters of the
+        element label (e.g., "Shelving Rack" → "SHE"). A live preview shows what the location
+        codes will look like as you type.
       </p>
 
       <h2>Visual Floor Plan Builder</h2>

@@ -366,9 +366,10 @@ router.put('/:id/floor-plan', authorize('ADMIN', 'MANAGER'), async (req: Request
 router.post('/:id/floor-plan/auto-zone', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const warehouseId = parseInt(req.params.id);
-    const { elementType, label, shelvesCount, positionsPerShelf } = req.body as {
+    const { elementType, label, prefix: customPrefix, shelvesCount, positionsPerShelf } = req.body as {
       elementType: string;
       label: string;
+      prefix?: string;
       shelvesCount?: number;
       positionsPerShelf?: number;
     };
@@ -404,7 +405,7 @@ router.post('/:id/floor-plan/auto-zone', authorize('ADMIN', 'MANAGER'), async (r
 
     if (shelves > 0 && positions > 0) {
       const pad = (n: number) => String(n).padStart(2, '0');
-      const prefix = label.replace(/[^A-Za-z0-9]/g, '').substring(0, 3).toUpperCase() || 'LOC';
+      const prefix = customPrefix || label.replace(/[^A-Za-z0-9]/g, '').substring(0, 3).toUpperCase() || 'LOC';
       const binsData: { zoneId: number; label: string; row: string; shelf: string; position: string }[] = [];
 
       for (let s = 1; s <= shelves; s++) {
