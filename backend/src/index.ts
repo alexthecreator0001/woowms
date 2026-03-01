@@ -23,6 +23,7 @@ import shippingRoutes from './routes/shipping.js';
 import receivingRoutes from './routes/receiving.js';
 import supplierRoutes from './routes/suppliers.js';
 import imageRoutes from './routes/images.js';
+import pluginRoutes from './routes/plugins.js';
 
 const app = express();
 
@@ -45,6 +46,10 @@ app.post('/api/webhooks/woocommerce/:storeId', handleStoreWebhook);
 // Image proxy — public (no auth needed, used by <img> tags)
 app.use('/api/v1/images', imageRoutes);
 
+// Zapier webhook — uses API key auth, not JWT (must be before authenticate middleware)
+app.post('/api/v1/plugins/zapier/webhook', pluginRoutes);
+app.get('/api/v1/plugins/zapier/webhook/test', pluginRoutes);
+
 // All other API routes require authentication + tenant context
 app.use('/api/v1', authenticate, injectTenant);
 
@@ -58,6 +63,7 @@ app.use('/api/v1/picking', pickingRoutes);
 app.use('/api/v1/shipping', shippingRoutes);
 app.use('/api/v1/receiving', receivingRoutes);
 app.use('/api/v1/suppliers', supplierRoutes);
+app.use('/api/v1/plugins', pluginRoutes);
 
 // Error handler
 app.use(errorHandler);

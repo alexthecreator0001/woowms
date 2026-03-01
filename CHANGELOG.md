@@ -3,6 +3,21 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.11.0 / 2.15.0] - 2026-03-01
+
+### Added
+- **Plugins / Marketplace page** — browse available integrations in a marketplace-style card grid with category filter pills, install/uninstall buttons, and per-plugin configuration panels
+- **Zapier integration** — first available plugin; on install generates a secure API key (SHA-256 hashed, prefix-only stored) for authenticating Zapier webhook calls
+- **Plugin API key management** — generate, regenerate, and display key prefix; full plaintext shown only on create/regenerate in a one-time modal
+- **Zapier webhook endpoints** — `POST /api/v1/plugins/zapier/webhook` and `GET /api/v1/plugins/zapier/webhook/test` with API key auth via `X-API-Key` header; supports actions: `test`, `new_orders`, `low_stock`, `order_status`
+- **Plugin settings** — per-plugin JSON settings with toggle controls (order notifications, low stock alerts, shipping updates for Zapier)
+- **Plugin CRUD API** — `GET /api/v1/plugins` (catalog), `GET /:key` (detail), `POST /:key/install`, `POST /:key/uninstall`, `PATCH /:key/settings`, `POST /:key/regenerate-key`
+- **Plugin catalog** — 4 plugins: Zapier (available), Slack, QuickBooks, ShipStation (coming soon) with brand colors and icons
+- **Sidebar navigation** — new "Integrations" section with "Plugins" link using Plug icon
+- **Setup instructions** — step-by-step Zapier configuration guide on the plugin configure page
+- Database migration: `tenant_plugins` table with API key hash, prefix, settings JSON, tenant relation
+- `TenantPlugin` added to tenant-scoped Prisma models
+
 ## [3.10.0 / 2.14.0] - 2026-03-01
 
 ### Added

@@ -286,6 +286,24 @@ export interface BundleItem {
   bundleProduct?: Product;
 }
 
+// ─── Plugins ───────────────────────────────────────
+
+export interface PluginCatalogItem {
+  key: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  requiresApiKey: boolean;
+  status: 'available' | 'coming_soon';
+  installed?: boolean;
+  isEnabled?: boolean;
+  apiKeyPrefix?: string | null;
+  apiKey?: string | null;
+  settings?: Record<string, unknown>;
+  installedAt?: string;
+}
+
 // ─── Purchase Orders ────────────────────────────────
 
 export type POStatus = 'DRAFT' | 'ORDERED' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'CANCELLED';

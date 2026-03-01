@@ -16,6 +16,7 @@ import {
   CaretLineLeft,
   CaretLineRight,
   CaretDown,
+  Plug,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import { LogoMark } from './Logo';
@@ -54,6 +55,12 @@ const navSections: NavSection[] = [
       { path: '/shipping', label: 'Shipping', icon: TruckTrailer },
       { path: '/receiving', label: 'Receiving', icon: Package },
       { path: '/suppliers', label: 'Suppliers', icon: UsersThree },
+    ],
+  },
+  {
+    label: 'Integrations',
+    items: [
+      { path: '/plugins', label: 'Plugins', icon: Plug },
     ],
   },
 ];

@@ -22,6 +22,7 @@ import POCreate from './pages/POCreate';
 import Suppliers from './pages/Suppliers';
 import SupplierDetail from './pages/SupplierDetail';
 import Settings from './pages/settings/SettingsPage';
+import Plugins from './pages/Plugins';
 import Docs from './pages/Docs';
 import type { TokenPayload } from './types';
 
@@ -112,6 +113,7 @@ export default function App() {
                 <Route path="/receiving/:id" element={<PODetail />} />
                 <Route path="/suppliers" element={<Suppliers />} />
                 <Route path="/suppliers/:id" element={<SupplierDetail />} />
+                <Route path="/plugins" element={<Plugins />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/docs" element={<Docs />} />
               </Routes>
