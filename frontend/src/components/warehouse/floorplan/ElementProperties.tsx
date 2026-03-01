@@ -5,6 +5,7 @@ import {
   LinkSimple,
   Plus,
   MapPin,
+  CopySimple,
 } from '@phosphor-icons/react';
 import { cn } from '../../../lib/utils';
 import { getTemplate } from './ElementPalette';
@@ -15,8 +16,10 @@ interface ElementPropertiesProps {
   zones: Zone[];
   gridWidth: number;
   gridHeight: number;
+  unit: string;
   onUpdate: (updated: FloorPlanElement) => void;
   onDelete: () => void;
+  onDuplicate: () => void;
   onCreateZone: () => void;
 }
 
@@ -25,8 +28,10 @@ export default function ElementProperties({
   zones,
   gridWidth,
   gridHeight,
+  unit,
   onUpdate,
   onDelete,
+  onDuplicate,
   onCreateZone,
 }: ElementPropertiesProps) {
   const template = getTemplate(element.type);
@@ -40,8 +45,8 @@ export default function ElementProperties({
 
   const effectiveW = element.rotation === 90 ? element.h : element.w;
   const effectiveH = element.rotation === 90 ? element.w : element.h;
-  const maxW = gridWidth - element.x;
-  const maxH = gridHeight - element.y;
+  const maxW = Math.round((gridWidth - element.x) * 10) / 10;
+  const maxH = Math.round((gridHeight - element.y) * 10) / 10;
 
   return (
     <div className="space-y-4">
@@ -69,16 +74,17 @@ export default function ElementProperties({
       {/* Dimensions */}
       <div>
         <label className="mb-1 block text-xs font-medium text-muted-foreground">
-          Size (w &times; h cells)
+          Size (w &times; h {unit})
         </label>
         <div className="flex items-center gap-2">
           <input
             type="number"
-            min={1}
+            min={0.1}
             max={maxW}
+            step="0.1"
             value={effectiveW}
             onChange={(e) => {
-              const v = Math.max(1, Math.min(maxW, parseInt(e.target.value) || 1));
+              const v = Math.max(0.1, Math.min(maxW, parseFloat(e.target.value) || 0.1));
               onUpdate({
                 ...element,
                 w: element.rotation === 90 ? element.w : v,
@@ -90,11 +96,12 @@ export default function ElementProperties({
           <span className="text-xs text-muted-foreground">&times;</span>
           <input
             type="number"
-            min={1}
+            min={0.1}
             max={maxH}
+            step="0.1"
             value={effectiveH}
             onChange={(e) => {
-              const v = Math.max(1, Math.min(maxH, parseInt(e.target.value) || 1));
+              const v = Math.max(0.1, Math.min(maxH, parseFloat(e.target.value) || 0.1));
               onUpdate({
                 ...element,
                 w: element.rotation === 90 ? v : element.w,
@@ -113,7 +120,6 @@ export default function ElementProperties({
           type="button"
           onClick={() => {
             const newRotation = element.rotation === 0 ? 90 : 0;
-            // Swap w/h and check bounds
             const newEffW = newRotation === 90 ? element.h : element.w;
             const newEffH = newRotation === 90 ? element.w : element.h;
             if (element.x + newEffW <= gridWidth && element.y + newEffH <= gridHeight) {
@@ -150,7 +156,6 @@ export default function ElementProperties({
             </div>
           ) : (
             <div className="space-y-2">
-              {/* Link existing zone */}
               <select
                 value=""
                 onChange={(e) => {
@@ -166,7 +171,6 @@ export default function ElementProperties({
                   </option>
                 ))}
               </select>
-              {/* Or create new zone */}
               <button
                 type="button"
                 onClick={onCreateZone}
@@ -188,6 +192,17 @@ export default function ElementProperties({
         <MapPin size={12} />
         Position: ({element.x}, {element.y})
       </div>
+
+      {/* Duplicate */}
+      <button
+        type="button"
+        onClick={onDuplicate}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        title="Duplicate (Ctrl+D)"
+      >
+        <CopySimple size={14} />
+        Duplicate
+      </button>
 
       {/* Delete */}
       <div className="pt-2 border-t border-border/40">

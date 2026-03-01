@@ -3,6 +3,22 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.16.0 / 2.20.0] - 2026-03-01
+
+### Added
+- **Unit system for floor plans** — choose between feet (ft) and meters (m) when creating a floor plan; unit displayed in toolbar and property panel
+- **Decimal element sizes** — elements can now have fractional dimensions (e.g., 1.3m wide rack) with 0.1 snap precision
+- **Element duplication** — duplicate any selected element via "Duplicate" button or **Ctrl/Cmd+D** keyboard shortcut
+- **Auto-collapse sidebar** — sidebar automatically collapses when viewing the Floor Plan tab for more editing space, restores on tab change
+
+### Changed
+- Floor plan grid now uses AABB overlap detection instead of integer occupancy grid, enabling precise decimal positioning
+- Setup form uses `parseFloat` with `step="0.1"` for decimal warehouse dimensions
+- Backend floor plan validation now accepts decimal width/height with `isFinite()` checks
+
+### Removed
+- **Aisle element type** — removed from the element palette; free space on the grid represents aisles naturally. Existing aisle elements are auto-filtered on load.
+
 ## [3.15.0 / 2.19.0] - 2026-03-01
 
 ### Added

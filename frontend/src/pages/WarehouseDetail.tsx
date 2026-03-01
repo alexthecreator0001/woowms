@@ -12,6 +12,7 @@ import {
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
+import { useSidebar } from '../contexts/SidebarContext';
 import type { Warehouse, Zone, ZoneType } from '../types';
 import ZoneSummaryCard from '../components/warehouse/ZoneSummaryCard';
 import UtilizationBar from '../components/warehouse/UtilizationBar';
@@ -75,6 +76,16 @@ export default function WarehouseDetail() {
 
   // Tab: 'zones' or 'floorplan'
   const [activeTab, setActiveTab] = useState<'zones' | 'floorplan'>('zones');
+
+  // Auto-collapse sidebar on floor plan tab for more editing space
+  const { collapsed: sidebarCollapsed, setCollapsed: setSidebarCollapsed } = useSidebar();
+  useEffect(() => {
+    if (activeTab === 'floorplan') {
+      const wasCollapsed = sidebarCollapsed;
+      setSidebarCollapsed(true);
+      return () => { setSidebarCollapsed(wasCollapsed); };
+    }
+  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchWarehouse = useCallback(() => {
     if (!warehouseId) return;

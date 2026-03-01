@@ -4,7 +4,6 @@ import {
   Table as TableIcon,
   TruckTrailer,
   Export,
-  Path,
   Wall,
 } from '@phosphor-icons/react';
 import { cn } from '../../../lib/utils';
@@ -83,18 +82,6 @@ export const ELEMENT_TEMPLATES: ElementTemplate[] = [
     borderClass: 'border-emerald-500/30',
     textClass: 'text-emerald-600',
     hasZone: true,
-  },
-  {
-    type: 'aisle',
-    label: 'Aisle',
-    icon: <Path size={18} />,
-    defaultW: 1,
-    defaultH: 4,
-    color: '#6b7280',
-    bgClass: 'bg-gray-500/10',
-    borderClass: 'border-gray-500/30',
-    textClass: 'text-gray-500',
-    hasZone: false,
   },
   {
     type: 'wall',

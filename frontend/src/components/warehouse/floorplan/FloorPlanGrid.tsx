@@ -1,10 +1,31 @@
-import { useRef, useCallback } from 'react';
+import { useRef } from 'react';
 import { LinkSimple } from '@phosphor-icons/react';
 import { cn } from '../../../lib/utils';
 import { getTemplate } from './ElementPalette';
 import type { FloorPlanElement, FloorPlanElementType } from '../../../types';
 
 const CELL_SIZE = 40;
+const EPS = 0.001;
+
+function snap(v: number): number {
+  return Math.round(v * 10) / 10;
+}
+
+function rectsOverlap(
+  a: { x: number; y: number; w: number; h: number },
+  b: { x: number; y: number; w: number; h: number },
+): boolean {
+  return !(
+    a.x + a.w <= b.x + EPS ||
+    a.x >= b.x + b.w - EPS ||
+    a.y + a.h <= b.y + EPS ||
+    a.y >= b.y + b.h - EPS
+  );
+}
+
+function pointInRect(px: number, py: number, r: { x: number; y: number; w: number; h: number }): boolean {
+  return px >= r.x && px < r.x + r.w && py >= r.y && py < r.y + r.h;
+}
 
 interface FloorPlanGridProps {
   width: number;
@@ -30,54 +51,45 @@ export default function FloorPlanGrid({
   const gridRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ elementId: string; offsetX: number; offsetY: number } | null>(null);
 
-  // Build occupancy grid (for collision display)
-  const occupied = useCallback(() => {
-    const grid: Record<string, string> = {};
-    for (const el of elements) {
-      const ew = el.rotation === 90 ? el.h : el.w;
-      const eh = el.rotation === 90 ? el.w : el.h;
-      for (let dx = 0; dx < ew; dx++) {
-        for (let dy = 0; dy < eh; dy++) {
-          grid[`${el.x + dx},${el.y + dy}`] = el.id;
-        }
-      }
-    }
-    return grid;
-  }, [elements]);
-
   const handleGridClick = (e: React.MouseEvent) => {
     if (!gridRef.current) return;
     const rect = gridRef.current.getBoundingClientRect();
     const scrollLeft = gridRef.current.scrollLeft;
     const scrollTop = gridRef.current.scrollTop;
-    const x = Math.floor((e.clientX - rect.left + scrollLeft) / CELL_SIZE);
-    const y = Math.floor((e.clientY - rect.top + scrollTop) / CELL_SIZE);
-    if (x < 0 || x >= width || y < 0 || y >= height) return;
+    const rawX = (e.clientX - rect.left + scrollLeft) / CELL_SIZE;
+    const rawY = (e.clientY - rect.top + scrollTop) / CELL_SIZE;
 
-    // Check if clicking on an element
-    const occ = occupied();
-    const elId = occ[`${x},${y}`];
-    if (elId) {
-      onElementClick(elId);
-      return;
+    if (rawX < 0 || rawX >= width || rawY < 0 || rawY >= height) return;
+
+    // Check if clicking on an element (iterate in reverse for z-order)
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const el = elements[i];
+      const ew = el.rotation === 90 ? el.h : el.w;
+      const eh = el.rotation === 90 ? el.w : el.h;
+      if (pointInRect(rawX, rawY, { x: el.x, y: el.y, w: ew, h: eh })) {
+        onElementClick(el.id);
+        return;
+      }
     }
 
-    onCellClick(x, y);
+    // Snap to 0.1 grid
+    const sx = snap(Math.floor(rawX * 10) / 10);
+    const sy = snap(Math.floor(rawY * 10) / 10);
+    onCellClick(sx, sy);
   };
 
   // Drag handlers for moving elements
   const handleElementMouseDown = (e: React.MouseEvent, element: FloorPlanElement) => {
     e.stopPropagation();
     if (activeTool) {
-      // In placement mode, don't start drag — just select
       onElementClick(element.id);
       return;
     }
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const elRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     dragRef.current = {
       elementId: element.id,
-      offsetX: Math.floor((e.clientX - rect.left) / CELL_SIZE),
-      offsetY: Math.floor((e.clientY - rect.top) / CELL_SIZE),
+      offsetX: snap((e.clientX - elRect.left) / CELL_SIZE),
+      offsetY: snap((e.clientY - elRect.top) / CELL_SIZE),
     };
     onElementClick(element.id);
 
@@ -86,8 +98,8 @@ export default function FloorPlanGrid({
       const gridRect = gridRef.current.getBoundingClientRect();
       const scrollLeft = gridRef.current.scrollLeft;
       const scrollTop = gridRef.current.scrollTop;
-      const cellX = Math.floor((ev.clientX - gridRect.left + scrollLeft) / CELL_SIZE) - dragRef.current.offsetX;
-      const cellY = Math.floor((ev.clientY - gridRect.top + scrollTop) / CELL_SIZE) - dragRef.current.offsetY;
+      const cellX = snap((ev.clientX - gridRect.left + scrollLeft) / CELL_SIZE - dragRef.current.offsetX);
+      const cellY = snap((ev.clientY - gridRect.top + scrollTop) / CELL_SIZE - dragRef.current.offsetY);
       onElementMove(dragRef.current.elementId, cellX, cellY);
     };
 
@@ -101,6 +113,11 @@ export default function FloorPlanGrid({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
+  const gridPxW = Math.ceil(width) * CELL_SIZE;
+  const gridPxH = Math.ceil(height) * CELL_SIZE;
+  const colCount = Math.ceil(width);
+  const rowCount = Math.ceil(height);
+
   return (
     <div
       ref={gridRef}
@@ -110,8 +127,8 @@ export default function FloorPlanGrid({
       <div
         className="relative"
         style={{
-          width: width * CELL_SIZE,
-          height: height * CELL_SIZE,
+          width: gridPxW,
+          height: gridPxH,
           backgroundSize: `${CELL_SIZE}px ${CELL_SIZE}px`,
           backgroundImage:
             'linear-gradient(to right, hsl(var(--border) / 0.25) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border) / 0.25) 1px, transparent 1px)',
@@ -120,7 +137,7 @@ export default function FloorPlanGrid({
         onClick={handleGridClick}
       >
         {/* Row/Column labels */}
-        {Array.from({ length: width }).map((_, i) => (
+        {Array.from({ length: colCount }).map((_, i) => (
           <div
             key={`col-${i}`}
             className="absolute text-[9px] text-muted-foreground/40 font-mono select-none pointer-events-none"
@@ -129,7 +146,7 @@ export default function FloorPlanGrid({
             {i}
           </div>
         ))}
-        {Array.from({ length: height }).map((_, i) => (
+        {Array.from({ length: rowCount }).map((_, i) => (
           <div
             key={`row-${i}`}
             className="absolute text-[9px] text-muted-foreground/40 font-mono select-none pointer-events-none"
@@ -190,3 +207,5 @@ export default function FloorPlanGrid({
     </div>
   );
 }
+
+export { snap, rectsOverlap };

@@ -1,5 +1,4 @@
-import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useCallback, useEffect } from 'react';
 import {
   FloppyDisk,
   ArrowCounterClockwise,
@@ -9,11 +8,13 @@ import {
 } from '@phosphor-icons/react';
 import { cn } from '../../../lib/utils';
 import api from '../../../services/api';
-import type { Warehouse, FloorPlan, FloorPlanElement, FloorPlanElementType, Zone } from '../../../types';
+import type { Warehouse, FloorPlan, FloorPlanElement, FloorPlanElementType } from '../../../types';
 import FloorPlanSetup from './FloorPlanSetup';
-import FloorPlanGrid from './FloorPlanGrid';
+import FloorPlanGrid, { snap, rectsOverlap } from './FloorPlanGrid';
 import ElementPalette, { getTemplate } from './ElementPalette';
 import ElementProperties from './ElementProperties';
+
+const EPS = 0.001;
 
 function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -25,11 +26,18 @@ interface FloorPlanEditorProps {
 }
 
 export default function FloorPlanEditor({ warehouse, onSaved }: FloorPlanEditorProps) {
-  const navigate = useNavigate();
   const zones = warehouse.zones || [];
 
-  // Floor plan state
-  const [floorPlan, setFloorPlan] = useState<FloorPlan | null>(warehouse.floorPlan || null);
+  // Floor plan state — on load, default missing unit to 'm' and filter out legacy aisle elements
+  const [floorPlan, setFloorPlan] = useState<FloorPlan | null>(() => {
+    const raw = warehouse.floorPlan;
+    if (!raw) return null;
+    return {
+      ...raw,
+      unit: raw.unit || 'm',
+      elements: raw.elements.filter((e) => e.type !== 'aisle' as string),
+    };
+  });
   const [history, setHistory] = useState<FloorPlan[]>([]);
 
   // Tool / selection state
@@ -68,8 +76,8 @@ export default function FloorPlanEditor({ warehouse, onSaved }: FloorPlanEditorP
   };
 
   // Create floor plan
-  const handleCreate = (width: number, height: number) => {
-    const newPlan: FloorPlan = { width, height, elements: [] };
+  const handleCreate = (width: number, height: number, unit: 'm' | 'ft') => {
+    const newPlan: FloorPlan = { width, height, unit, elements: [] };
     setFloorPlan(newPlan);
     setDirty(true);
   };
@@ -82,13 +90,14 @@ export default function FloorPlanEditor({ warehouse, onSaved }: FloorPlanEditorP
     const eh = template.defaultH;
 
     // Check bounds
-    if (x + ew > floorPlan.width || y + eh > floorPlan.height) return;
+    if (x + ew > floorPlan.width + EPS || y + eh > floorPlan.height + EPS) return;
 
-    // Check overlap
+    // Check overlap using AABB
+    const newRect = { x, y, w: ew, h: eh };
     const wouldOverlap = floorPlan.elements.some((el) => {
       const elW = el.rotation === 90 ? el.h : el.w;
       const elH = el.rotation === 90 ? el.w : el.h;
-      return !(x + ew <= el.x || x >= el.x + elW || y + eh <= el.y || y >= el.y + elH);
+      return rectsOverlap(newRect, { x: el.x, y: el.y, w: elW, h: elH });
     });
     if (wouldOverlap) return;
 
@@ -96,8 +105,8 @@ export default function FloorPlanEditor({ warehouse, onSaved }: FloorPlanEditorP
       id: generateId(),
       type: activeTool,
       label: `${template.label} ${floorPlan.elements.filter((e) => e.type === activeTool).length + 1}`,
-      x,
-      y,
+      x: snap(x),
+      y: snap(y),
       w: ew,
       h: eh,
       rotation: 0,
@@ -126,17 +135,18 @@ export default function FloorPlanEditor({ warehouse, onSaved }: FloorPlanEditorP
     const ew = el.rotation === 90 ? el.h : el.w;
     const eh = el.rotation === 90 ? el.w : el.h;
 
-    // Bounds check
-    const cx = Math.max(0, Math.min(floorPlan.width - ew, x));
-    const cy = Math.max(0, Math.min(floorPlan.height - eh, y));
-    if (cx === el.x && cy === el.y) return;
+    // Bounds check with snap
+    const cx = snap(Math.max(0, Math.min(floorPlan.width - ew, x)));
+    const cy = snap(Math.max(0, Math.min(floorPlan.height - eh, y)));
+    if (Math.abs(cx - el.x) < 0.01 && Math.abs(cy - el.y) < 0.01) return;
 
-    // Overlap check
+    // Overlap check using AABB
+    const movedRect = { x: cx, y: cy, w: ew, h: eh };
     const wouldOverlap = floorPlan.elements.some((other) => {
       if (other.id === id) return false;
       const oW = other.rotation === 90 ? other.h : other.w;
       const oH = other.rotation === 90 ? other.w : other.h;
-      return !(cx + ew <= other.x || cx >= other.x + oW || cy + eh <= other.y || cy >= other.y + oH);
+      return rectsOverlap(movedRect, { x: other.x, y: other.y, w: oW, h: oH });
     });
     if (wouldOverlap) return;
 
@@ -168,6 +178,60 @@ export default function FloorPlanEditor({ warehouse, onSaved }: FloorPlanEditorP
     setSelectedId(null);
   };
 
+  // Duplicate selected element
+  const handleDuplicateElement = useCallback(() => {
+    if (!selectedId || !floorPlan) return;
+    const el = floorPlan.elements.find((e) => e.id === selectedId);
+    if (!el) return;
+
+    const ew = el.rotation === 90 ? el.h : el.w;
+    const eh = el.rotation === 90 ? el.w : el.h;
+
+    // Try offset +1 on x, then +1 on y
+    let nx = snap(el.x + ew);
+    let ny = el.y;
+    if (nx + ew > floorPlan.width) {
+      nx = el.x;
+      ny = snap(el.y + eh);
+    }
+    if (ny + eh > floorPlan.height) return;
+
+    const newRect = { x: nx, y: ny, w: ew, h: eh };
+    const wouldOverlap = floorPlan.elements.some((other) => {
+      const oW = other.rotation === 90 ? other.h : other.w;
+      const oH = other.rotation === 90 ? other.w : other.h;
+      return rectsOverlap(newRect, { x: other.x, y: other.y, w: oW, h: oH });
+    });
+    if (wouldOverlap) return;
+
+    const newEl: FloorPlanElement = {
+      ...el,
+      id: generateId(),
+      x: nx,
+      y: ny,
+      zoneId: null,
+      label: el.label + ' (copy)',
+    };
+
+    updatePlan((plan) => ({
+      ...plan,
+      elements: [...plan.elements, newEl],
+    }));
+    setSelectedId(newEl.id);
+  }, [selectedId, floorPlan, updatePlan]);
+
+  // Ctrl/Cmd+D keyboard shortcut for duplicate
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
+        e.preventDefault();
+        handleDuplicateElement();
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleDuplicateElement]);
+
   // Auto-create zone for selected element
   const handleCreateZone = async () => {
     if (!selectedId || !floorPlan) return;
@@ -183,9 +247,8 @@ export default function FloorPlanEditor({ warehouse, onSaved }: FloorPlanEditorP
         positionsPerShelf: 3,
       });
       const zone = data.data.zone;
-      // Link the zone to the element
       handleUpdateElement({ ...element, zoneId: zone.id });
-      onSaved(); // Refresh warehouse data to pick up new zone
+      onSaved();
     } catch {
       // handled by interceptor
     } finally {
@@ -214,6 +277,7 @@ export default function FloorPlanEditor({ warehouse, onSaved }: FloorPlanEditorP
   }
 
   const selectedElement = floorPlan.elements.find((e) => e.id === selectedId) || null;
+  const unitLabel = floorPlan.unit || 'm';
 
   return (
     <div className="flex flex-col gap-3">
@@ -225,7 +289,7 @@ export default function FloorPlanEditor({ warehouse, onSaved }: FloorPlanEditorP
             <span className="font-medium text-foreground">{floorPlan.width}</span>
             <span>&times;</span>
             <span className="font-medium text-foreground">{floorPlan.height}</span>
-            <span>m</span>
+            <span>{unitLabel}</span>
           </div>
           <span className="h-4 w-px bg-border/60" />
           <span className="text-xs text-muted-foreground">
@@ -305,8 +369,10 @@ export default function FloorPlanEditor({ warehouse, onSaved }: FloorPlanEditorP
               zones={zones}
               gridWidth={floorPlan.width}
               gridHeight={floorPlan.height}
+              unit={unitLabel}
               onUpdate={handleUpdateElement}
               onDelete={handleDeleteElement}
+              onDuplicate={handleDuplicateElement}
               onCreateZone={handleCreateZone}
             />
           ) : (

@@ -23,6 +23,7 @@ import { cn } from '../lib/utils';
 import { LogoMark } from './Logo';
 import api from '../services/api';
 import GlobalSearch from './GlobalSearch';
+import { SidebarContext } from '../contexts/SidebarContext';
 
 interface NavItem {
   path: string;
@@ -105,6 +106,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const initial = (companyName || 'P').charAt(0).toUpperCase();
 
   return (
+    <SidebarContext.Provider value={{ collapsed, setCollapsed }}>
     <div className="flex min-h-screen bg-white">
       {/* Sidebar */}
       <aside
@@ -292,5 +294,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* Global Search */}
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
+    </SidebarContext.Provider>
   );
 }

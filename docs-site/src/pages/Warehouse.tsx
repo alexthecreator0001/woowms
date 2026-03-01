@@ -125,9 +125,18 @@ export default function Warehouse() {
       <h2>Visual Floor Plan Builder</h2>
       <p>
         The <strong>Floor Plan</strong> tab on the Warehouse Detail page lets you design a 2D visual
-        layout of your warehouse. Set your warehouse dimensions in meters, then place elements on
-        a grid where each cell represents 1m&sup2;.
+        layout of your warehouse. Choose your unit system (feet or meters), set dimensions, then
+        place elements on a grid. The sidebar auto-collapses when you open the Floor Plan tab to
+        give you maximum editing space.
       </p>
+
+      <h3>Unit System</h3>
+      <p>
+        When creating a new floor plan, use the <strong>ft / m</strong> toggle to select your
+        preferred unit. The unit is displayed in the toolbar, property panel, and setup form.
+        Dimensions support decimal values (e.g., <code>12.5 ft</code>) with 0.1 precision.
+      </p>
+
       <h3>Placeable Elements</h3>
       <table className="doc-table">
         <thead>
@@ -164,30 +173,31 @@ export default function Warehouse() {
             <td>Shipping</td>
           </tr>
           <tr>
-            <td className="font-medium text-surface-800">Aisle</td>
-            <td>1 &times; 4</td>
-            <td><em>None</em> (walkway)</td>
-          </tr>
-          <tr>
             <td className="font-medium text-surface-800">Wall</td>
             <td>1 &times; 1</td>
             <td><em>None</em> (barrier)</td>
           </tr>
         </tbody>
       </table>
+      <p>
+        <em>Note:</em> The Aisle element has been removed — open space on the grid naturally
+        represents walkways and aisles.
+      </p>
+
       <h3>How to Use</h3>
       <ol>
         <li>Navigate to a warehouse and click the <strong>Floor Plan</strong> tab</li>
-        <li>If no floor plan exists, set width and height in meters and click <strong>Create Floor Plan</strong></li>
+        <li>If no floor plan exists, choose <strong>ft</strong> or <strong>m</strong>, set width and height, then click <strong>Create Floor Plan</strong></li>
         <li>Select an element from the left palette, then click on the grid to place it</li>
         <li>Click a placed element to select it — the right panel shows its properties</li>
-        <li>Edit the element label, resize, rotate, or link it to an existing zone</li>
+        <li>Edit the element label, resize (decimal values supported), rotate, or link it to an existing zone</li>
+        <li>Use <strong>Duplicate</strong> (or <kbd>Ctrl/Cmd+D</kbd>) to copy the selected element</li>
         <li>Use <strong>Create Zone</strong> to auto-create a zone with bins for the element</li>
         <li>Click <strong>Save</strong> to persist your floor plan</li>
       </ol>
       <p>
-        Elements can be dragged to new positions on the grid. Overlap is prevented automatically.
-        The editor includes undo support (up to 20 steps).
+        Elements can be dragged to new positions on the grid with 0.1-unit snap precision.
+        Overlap is prevented automatically. The editor includes undo support (up to 20 steps).
       </p>
 
       <h2>Editing & Deleting</h2>

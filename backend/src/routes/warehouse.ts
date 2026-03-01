@@ -338,9 +338,9 @@ router.post('/zones/:zoneId/bins/generate', authorize('ADMIN', 'MANAGER'), async
 router.put('/:id/floor-plan', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = parseInt(req.params.id);
-    const { width, height, elements } = req.body as { width: number; height: number; elements: unknown[] };
+    const { width, height, unit, elements } = req.body as { width: number; height: number; unit?: string; elements: unknown[] };
 
-    if (!width || !height || width < 3 || height < 3 || width > 100 || height > 100) {
+    if (!width || !height || !isFinite(width) || !isFinite(height) || width < 3 || height < 3 || width > 100 || height > 100) {
       return res.status(400).json({ error: true, message: 'Width and height must be between 3 and 100', code: 'VALIDATION_ERROR' });
     }
     if (!Array.isArray(elements)) {
@@ -354,7 +354,7 @@ router.put('/:id/floor-plan', authorize('ADMIN', 'MANAGER'), async (req: Request
 
     const updated = await req.prisma!.warehouse.update({
       where: { id },
-      data: { floorPlan: { width, height, elements } },
+      data: { floorPlan: { width, height, unit: unit === 'ft' ? 'ft' : 'm', elements } },
     });
     res.json({ data: updated });
   } catch (err) {
