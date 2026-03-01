@@ -3,6 +3,18 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.4.0] - 2026-03-01
+
+### Changed
+- **Dashboard redesigned Stripe-style** — personalized greeting with user name, cleaner metric cards (icon top-right), "Shortcuts" row with 5 quick links, 2/3+1/3 layout with recent orders (clickable rows) and resources sidebar (guide, help center, store/order counts)
+- **Settings page as card grid** — Stripe-style grouped cards (Personal settings, Account settings, Integrations) with icon + title + description, click to drill into section, back arrow to return to overview
+- **Business/Branding section improved** — company name form with sidebar preview showing the actual avatar + name, coming-soon logo upload placeholder with dashed border
+- **Sidebar company name clickable** — clicking the company header now navigates to Settings
+- Dashboard fully migrated from lucide-react to @phosphor-icons/react
+
+### Removed
+- Tab-based settings navigation (replaced by card grid)
+
 ## [3.3.0] - 2026-02-28
 
 ### Added

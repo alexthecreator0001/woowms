@@ -5,8 +5,11 @@ import {
   Storefront,
   Warning,
   Table,
-  PaintBrush,
+  Buildings,
+  ArrowLeft,
+  CaretRight,
 } from '@phosphor-icons/react';
+import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import type { TokenPayload } from '../../types';
 import AccountSection from './AccountSection';
@@ -26,73 +29,117 @@ function getTokenPayload(): TokenPayload | null {
   }
 }
 
-type Tab = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger';
+type Section = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger';
 
-interface TabDef {
-  id: Tab;
-  label: string;
-  icon: React.ElementType;
+interface SettingsCard {
+  id: Section;
+  title: string;
+  description: string;
+  icon: PhosphorIcon;
+  group: string;
   adminOnly?: boolean;
+  danger?: boolean;
 }
 
-const tabs: TabDef[] = [
-  { id: 'account', label: 'Account', icon: User },
-  { id: 'branding', label: 'Branding', icon: PaintBrush, adminOnly: true },
-  { id: 'team', label: 'Team', icon: UsersThree, adminOnly: true },
-  { id: 'woocommerce', label: 'WooCommerce', icon: Storefront },
-  { id: 'tables', label: 'Tables', icon: Table },
-  { id: 'danger', label: 'Danger Zone', icon: Warning, adminOnly: true },
+const cards: SettingsCard[] = [
+  { id: 'account', title: 'Personal details', description: 'Name, email, and password.', icon: User, group: 'Personal settings' },
+  { id: 'tables', title: 'Table preferences', description: 'Configure visible columns in orders and inventory.', icon: Table, group: 'Personal settings' },
+  { id: 'branding', title: 'Business', description: 'Company name and branding.', icon: Buildings, group: 'Account settings', adminOnly: true },
+  { id: 'team', title: 'Team and security', description: 'Team members, roles, and permissions.', icon: UsersThree, group: 'Account settings', adminOnly: true },
+  { id: 'woocommerce', title: 'WooCommerce', description: 'Store connections and sync settings.', icon: Storefront, group: 'Integrations' },
+  { id: 'danger', title: 'Danger zone', description: 'Delete account and all data.', icon: Warning, group: 'Account settings', adminOnly: true, danger: true },
 ];
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('account');
+  const [active, setActive] = useState<Section | null>(null);
   const payload = getTokenPayload();
   const isAdmin = payload?.role === 'ADMIN';
 
-  const visibleTabs = tabs.filter((t) => !t.adminOnly || isAdmin);
+  const visibleCards = cards.filter((c) => !c.adminOnly || isAdmin);
+  const groups = [...new Set(visibleCards.map((c) => c.group))];
 
+  // If a section is active, show its content
+  if (active) {
+    const card = cards.find((c) => c.id === active);
+    return (
+      <div className="space-y-6">
+        <div>
+          <button
+            type="button"
+            onClick={() => setActive(null)}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors mb-2"
+          >
+            <ArrowLeft size={14} />
+            Settings
+          </button>
+          <h1 className="text-2xl font-bold tracking-tight">{card?.title}</h1>
+        </div>
+
+        {active === 'account' && <AccountSection />}
+        {active === 'branding' && isAdmin && <BrandingSection />}
+        {active === 'team' && isAdmin && <TeamSection />}
+        {active === 'woocommerce' && <WooCommerceSection />}
+        {active === 'tables' && <TableConfigSection />}
+        {active === 'danger' && isAdmin && <DangerZoneSection />}
+      </div>
+    );
+  }
+
+  // Settings overview — card grid
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
+        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Manage your account, team, and integrations.
         </p>
       </div>
 
-      {/* Tab navigation — segmented control */}
-      <div className="inline-flex items-center gap-1 rounded-lg bg-muted/60 p-1">
-        {visibleTabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                'inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all',
-                isActive
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <Icon
-                className="h-4 w-4"
-                weight={isActive ? 'fill' : 'regular'}
-              />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Tab content */}
-      {activeTab === 'account' && <AccountSection />}
-      {activeTab === 'branding' && isAdmin && <BrandingSection />}
-      {activeTab === 'team' && isAdmin && <TeamSection />}
-      {activeTab === 'woocommerce' && <WooCommerceSection />}
-      {activeTab === 'tables' && <TableConfigSection />}
-      {activeTab === 'danger' && isAdmin && <DangerZoneSection />}
+      {groups.map((group) => (
+        <div key={group}>
+          <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            {group}
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {visibleCards
+              .filter((c) => c.group === group)
+              .map((card) => {
+                const Icon = card.icon;
+                return (
+                  <button
+                    key={card.id}
+                    type="button"
+                    onClick={() => setActive(card.id)}
+                    className={cn(
+                      'flex items-start gap-3.5 rounded-xl border bg-card p-4 text-left shadow-sm transition-all hover:border-border hover:bg-muted/30 hover:shadow-md',
+                      card.danger ? 'border-red-200/60' : 'border-border/60'
+                    )}
+                  >
+                    <div className={cn(
+                      'mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg',
+                      card.danger ? 'bg-red-500/10' : 'bg-primary/10'
+                    )}>
+                      <Icon
+                        size={18}
+                        weight="duotone"
+                        className={card.danger ? 'text-red-500' : 'text-primary'}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className={cn('text-sm font-semibold', card.danger && 'text-red-600')}>
+                        {card.title}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
+                        {card.description}
+                      </p>
+                    </div>
+                    <CaretRight size={14} className="mt-1 flex-shrink-0 text-muted-foreground/40" />
+                  </button>
+                );
+              })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

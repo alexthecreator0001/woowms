@@ -89,10 +89,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           sidebarWidth
         )}
       >
-        {/* Company header — Stripe style */}
-        <div
+        {/* Company header — Stripe style (clickable) */}
+        <button
+          type="button"
+          onClick={() => navigate('/settings')}
+          title={collapsed ? (companyName || 'PickNPack') : undefined}
           className={cn(
-            'flex items-center border-b border-[#ebebeb] px-3 py-3',
+            'flex items-center border-b border-[#ebebeb] px-3 py-3 transition-colors hover:bg-[#f5f5f5] w-full',
             collapsed ? 'justify-center' : 'gap-2.5'
           )}
         >
@@ -113,7 +116,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </div>
             </>
           )}
-        </div>
+        </button>
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2.5 pt-3">
