@@ -7,12 +7,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - **Unified zone/element creation** — "Add Zone" replaced with "Add Element" modal that picks element type first (Shelving Rack, Pallet Rack, Packing Table, etc.), then configures label, shelves, and positions. Creates both zone + floor plan element in one step.
-- **Simplified element cards** — footer buttons cleaned up: removed "Generate", "Floor Plan", and "View Locations"; replaced with **Edit** (primary), **Locations**, and **Print**. Delete moved to hover-only trash icon.
+- **Click-to-edit element cards** — clicking a card opens the edit panel with rack config (name, shelves, positions per shelf). Hover shows Edit, Print, and Delete icons. No more confusing footer buttons.
+- **Edit panel shows rack setup** — edit slide-over displays element type icon, name input, shelves (1-20), positions per shelf (1-20), and location count summary. Saves to both zone and floor plan element.
 - **Zone cards show element type** — element summary cards display the element icon and type label (e.g. Shelving Rack, Pallet Storage) when linked to a floor plan element
 - **Unplaced elements handled** — elements created from Zones tab (unplaced, x:-1/y:-1) are excluded from grid rendering and overlap checks; toolbar shows unplaced count
 
 ### Removed
 - **Generate Bins button** — bins are now auto-created when elements are created, no separate generate step needed
+- **View Locations / Floor Plan footer buttons** — replaced with click-to-edit on the whole card
 
 ## [3.20.0 / 2.21.0] - 2026-03-01
 

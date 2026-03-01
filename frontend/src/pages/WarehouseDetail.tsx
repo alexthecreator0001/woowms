@@ -13,24 +13,16 @@ import {
 import { cn } from '../lib/utils';
 import api from '../services/api';
 import { useSidebar } from '../contexts/SidebarContext';
-import type { Warehouse, Zone, ZoneType, FloorPlanElementType } from '../types';
+import type { Warehouse, Zone, ZoneType, FloorPlanElement } from '../types';
 import ZoneSummaryCard from '../components/warehouse/ZoneSummaryCard';
 import UtilizationBar from '../components/warehouse/UtilizationBar';
 import SlideOver from '../components/warehouse/SlideOver';
 import ZoneModal from '../components/warehouse/ZoneModal';
 import PrintLabelsModal from '../components/warehouse/PrintLabelsModal';
 import FloorPlanEditor from '../components/warehouse/floorplan/FloorPlanEditor';
+import { getTemplate } from '../components/warehouse/floorplan/ElementPalette';
 
 const ZONE_TYPES: ZoneType[] = ['RECEIVING', 'STORAGE', 'PICKING', 'PACKING', 'SHIPPING', 'RETURNS'];
-
-const ZONE_TYPE_HINTS: Record<ZoneType, string> = {
-  STORAGE: 'Main area where products live on shelves',
-  PICKING: 'Where workers grab items to fulfill orders',
-  RECEIVING: 'Where incoming deliveries are unloaded',
-  PACKING: 'Where picked items get boxed for shipping',
-  SHIPPING: 'Packed orders waiting for carrier pickup',
-  RETURNS: 'Where returned items are inspected and sorted',
-};
 
 const zoneBarColor: Record<string, string> = {
   STORAGE: 'bg-blue-500',
@@ -55,12 +47,13 @@ export default function WarehouseDetail() {
   const [editIsDefault, setEditIsDefault] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
 
-  // Zone editing slide-over
+  // Element editing slide-over
   const [editZoneSlideOpen, setEditZoneSlideOpen] = useState(false);
   const [editingZone, setEditingZone] = useState<Zone | null>(null);
+  const [editingElement, setEditingElement] = useState<FloorPlanElement | null>(null);
   const [editZoneName, setEditZoneName] = useState('');
-  const [editZoneType, setEditZoneType] = useState<ZoneType>('STORAGE');
-  const [editZoneDesc, setEditZoneDesc] = useState('');
+  const [editShelves, setEditShelves] = useState(4);
+  const [editPositions, setEditPositions] = useState(3);
   const [editZoneSaving, setEditZoneSaving] = useState(false);
   const [editZoneError, setEditZoneError] = useState<string | null>(null);
 
@@ -140,12 +133,12 @@ export default function WarehouseDetail() {
     }));
   }, [zones]);
 
-  // Map zone IDs to their floor plan element info
+  // Map zone IDs to their floor plan element
   const floorPlanZoneMap = useMemo(() => {
-    const map = new Map<number, { label: string; elementType: FloorPlanElementType }>();
+    const map = new Map<number, FloorPlanElement>();
     const elements = warehouse?.floorPlan?.elements || [];
     for (const el of elements) {
-      if (el.zoneId) map.set(el.zoneId, { label: el.label, elementType: el.type });
+      if (el.zoneId) map.set(el.zoneId, el);
     }
     return map;
   }, [warehouse]);
@@ -210,12 +203,14 @@ export default function WarehouseDetail() {
     }
   };
 
-  // Zone handlers
+  // Element edit handlers
   const handleEditZone = (zone: Zone) => {
+    const el = floorPlanZoneMap.get(zone.id) || null;
     setEditingZone(zone);
+    setEditingElement(el);
     setEditZoneName(zone.name);
-    setEditZoneType(zone.type);
-    setEditZoneDesc(zone.description ?? '');
+    setEditShelves(el?.shelvesCount ?? 4);
+    setEditPositions(el?.positionsPerShelf ?? 3);
     setEditZoneError(null);
     setEditZoneSlideOpen(true);
   };
@@ -229,15 +224,28 @@ export default function WarehouseDetail() {
     setEditZoneSaving(true);
     setEditZoneError(null);
     try {
+      // Update zone name
       await api.patch(`/warehouse/zones/${editingZone.id}`, {
         name: editZoneName.trim(),
-        type: editZoneType,
-        description: editZoneDesc.trim() || null,
       });
+
+      // Update floor plan element (label + config) if linked
+      if (editingElement && warehouse?.floorPlan) {
+        const updatedElements = warehouse.floorPlan.elements.map((el) =>
+          el.id === editingElement.id
+            ? { ...el, label: editZoneName.trim(), shelvesCount: editShelves, positionsPerShelf: editPositions }
+            : el,
+        );
+        await api.put(`/warehouse/${warehouse.id}/floor-plan`, {
+          ...warehouse.floorPlan,
+          elements: updatedElements,
+        });
+      }
+
       setEditZoneSlideOpen(false);
       fetchWarehouse();
     } catch (err: any) {
-      setEditZoneError(err?.response?.data?.message || 'Failed to save zone.');
+      setEditZoneError(err?.response?.data?.message || 'Failed to save.');
     } finally {
       setEditZoneSaving(false);
     }
@@ -446,11 +454,10 @@ export default function WarehouseDetail() {
                 <ZoneSummaryCard
                   key={zone.id}
                   zone={zone}
-                  warehouseId={warehouse.id}
                   onEdit={handleEditZone}
                   onDelete={handleDeleteZone}
                   onPrint={(z) => setPrintZone(z)}
-                  elementType={floorPlanZoneMap.get(zone.id)?.elementType}
+                  elementType={floorPlanZoneMap.get(zone.id)?.type}
                 />
               ))}
             </div>
@@ -548,7 +555,7 @@ export default function WarehouseDetail() {
         </form>
       </SlideOver>
 
-      {/* Edit Zone Slide-Over */}
+      {/* Edit Element Slide-Over */}
       <SlideOver
         open={editZoneSlideOpen}
         onClose={() => setEditZoneSlideOpen(false)}
@@ -566,7 +573,7 @@ export default function WarehouseDetail() {
             <button
               type="submit"
               form="edit-zone-detail-form"
-              disabled={editZoneSaving}
+              disabled={editZoneSaving || !editZoneName.trim()}
               className={cn(
                 'rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground',
                 'hover:bg-primary/90 disabled:opacity-50',
@@ -577,40 +584,81 @@ export default function WarehouseDetail() {
           </div>
         }
       >
-        <form id="edit-zone-detail-form" onSubmit={handleEditZoneSave} className="space-y-4">
+        <form id="edit-zone-detail-form" onSubmit={handleEditZoneSave} className="space-y-5">
+          {/* Element type indicator */}
+          {editingElement && (() => {
+            const tpl = getTemplate(editingElement.type);
+            return (
+              <div className="flex items-center gap-3">
+                <div className={cn('flex h-10 w-10 items-center justify-center rounded-lg', tpl.bgClass, tpl.textClass)}>
+                  {tpl.icon}
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{tpl.label}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {editingZone?.type ? editingZone.type.charAt(0) + editingZone.type.slice(1).toLowerCase() : ''} zone
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Name */}
           <div>
             <label htmlFor="edit-zd-name" className="mb-1.5 block text-sm font-medium">
               Name <span className="text-destructive">*</span>
             </label>
-            <input id="edit-zd-name" type="text" value={editZoneName} onChange={(e) => setEditZoneName(e.target.value)} className={inputClasses} />
-          </div>
-          <div>
-            <label htmlFor="edit-zd-type" className="mb-1.5 block text-sm font-medium">Type</label>
-            <select
-              id="edit-zd-type"
-              value={editZoneType}
-              onChange={(e) => setEditZoneType(e.target.value as ZoneType)}
+            <input
+              id="edit-zd-name"
+              type="text"
+              value={editZoneName}
+              onChange={(e) => setEditZoneName(e.target.value)}
               className={inputClasses}
-            >
-              {ZONE_TYPES.map((zt) => (
-                <option key={zt} value={zt}>
-                  {zt.charAt(0) + zt.slice(1).toLowerCase()} — {ZONE_TYPE_HINTS[zt]}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1.5 text-[11px] text-muted-foreground">{ZONE_TYPE_HINTS[editZoneType]}</p>
-          </div>
-          <div>
-            <label htmlFor="edit-zd-desc" className="mb-1.5 block text-sm font-medium">Description</label>
-            <textarea
-              id="edit-zd-desc"
-              value={editZoneDesc}
-              onChange={(e) => setEditZoneDesc(e.target.value)}
-              placeholder="Optional"
-              rows={3}
-              className={cn(inputClasses, 'min-h-[80px] resize-none')}
             />
           </div>
+
+          {/* Shelves + Positions */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="edit-zd-shelves" className="mb-1.5 block text-sm font-medium">Shelves</label>
+              <input
+                id="edit-zd-shelves"
+                type="number"
+                min={1}
+                max={20}
+                value={editShelves}
+                onChange={(e) => setEditShelves(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
+                className={inputClasses}
+              />
+            </div>
+            <div>
+              <label htmlFor="edit-zd-positions" className="mb-1.5 block text-sm font-medium">Positions / shelf</label>
+              <input
+                id="edit-zd-positions"
+                type="number"
+                min={1}
+                max={20}
+                value={editPositions}
+                onChange={(e) => setEditPositions(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
+                className={inputClasses}
+              />
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div className="rounded-lg bg-muted/50 px-3 py-2 text-center text-sm">
+            <span className="font-semibold">{editShelves * editPositions}</span>
+            <span className="text-muted-foreground"> locations configured</span>
+          </div>
+
+          {/* Current locations info */}
+          {editingZone?.bins && editingZone.bins.length > 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              Currently has <span className="font-semibold text-foreground">{editingZone.bins.length}</span> locations.
+              Changing shelves/positions updates the config for future reference — existing locations are not deleted.
+            </p>
+          )}
+
           {editZoneError && <p className="text-sm text-destructive">{editZoneError}</p>}
         </form>
       </SlideOver>
