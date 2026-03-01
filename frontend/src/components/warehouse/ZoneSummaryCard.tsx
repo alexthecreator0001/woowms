@@ -8,7 +8,8 @@ import {
   GridFour,
 } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
-import type { Zone, ZoneType } from '../../types';
+import type { Zone, FloorPlanElementType } from '../../types';
+import { getTemplate } from './floorplan/ElementPalette';
 import UtilizationBar from './UtilizationBar';
 
 const zoneTypeBadge: Record<string, { bg: string; text: string; accent: string; barColor: string }> = {
@@ -29,7 +30,7 @@ interface ZoneSummaryCardProps {
   onPrint: (zone: Zone) => void;
   onShowOnFloorPlan?: (zone: Zone) => void;
   hasFloorPlanLink?: boolean;
-  floorPlanElementLabel?: string;
+  elementType?: FloorPlanElementType;
 }
 
 export default function ZoneSummaryCard({
@@ -41,10 +42,11 @@ export default function ZoneSummaryCard({
   onPrint,
   onShowOnFloorPlan,
   hasFloorPlanLink,
-  floorPlanElementLabel,
+  elementType,
 }: ZoneSummaryCardProps) {
   const navigate = useNavigate();
   const badge = zoneTypeBadge[zone.type] || { bg: 'bg-gray-500/10', text: 'text-gray-500', accent: 'border-l-gray-500', barColor: 'bg-gray-500' };
+  const elTemplate = elementType ? getTemplate(elementType) : null;
 
   const bins = zone.bins || [];
   const totalBins = bins.length;
@@ -60,19 +62,25 @@ export default function ZoneSummaryCard({
           <div className="min-w-0 flex-1">
             {/* Title + Badge */}
             <div className="flex items-center gap-2.5">
-              <span className="text-sm font-semibold truncate">{zone.name}</span>
-              <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide', badge.bg, badge.text)}>
-                {zone.type}
-              </span>
-            </div>
-            {zone.description && (
-              <p className="mt-0.5 text-xs text-muted-foreground truncate">{zone.description}</p>
-            )}
-            {hasFloorPlanLink && floorPlanElementLabel && (
-              <div className="mt-1 flex items-center gap-1.5">
-                <GridFour size={11} className="text-muted-foreground/60" />
-                <span className="text-[11px] text-muted-foreground">{floorPlanElementLabel}</span>
+              {elTemplate && (
+                <div className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-md', elTemplate.bgClass, elTemplate.textClass)}>
+                  {elTemplate.icon}
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold truncate">{zone.name}</span>
+                  <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide', badge.bg, badge.text)}>
+                    {zone.type}
+                  </span>
+                </div>
+                {elTemplate && (
+                  <p className="text-[11px] text-muted-foreground">{elTemplate.label}</p>
+                )}
               </div>
+            </div>
+            {zone.description && !zone.description.startsWith('Auto-created') && (
+              <p className="mt-0.5 text-xs text-muted-foreground truncate">{zone.description}</p>
             )}
 
             {/* Stats */}

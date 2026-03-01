@@ -13,7 +13,7 @@ import {
 import { cn } from '../lib/utils';
 import api from '../services/api';
 import { useSidebar } from '../contexts/SidebarContext';
-import type { Warehouse, Zone, ZoneType } from '../types';
+import type { Warehouse, Zone, ZoneType, FloorPlanElementType } from '../types';
 import ZoneSummaryCard from '../components/warehouse/ZoneSummaryCard';
 import UtilizationBar from '../components/warehouse/UtilizationBar';
 import SlideOver from '../components/warehouse/SlideOver';
@@ -146,10 +146,10 @@ export default function WarehouseDetail() {
 
   // Map zone IDs to their floor plan element info
   const floorPlanZoneMap = useMemo(() => {
-    const map = new Map<number, { label: string }>();
+    const map = new Map<number, { label: string; elementType: FloorPlanElementType }>();
     const elements = warehouse?.floorPlan?.elements || [];
     for (const el of elements) {
-      if (el.zoneId) map.set(el.zoneId, { label: el.label });
+      if (el.zoneId) map.set(el.zoneId, { label: el.label, elementType: el.type });
     }
     return map;
   }, [warehouse]);
@@ -447,7 +447,7 @@ export default function WarehouseDetail() {
                 )}
               >
                 <Plus size={16} weight="bold" />
-                Add Zone
+                Add Element
               </button>
             </div>
           )}
@@ -466,7 +466,7 @@ export default function WarehouseDetail() {
                   onPrint={(z) => setPrintZone(z)}
                   onShowOnFloorPlan={handleShowOnFloorPlan}
                   hasFloorPlanLink={linkedZoneIds.has(zone.id)}
-                  floorPlanElementLabel={floorPlanZoneMap.get(zone.id)?.label}
+                  elementType={floorPlanZoneMap.get(zone.id)?.elementType}
                 />
               ))}
             </div>
@@ -486,7 +486,7 @@ export default function WarehouseDetail() {
                 )}
               >
                 <Plus size={16} weight="bold" />
-                Add Zone
+                Add Element
               </button>
             </div>
           )}
@@ -517,7 +517,6 @@ export default function WarehouseDetail() {
         onClose={() => setCreateZoneOpen(false)}
         onSaved={() => { setCreateZoneOpen(false); fetchWarehouse(); }}
         warehouseId={warehouse.id}
-        zone={null}
       />
 
       {/* Edit Warehouse Slide-Over */}

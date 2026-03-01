@@ -66,6 +66,7 @@ export default function FloorPlanGrid({
     // Check if clicking on an element (iterate in reverse for z-order)
     for (let i = elements.length - 1; i >= 0; i--) {
       const el = elements[i];
+      if (el.x < 0 || el.y < 0) continue; // skip unplaced
       const ew = el.rotation === 90 ? el.h : el.w;
       const eh = el.rotation === 90 ? el.w : el.h;
       if (pointInRect(rawX, rawY, { x: el.x, y: el.y, w: ew, h: eh })) {
@@ -173,8 +174,8 @@ export default function FloorPlanGrid({
           </div>
         )}
 
-        {/* Placed elements */}
-        {elements.map((el) => {
+        {/* Placed elements (skip unplaced ones created from Zones tab) */}
+        {elements.filter((el) => el.x >= 0 && el.y >= 0).map((el) => {
           const template = getTemplate(el.type);
           const ew = el.rotation === 90 ? el.h : el.w;
           const eh = el.rotation === 90 ? el.w : el.h;

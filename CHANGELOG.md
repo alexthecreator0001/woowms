@@ -3,6 +3,13 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.21.0] - 2026-03-01
+
+### Changed
+- **Unified zone/element creation** — "Add Zone" replaced with "Add Element" modal that picks element type first (Shelving Rack, Pallet Rack, Packing Table, etc.), then configures label, shelves, and positions. Creates both zone + floor plan element in one step.
+- **Zone cards show element type** — zone summary cards display the element icon and type label (e.g. Shelving Rack, Pallet Storage) when linked to a floor plan element, making the two views feel connected
+- **Unplaced elements handled** — elements created from Zones tab (unplaced, x:-1/y:-1) are excluded from grid rendering and overlap checks; toolbar shows unplaced count so users know to position them in Floor Plan tab
+
 ## [3.20.0 / 2.21.0] - 2026-03-01
 
 ### Changed

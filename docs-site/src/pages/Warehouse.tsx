@@ -199,7 +199,26 @@ export default function Warehouse() {
         represents walkways and aisles.
       </p>
 
-      <h3>How to Use</h3>
+      <h3>Two Views, One Data Model</h3>
+      <p>
+        Zones and floor plan elements are <strong>the same thing</strong> — just two different views.
+        The <strong>Zones tab</strong> is the non-visual list view; the <strong>Floor Plan tab</strong> is
+        the visual grid view. Creating an element from either tab creates it in both.
+      </p>
+      <ul>
+        <li>
+          <strong>From Zones tab:</strong> Click <strong>Add Element</strong>, pick a type (Shelving Rack, Pallet
+          Rack, etc.), configure shelves and positions, then click Create. The zone appears immediately in the list,
+          and an unplaced element is added to the floor plan — switch to Floor Plan to position it on the grid.
+        </li>
+        <li>
+          <strong>From Floor Plan tab:</strong> Select a tool from the palette, place it on the grid, configure
+          storage setup in the properties panel, then click <strong>Save</strong>. The zone is auto-created with
+          matching bins and appears in the Zones tab.
+        </li>
+      </ul>
+
+      <h3>How to Use the Floor Plan</h3>
       <ol>
         <li>Navigate to a warehouse and click the <strong>Floor Plan</strong> tab</li>
         <li>If no floor plan exists, choose <strong>ft</strong> or <strong>m</strong>, set width and height, then click <strong>Create Floor Plan</strong></li>
@@ -207,15 +226,15 @@ export default function Warehouse() {
         <li>Click a placed element to select it — the right panel shows its properties</li>
         <li>Edit the element label, resize (decimal values supported), rotate, or link it to an existing zone</li>
         <li>Use <strong>Duplicate</strong> (or <kbd>Ctrl/Cmd+D</kbd>) to copy the selected element</li>
-        <li>Configure <strong>Storage Setup</strong> — set the number of shelves and positions per shelf (shown below the zone link section). The summary shows the total locations that will be created.</li>
-        <li>Use <strong>Create Zone</strong> to auto-create a zone with bins matching your storage config</li>
-        <li>Click <strong>Save</strong> to persist your floor plan</li>
+        <li>Configure <strong>Storage Setup</strong> — set the number of shelves and positions per shelf. The summary shows the total locations that will be created.</li>
+        <li>Click <strong>Save</strong> to persist your floor plan — zones are auto-created for all unlinked elements</li>
       </ol>
       <p>
         Elements can be dragged to new positions on the grid with 0.1-unit snap precision.
         Overlap is prevented automatically. The editor includes undo support (up to 20 steps).
         A scale legend in the bottom-left corner of the grid shows what one square represents
-        (e.g., "= 1 m" or "= 1 ft").
+        (e.g., "= 1 m" or "= 1 ft"). Unplaced elements (created from the Zones tab) are shown
+        in the toolbar count but not rendered on the grid until positioned.
       </p>
 
       <h3>Cross-Tab Navigation</h3>

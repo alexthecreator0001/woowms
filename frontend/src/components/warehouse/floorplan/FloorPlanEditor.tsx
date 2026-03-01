@@ -95,9 +95,10 @@ export default function FloorPlanEditor({ warehouse, onSaved, highlightZoneId, o
     // Check bounds
     if (x + ew > floorPlan.width + EPS || y + eh > floorPlan.height + EPS) return;
 
-    // Check overlap using AABB
+    // Check overlap using AABB (skip unplaced elements)
     const newRect = { x, y, w: ew, h: eh };
     const wouldOverlap = floorPlan.elements.some((el) => {
+      if (el.x < 0 || el.y < 0) return false;
       const elW = el.rotation === 90 ? el.h : el.w;
       const elH = el.rotation === 90 ? el.w : el.h;
       return rectsOverlap(newRect, { x: el.x, y: el.y, w: elW, h: elH });
@@ -143,10 +144,10 @@ export default function FloorPlanEditor({ warehouse, onSaved, highlightZoneId, o
     const cy = snap(Math.max(0, Math.min(floorPlan.height - eh, y)));
     if (Math.abs(cx - el.x) < 0.01 && Math.abs(cy - el.y) < 0.01) return;
 
-    // Overlap check using AABB
+    // Overlap check using AABB (skip unplaced elements)
     const movedRect = { x: cx, y: cy, w: ew, h: eh };
     const wouldOverlap = floorPlan.elements.some((other) => {
-      if (other.id === id) return false;
+      if (other.id === id || other.x < 0 || other.y < 0) return false;
       const oW = other.rotation === 90 ? other.h : other.w;
       const oH = other.rotation === 90 ? other.w : other.h;
       return rectsOverlap(movedRect, { x: other.x, y: other.y, w: oW, h: oH });
@@ -201,6 +202,7 @@ export default function FloorPlanEditor({ warehouse, onSaved, highlightZoneId, o
 
     const newRect = { x: nx, y: ny, w: ew, h: eh };
     const wouldOverlap = floorPlan.elements.some((other) => {
+      if (other.x < 0 || other.y < 0) return false;
       const oW = other.rotation === 90 ? other.h : other.w;
       const oH = other.rotation === 90 ? other.w : other.h;
       return rectsOverlap(newRect, { x: other.x, y: other.y, w: oW, h: oH });
@@ -342,7 +344,12 @@ export default function FloorPlanEditor({ warehouse, onSaved, highlightZoneId, o
           </div>
           <span className="h-4 w-px bg-border/60" />
           <span className="text-xs text-muted-foreground">
-            {floorPlan.elements.length} element{floorPlan.elements.length !== 1 ? 's' : ''}
+            {floorPlan.elements.filter((e) => e.x >= 0 && e.y >= 0).length} element{floorPlan.elements.filter((e) => e.x >= 0 && e.y >= 0).length !== 1 ? 's' : ''}
+            {floorPlan.elements.some((e) => e.x < 0 || e.y < 0) && (
+              <span className="ml-1 text-amber-500">
+                ({floorPlan.elements.filter((e) => e.x < 0 || e.y < 0).length} unplaced)
+              </span>
+            )}
           </span>
           <button
             type="button"

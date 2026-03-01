@@ -1,41 +1,15 @@
 import { useState, useEffect } from 'react';
-import { X } from '@phosphor-icons/react';
+import { X, ArrowLeft } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import api from '../../services/api';
-
-const ZONE_TYPES = [
-  'RECEIVING',
-  'STORAGE',
-  'PICKING',
-  'PACKING',
-  'SHIPPING',
-  'RETURNS',
-] as const;
-
-type ZoneType = (typeof ZONE_TYPES)[number];
-
-const ZONE_TYPE_HINTS: Record<ZoneType, string> = {
-  STORAGE: 'Main area where products live on shelves',
-  PICKING: 'Where workers grab items to fulfill orders',
-  RECEIVING: 'Where incoming deliveries are unloaded',
-  PACKING: 'Where picked items get boxed for shipping',
-  SHIPPING: 'Packed orders waiting for carrier pickup',
-  RETURNS: 'Where returned items are inspected and sorted',
-};
-
-interface ZoneData {
-  id: number;
-  name: string;
-  type: string;
-  description: string | null;
-}
+import { ELEMENT_TEMPLATES, getTemplate } from './floorplan/ElementPalette';
+import type { FloorPlanElementType } from '../../types';
 
 interface ZoneModalProps {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
   warehouseId: number;
-  zone?: ZoneData | null;
 }
 
 export default function ZoneModal({
@@ -43,38 +17,35 @@ export default function ZoneModal({
   onClose,
   onSaved,
   warehouseId,
-  zone,
 }: ZoneModalProps) {
-  const [name, setName] = useState('');
-  const [type, setType] = useState<ZoneType>('STORAGE');
-  const [description, setDescription] = useState('');
+  const [selectedType, setSelectedType] = useState<FloorPlanElementType | null>(null);
+  const [label, setLabel] = useState('');
+  const [shelves, setShelves] = useState(4);
+  const [positions, setPositions] = useState(3);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isEdit = !!zone;
-
-  // Populate form when editing or reset when creating
+  // Reset on open
   useEffect(() => {
     if (open) {
-      if (zone) {
-        setName(zone.name);
-        setType(zone.type as ZoneType);
-        setDescription(zone.description ?? '');
-      } else {
-        setName('');
-        setType('STORAGE');
-        setDescription('');
-      }
+      setSelectedType(null);
+      setLabel('');
+      setShelves(4);
+      setPositions(3);
       setError(null);
     }
-  }, [open, zone]);
+  }, [open]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  // Auto-set label when type is selected
+  const handleSelectType = (type: FloorPlanElementType) => {
+    setSelectedType(type);
+    const tpl = getTemplate(type);
+    setLabel(tpl.label);
+  };
 
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      setError('Zone name is required.');
+  const handleCreate = async () => {
+    if (!selectedType || !label.trim()) {
+      setError('Label is required.');
       return;
     }
 
@@ -82,34 +53,58 @@ export default function ZoneModal({
     setError(null);
 
     try {
-      const payload = {
-        name: trimmedName,
-        type,
-        description: description.trim() || null,
-      };
+      // Create zone + bins via auto-zone API
+      const { data } = await api.post(`/warehouse/${warehouseId}/floor-plan/auto-zone`, {
+        elementType: selectedType,
+        label: label.trim(),
+        shelvesCount: shelves,
+        positionsPerShelf: positions,
+      });
+      const zone = data.data.zone;
 
-      if (isEdit) {
-        await api.patch(`/warehouse/zones/${zone!.id}`, payload);
-      } else {
-        await api.post(`/warehouse/${warehouseId}/zones`, payload);
+      // Add element to floor plan JSONB (unplaced — user positions it in Floor Plan tab)
+      try {
+        const whRes = await api.get('/warehouse');
+        const wh = (whRes.data.data as any[]).find((w: any) => w.id === warehouseId);
+        const floorPlan = wh?.floorPlan;
+        if (floorPlan) {
+          const newElement = {
+            id: Math.random().toString(36).substring(2) + Date.now().toString(36),
+            type: selectedType,
+            label: label.trim(),
+            x: -1,
+            y: -1,
+            w: getTemplate(selectedType).defaultW,
+            h: getTemplate(selectedType).defaultH,
+            rotation: 0,
+            zoneId: zone.id,
+            shelvesCount: shelves,
+            positionsPerShelf: positions,
+          };
+          await api.put(`/warehouse/${warehouseId}/floor-plan`, {
+            ...floorPlan,
+            elements: [...floorPlan.elements, newElement],
+          });
+        }
+      } catch {
+        // Floor plan save is best-effort — zone was already created
       }
 
-      // Reset form immediately so next open starts clean
-      setName('');
-      setType('STORAGE');
-      setDescription('');
-      onClose();
       onSaved();
     } catch (err: any) {
-      const message =
-        err?.response?.data?.message || 'Failed to save zone. Please try again.';
-      setError(message);
+      setError(err?.response?.data?.message || 'Failed to create. Please try again.');
     } finally {
       setSaving(false);
     }
-  }
+  };
 
   if (!open) return null;
+
+  const zonableTemplates = ELEMENT_TEMPLATES.filter((t) => t.hasZone);
+  const inputClasses = cn(
+    'w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm',
+    'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30',
+  );
 
   return (
     <div
@@ -122,122 +117,143 @@ export default function ZoneModal({
       >
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            {isEdit ? 'Edit Zone' : 'Create Zone'}
-          </h2>
+          <div className="flex items-center gap-2">
+            {selectedType && (
+              <button
+                type="button"
+                onClick={() => setSelectedType(null)}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <ArrowLeft size={16} />
+              </button>
+            )}
+            <h2 className="text-lg font-semibold">
+              {selectedType ? 'Configure' : 'Add Element'}
+            </h2>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className={cn(
-              'rounded-lg p-1.5 text-muted-foreground transition-colors',
-              'hover:bg-muted hover:text-foreground'
-            )}
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <X size={18} weight="bold" />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name */}
-          <div>
-            <label
-              htmlFor="zone-name"
-              className="mb-1.5 block text-sm font-medium text-foreground"
-            >
-              Name <span className="text-destructive">*</span>
-            </label>
-            <input
-              id="zone-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Zone A - Main Storage"
-              className={cn(
-                'w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm',
-                'placeholder:text-muted-foreground',
-                'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-              )}
-            />
+        {!selectedType ? (
+          /* Step 1: Pick element type */
+          <div className="grid grid-cols-2 gap-2">
+            {zonableTemplates.map((tpl) => (
+              <button
+                key={tpl.type}
+                type="button"
+                onClick={() => handleSelectType(tpl.type)}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg border border-border/40 px-3 py-3 text-left transition-all',
+                  'hover:border-primary/40 hover:bg-primary/5',
+                )}
+              >
+                <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', tpl.bgClass, tpl.textClass)}>
+                  {tpl.icon}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{tpl.label}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {tpl.defaultW}&times;{tpl.defaultH} {tpl.type === 'dock_door' ? '' : ''}
+                  </p>
+                </div>
+              </button>
+            ))}
           </div>
+        ) : (
+          /* Step 2: Configure */
+          <div className="space-y-4">
+            {/* Type preview */}
+            {(() => {
+              const tpl = getTemplate(selectedType);
+              return (
+                <div className="flex items-center gap-3">
+                  <div className={cn('flex h-10 w-10 items-center justify-center rounded-lg', tpl.bgClass, tpl.textClass)}>
+                    {tpl.icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{tpl.label}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {shelves} shelves &times; {positions} positions = {shelves * positions} locations
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
 
-          {/* Type */}
-          <div>
-            <label
-              htmlFor="zone-type"
-              className="mb-1.5 block text-sm font-medium text-foreground"
-            >
-              Type
-            </label>
-            <select
-              id="zone-type"
-              value={type}
-              onChange={(e) => setType(e.target.value as ZoneType)}
-              className={cn(
-                'w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm',
-                'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-              )}
-            >
-              {ZONE_TYPES.map((zt) => (
-                <option key={zt} value={zt}>
-                  {zt.charAt(0) + zt.slice(1).toLowerCase()} — {ZONE_TYPE_HINTS[zt]}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1.5 text-[11px] text-muted-foreground">{ZONE_TYPE_HINTS[type]}</p>
+            {/* Label */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">Label</label>
+              <input
+                type="text"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="e.g. Shelving Rack A"
+                className={inputClasses}
+              />
+            </div>
+
+            {/* Shelves + Positions */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">Shelves</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={shelves}
+                  onChange={(e) => setShelves(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
+                  className={inputClasses}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">Positions / shelf</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={positions}
+                  onChange={(e) => setPositions(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
+                  className={inputClasses}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-muted/50 px-3 py-2 text-center text-sm">
+              <span className="font-semibold">{shelves * positions}</span>
+              <span className="text-muted-foreground"> locations will be created</span>
+            </div>
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 pt-1">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-lg border border-border/60 px-4 py-2 text-sm font-medium hover:bg-muted"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleCreate}
+                disabled={saving || !label.trim()}
+                className={cn(
+                  'rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground',
+                  'hover:bg-primary/90 disabled:opacity-50',
+                )}
+              >
+                {saving ? 'Creating...' : 'Create'}
+              </button>
+            </div>
           </div>
-
-          {/* Description */}
-          <div>
-            <label
-              htmlFor="zone-description"
-              className="mb-1.5 block text-sm font-medium text-foreground"
-            >
-              Description
-            </label>
-            <textarea
-              id="zone-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Optional description for this zone"
-              rows={3}
-              className={cn(
-                'min-h-[80px] w-full resize-none rounded-lg border border-border/60 bg-background px-3 py-2 text-sm',
-                'placeholder:text-muted-foreground',
-                'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-              )}
-            />
-          </div>
-
-          {/* Error */}
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className={cn(
-                'rounded-lg border border-border/60 px-4 py-2 text-sm font-medium',
-                'hover:bg-muted'
-              )}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className={cn(
-                'rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground',
-                'hover:bg-primary/90 disabled:opacity-50'
-              )}
-            >
-              {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Zone'}
-            </button>
-          </div>
-        </form>
+        )}
       </div>
     </div>
   );
