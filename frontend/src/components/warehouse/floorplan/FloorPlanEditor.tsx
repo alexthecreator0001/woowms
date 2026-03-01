@@ -279,12 +279,38 @@ export default function FloorPlanEditor({ warehouse, onSaved, highlightZoneId, o
     }
   };
 
-  // Save floor plan
+  // Save floor plan — auto-create zones for any unlinked elements
   const handleSave = async () => {
     if (!floorPlan) return;
     setSaving(true);
     try {
-      await api.put(`/warehouse/${warehouse.id}/floor-plan`, floorPlan);
+      // Find elements that should have zones but don't yet
+      let updatedElements = [...floorPlan.elements];
+      const unlinked = updatedElements.filter(
+        (e) => !e.zoneId && getTemplate(e.type).hasZone,
+      );
+
+      // Auto-create zones for unlinked elements
+      for (const element of unlinked) {
+        try {
+          const { data } = await api.post(`/warehouse/${warehouse.id}/floor-plan/auto-zone`, {
+            elementType: element.type,
+            label: element.label,
+            shelvesCount: element.shelvesCount ?? 4,
+            positionsPerShelf: element.positionsPerShelf ?? 3,
+          });
+          const zone = data.data.zone;
+          updatedElements = updatedElements.map((e) =>
+            e.id === element.id ? { ...e, zoneId: zone.id } : e,
+          );
+        } catch {
+          // skip this element if zone creation fails, save the rest
+        }
+      }
+
+      const planToSave = { ...floorPlan, elements: updatedElements };
+      await api.put(`/warehouse/${warehouse.id}/floor-plan`, planToSave);
+      setFloorPlan(planToSave);
       setDirty(false);
       onSaved();
     } catch {
