@@ -111,12 +111,17 @@ export default function WooCommerceSection() {
     }
   };
 
+  const [syncingStoreId, setSyncingStoreId] = useState<number | null>(null);
+
   const handleSync = async (storeId: number) => {
     try {
+      setSyncingStoreId(storeId);
       await api.post(`/stores/${storeId}/sync`);
-      loadStores();
+      await loadStores();
     } catch (err) {
       alert('Sync failed: ' + ((err as AxiosError<{ message: string }>).response?.data?.message || (err as Error).message));
+    } finally {
+      setSyncingStoreId(null);
     }
   };
 
@@ -342,10 +347,20 @@ export default function WooCommerceSection() {
                       </button>
                       <button
                         onClick={() => handleSync(store.id)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-3 py-1.5 text-xs font-medium text-foreground shadow-sm transition-all hover:bg-muted"
+                        disabled={syncingStoreId === store.id}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-3 py-1.5 text-xs font-medium text-foreground shadow-sm transition-all hover:bg-muted disabled:opacity-50"
                       >
-                        <ArrowsClockwise className="h-3 w-3" />
-                        Sync
+                        {syncingStoreId === store.id ? (
+                          <>
+                            <CircleNotch className="h-3 w-3 animate-spin" />
+                            Syncing...
+                          </>
+                        ) : (
+                          <>
+                            <ArrowsClockwise className="h-3 w-3" />
+                            Sync
+                          </>
+                        )}
                       </button>
                       <button
                         onClick={() => handleDisconnect(store.id)}

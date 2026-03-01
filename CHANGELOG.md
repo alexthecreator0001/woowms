@@ -3,6 +3,19 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.7.0 / 2.11.1] - 2026-03-01
+
+### Added
+- **Inventory page redesigned** — professional WMS-grade layout inspired by ShipBob/Cin7: compact stat strip, quick stock filter pills (All / Low Stock / Out of Stock / In Stock), inline stock level progress bars with color coding, dedicated SKU column, location column with map pin icons
+- WooCommerce sync button now shows spinner + "Syncing..." text during sync operation
+
+### Fixed
+- **Product images not loading** — image proxy route was behind JWT auth middleware; `<img>` tags can't send JWT headers. Moved `/api/v1/images/proxy` before auth middleware so images load correctly
+
+### Changed
+- Inventory page migrated from lucide-react to @phosphor-icons/react
+- Stock level visualization: inline colored progress bars (green/amber/red) replace plain numbers
+
 ## [3.6.0 / 2.11.0] - 2026-03-01
 
 ### Added

@@ -41,6 +41,9 @@ app.use('/api/v1/auth', authRoutes);
 // WooCommerce webhooks — per-store, no JWT (uses HMAC verification)
 app.post('/api/webhooks/woocommerce/:storeId', handleStoreWebhook);
 
+// Image proxy — public (no auth needed, used by <img> tags)
+app.use('/api/v1/images', imageRoutes);
+
 // All other API routes require authentication + tenant context
 app.use('/api/v1', authenticate, injectTenant);
 
@@ -53,7 +56,6 @@ app.use('/api/v1/warehouse', warehouseRoutes);
 app.use('/api/v1/picking', pickingRoutes);
 app.use('/api/v1/shipping', shippingRoutes);
 app.use('/api/v1/receiving', receivingRoutes);
-app.use('/api/v1/images', imageRoutes);
 
 // Error handler
 app.use(errorHandler);
