@@ -381,7 +381,7 @@ export default function Plugins() {
                     <p className="mt-0.5 text-[#6b6b6b]">
                       Set the webhook URL to your PickNPack API endpoint:{' '}
                       <code className="rounded bg-[#f5f5f5] px-1.5 py-0.5 text-[12px] font-mono">
-                        POST /api/v1/plugins/zapier/webhook
+                        POST /api/v1/zapier/webhook
                       </code>
                     </p>
                   </div>

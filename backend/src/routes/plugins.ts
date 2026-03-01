@@ -1,11 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { authorize } from '../middleware/auth.js';
-import { authenticate } from '../middleware/auth.js';
-import { injectTenant } from '../middleware/tenant.js';
 import prisma from '../lib/prisma.js';
-
-const router = Router();
 
 // ─── Plugin catalog (hardcoded) ────────────────────
 
@@ -62,7 +58,11 @@ function hashApiKey(key: string): string {
   return crypto.createHash('sha256').update(key).digest('hex');
 }
 
-// ─── Authenticated plugin routes ───────────────────
+// ═══════════════════════════════════════════════════
+// Authenticated CRUD router (mounted after JWT middleware)
+// ═══════════════════════════════════════════════════
+
+const router = Router();
 
 // GET / — list catalog merged with tenant's installed plugins
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
@@ -242,7 +242,12 @@ router.post('/:key/regenerate-key', authorize('ADMIN', 'MANAGER'), async (req: R
   }
 });
 
-// ─── Zapier webhook endpoints (API key auth, no JWT) ───
+// ═══════════════════════════════════════════════════
+// Zapier webhook router (mounted BEFORE JWT middleware)
+// Uses X-API-Key header auth instead of JWT
+// ═══════════════════════════════════════════════════
+
+export const zapierWebhookRouter = Router();
 
 // Middleware: authenticate via X-API-Key header
 async function zapierAuth(req: Request, res: Response, next: NextFunction) {
@@ -253,7 +258,6 @@ async function zapierAuth(req: Request, res: Response, next: NextFunction) {
 
   const hash = hashApiKey(apiKey);
 
-  // Look up the plugin with matching hash directly (no tenant scope)
   const plugin = await prisma.tenantPlugin.findFirst({
     where: {
       pluginKey: 'zapier',
@@ -267,14 +271,13 @@ async function zapierAuth(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({ error: true, message: 'Invalid API key', code: 'INVALID_API_KEY' });
   }
 
-  // Attach tenant info to request for downstream use
   (req as any).zapierTenantId = plugin.tenantId;
   (req as any).zapierTenant = plugin.tenant;
   next();
 }
 
-// POST /zapier/webhook — Zapier trigger endpoint
-router.post('/zapier/webhook', zapierAuth, async (req: Request, res: Response, next: NextFunction) => {
+// POST / — Zapier trigger endpoint (mounted at /api/v1/zapier/webhook)
+zapierWebhookRouter.post('/', zapierAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const tenantId = (req as any).zapierTenantId;
     const tenant = (req as any).zapierTenant;
@@ -334,8 +337,8 @@ router.post('/zapier/webhook', zapierAuth, async (req: Request, res: Response, n
   }
 });
 
-// GET /zapier/webhook/test — test connection
-router.get('/zapier/webhook/test', zapierAuth, async (req: Request, res: Response) => {
+// GET /test — test connection (mounted at /api/v1/zapier/webhook/test)
+zapierWebhookRouter.get('/test', zapierAuth, async (req: Request, res: Response) => {
   const tenant = (req as any).zapierTenant;
   res.json({ data: { ok: true, company: tenant.name, timestamp: new Date().toISOString() } });
 });

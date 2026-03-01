@@ -23,7 +23,7 @@ import shippingRoutes from './routes/shipping.js';
 import receivingRoutes from './routes/receiving.js';
 import supplierRoutes from './routes/suppliers.js';
 import imageRoutes from './routes/images.js';
-import pluginRoutes from './routes/plugins.js';
+import pluginRoutes, { zapierWebhookRouter } from './routes/plugins.js';
 
 const app = express();
 
@@ -47,8 +47,7 @@ app.post('/api/webhooks/woocommerce/:storeId', handleStoreWebhook);
 app.use('/api/v1/images', imageRoutes);
 
 // Zapier webhook — uses API key auth, not JWT (must be before authenticate middleware)
-app.post('/api/v1/plugins/zapier/webhook', pluginRoutes);
-app.get('/api/v1/plugins/zapier/webhook/test', pluginRoutes);
+app.use('/api/v1/zapier/webhook', zapierWebhookRouter);
 
 // All other API routes require authentication + tenant context
 app.use('/api/v1', authenticate, injectTenant);
