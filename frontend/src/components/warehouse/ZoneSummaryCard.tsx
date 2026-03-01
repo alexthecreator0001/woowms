@@ -29,6 +29,7 @@ interface ZoneSummaryCardProps {
   onPrint: (zone: Zone) => void;
   onShowOnFloorPlan?: (zone: Zone) => void;
   hasFloorPlanLink?: boolean;
+  floorPlanElementLabel?: string;
 }
 
 export default function ZoneSummaryCard({
@@ -40,6 +41,7 @@ export default function ZoneSummaryCard({
   onPrint,
   onShowOnFloorPlan,
   hasFloorPlanLink,
+  floorPlanElementLabel,
 }: ZoneSummaryCardProps) {
   const navigate = useNavigate();
   const badge = zoneTypeBadge[zone.type] || { bg: 'bg-gray-500/10', text: 'text-gray-500', accent: 'border-l-gray-500', barColor: 'bg-gray-500' };
@@ -65,6 +67,12 @@ export default function ZoneSummaryCard({
             </div>
             {zone.description && (
               <p className="mt-0.5 text-xs text-muted-foreground truncate">{zone.description}</p>
+            )}
+            {hasFloorPlanLink && floorPlanElementLabel && (
+              <div className="mt-1 flex items-center gap-1.5">
+                <GridFour size={11} className="text-muted-foreground/60" />
+                <span className="text-[11px] text-muted-foreground">{floorPlanElementLabel}</span>
+              </div>
             )}
 
             {/* Stats */}

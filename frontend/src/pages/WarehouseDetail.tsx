@@ -144,15 +144,19 @@ export default function WarehouseDetail() {
     }));
   }, [zones]);
 
-  // Set of zone IDs that are linked to floor plan elements
-  const linkedZoneIds = useMemo(() => {
-    const ids = new Set<number>();
+  // Map zone IDs to their floor plan element info
+  const floorPlanZoneMap = useMemo(() => {
+    const map = new Map<number, { label: string }>();
     const elements = warehouse?.floorPlan?.elements || [];
     for (const el of elements) {
-      if (el.zoneId) ids.add(el.zoneId);
+      if (el.zoneId) map.set(el.zoneId, { label: el.label });
     }
-    return ids;
+    return map;
   }, [warehouse]);
+
+  const linkedZoneIds = useMemo(() => {
+    return new Set(floorPlanZoneMap.keys());
+  }, [floorPlanZoneMap]);
 
   // Cross-tab navigation handlers
   const handleShowOnFloorPlan = (zone: Zone) => {
@@ -166,6 +170,12 @@ export default function WarehouseDetail() {
       setTypeFilter(zone.type);
     }
     setHighlightZoneId(null);
+    setActiveTab('zones');
+  };
+
+  // When a zone is created from floor plan, switch to zones tab to show it
+  const handleZoneCreatedFromFloorPlan = (zoneId: number) => {
+    setTypeFilter('ALL');
     setActiveTab('zones');
   };
 
@@ -456,6 +466,7 @@ export default function WarehouseDetail() {
                   onPrint={(z) => setPrintZone(z)}
                   onShowOnFloorPlan={handleShowOnFloorPlan}
                   hasFloorPlanLink={linkedZoneIds.has(zone.id)}
+                  floorPlanElementLabel={floorPlanZoneMap.get(zone.id)?.label}
                 />
               ))}
             </div>
@@ -496,6 +507,7 @@ export default function WarehouseDetail() {
           onSaved={fetchWarehouse}
           highlightZoneId={highlightZoneId}
           onViewZone={handleViewZoneFromFloorPlan}
+          onZoneCreated={handleZoneCreatedFromFloorPlan}
         />
       )}
 

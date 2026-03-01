@@ -3,6 +3,12 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.19.0 / 2.21.0] - 2026-03-01
+
+### Changed
+- **Floor plan ↔ zones unified** — creating a zone from the floor plan now auto-saves the floor plan (persists the element↔zone link immediately) and switches to the Zones tab so the new zone is visible right away. The two tabs are now truly two views of the same data.
+- **Element label on zone cards** — zone cards linked to a floor plan element show the element name (e.g. "Shelving Rack 1") with a grid icon, making the connection between both views visible
+
 ## [3.18.0 / 2.21.0] - 2026-03-01
 
 ### Added

@@ -25,9 +25,10 @@ interface FloorPlanEditorProps {
   onSaved: () => void;
   highlightZoneId?: number | null;
   onViewZone?: (zoneId: number) => void;
+  onZoneCreated?: (zoneId: number) => void;
 }
 
-export default function FloorPlanEditor({ warehouse, onSaved, highlightZoneId, onViewZone }: FloorPlanEditorProps) {
+export default function FloorPlanEditor({ warehouse, onSaved, highlightZoneId, onViewZone, onZoneCreated }: FloorPlanEditorProps) {
   const zones = warehouse.zones || [];
 
   // Floor plan state — on load, default missing unit to 'm' and filter out legacy aisle elements
@@ -245,7 +246,7 @@ export default function FloorPlanEditor({ warehouse, onSaved, highlightZoneId, o
     }
   }, [highlightZoneId, floorPlan]);
 
-  // Auto-create zone for selected element
+  // Auto-create zone for selected element, then auto-save the floor plan
   const handleCreateZone = async () => {
     if (!selectedId || !floorPlan) return;
     const element = floorPlan.elements.find((e) => e.id === selectedId);
@@ -260,8 +261,17 @@ export default function FloorPlanEditor({ warehouse, onSaved, highlightZoneId, o
         positionsPerShelf: element.positionsPerShelf ?? 3,
       });
       const zone = data.data.zone;
-      handleUpdateElement({ ...element, zoneId: zone.id });
+
+      // Update element with zone link and auto-save floor plan so link persists
+      const updatedElements = floorPlan.elements.map((e) =>
+        e.id === element.id ? { ...e, zoneId: zone.id } : e,
+      );
+      const updatedPlan = { ...floorPlan, elements: updatedElements };
+      await api.put(`/warehouse/${warehouse.id}/floor-plan`, updatedPlan);
+      setFloorPlan(updatedPlan);
+      setDirty(false);
       onSaved();
+      onZoneCreated?.(zone.id);
     } catch {
       // handled by interceptor
     } finally {
