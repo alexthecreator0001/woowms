@@ -21,6 +21,7 @@ model Tenant {
   stores         Store[]
   warehouses     Warehouse[]
   purchaseOrders PurchaseOrder[]
+  suppliers      Supplier[]
 
   @@map("tenants")
 }
@@ -159,9 +160,16 @@ model Product {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  orderItems    OrderItem[]
-  stockLocations StockLocation[]
-  stockMovements StockMovement[]
+  packageQty       Int?     @map("package_qty")
+  isBundle         Boolean  @default(false) @map("is_bundle")
+
+  orderItems       OrderItem[]
+  stockLocations   StockLocation[]
+  stockMovements   StockMovement[]
+  barcodes         ProductBarcode[]
+  supplierProducts SupplierProduct[]
+  bundleComponents BundleItem[] @relation("BundleComponents")
+  bundleParents    BundleItem[] @relation("BundleParents")
 
   @@unique([wooId, storeId])
   @@index([sku])
@@ -342,6 +350,11 @@ model PurchaseOrder {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
+  supplierId     Int?      @map("supplier_id")
+  supplierRef    Supplier? @relation(fields: [supplierId], references: [id])
+  trackingNumber String?   @map("tracking_number")
+  trackingUrl    String?   @map("tracking_url")
+
   items PurchaseOrderItem[]
 
   @@index([tenantId])
@@ -367,4 +380,70 @@ model PurchaseOrderItem {
   unitCost        Decimal?      @db.Decimal(10, 2) @map("unit_cost")
 
   @@map("purchase_order_items")
+}
+
+// ─── Suppliers ──────────────────────────────────────
+
+model Supplier {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int      @map("tenant_id")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  notes     String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  purchaseOrders   PurchaseOrder[]
+  supplierProducts SupplierProduct[]
+
+  @@index([tenantId])
+  @@map("suppliers")
+}
+
+model SupplierProduct {
+  id            Int      @id @default(autoincrement())
+  supplierId    Int      @map("supplier_id")
+  supplier      Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  productId     Int      @map("product_id")
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplierSku   String   @map("supplier_sku")
+  supplierPrice Decimal? @db.Decimal(10, 2) @map("supplier_price")
+  leadTimeDays  Int?     @map("lead_time_days")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([supplierId, productId])
+  @@map("supplier_products")
+}
+
+// ─── Product Barcodes ───────────────────────────────
+
+model ProductBarcode {
+  id        Int      @id @default(autoincrement())
+  productId Int      @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  barcode   String   @unique
+  type      String   @default("EAN13")
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([productId])
+  @@map("product_barcodes")
+}
+
+// ─── Bundles ────────────────────────────────────────
+
+model BundleItem {
+  id                 Int     @id @default(autoincrement())
+  bundleProductId    Int     @map("bundle_product_id")
+  bundleProduct      Product @relation("BundleComponents", fields: [bundleProductId], references: [id], onDelete: Cascade)
+  componentProductId Int     @map("component_product_id")
+  componentProduct   Product @relation("BundleParents", fields: [componentProductId], references: [id], onDelete: Cascade)
+  quantity           Int     @default(1)
+
+  @@unique([bundleProductId, componentProductId])
+  @@map("bundle_items")
 }

@@ -3,6 +3,26 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.10.0 / 2.14.0] - 2026-03-01
+
+### Added
+- **Supplier management** — full CRUD for suppliers with list page, detail page, product mappings (supplier SKU, price, lead time), sidebar navigation
+- **Barcode/EAN tracking** — add, remove, set primary barcodes per product (EAN13, UPC, CODE128, Custom) with copy-to-clipboard
+- **Bundle support** — mark products as bundles, add/remove/edit component products, view available bundle count computed from component stock
+- **Incoming stock display** — 5th stock card on Product Detail showing incoming qty from active POs, with clickable PO table
+- **Package quantity** — new field on products for pack sizes; PO Create shows "round up to nearest pack" hints when qty doesn't align
+- **Supplier dropdown on PO Create** — searchable dropdown linked to supplier records, auto-linking supplierId
+- **PO tracking fields** — tracking number and URL on PO Create/Detail, with copy button and external link
+- **Supplier SKUs on Product Detail** — shows which suppliers provide this product with their SKUs and pricing
+- **Improved product editing** — better error messages from server, packageQty field, proper number handling
+- Supplier CRUD API: `GET/POST/PATCH/DELETE /api/v1/suppliers`, supplier-product mapping endpoints
+- Barcode API: `GET/POST/PATCH/DELETE /api/v1/inventory/:id/barcodes`
+- Bundle API: `GET/POST/PATCH/DELETE /api/v1/inventory/:id/bundle`
+- Incoming stock API: `GET /api/v1/inventory/:id/incoming`
+- Product info API: `GET /api/v1/receiving/product-info?sku=XXX`
+- PO create/update now accepts `supplierId`, `trackingNumber`, `trackingUrl`
+- Database migration: `suppliers`, `supplier_products`, `product_barcodes`, `bundle_items` tables; `package_qty`, `is_bundle` on products; `supplier_id`, `tracking_number`, `tracking_url` on purchase orders
+
 ## [3.9.0 / 2.13.0] - 2026-03-01
 
 ### Added

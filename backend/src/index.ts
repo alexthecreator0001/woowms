@@ -21,6 +21,7 @@ import warehouseRoutes from './routes/warehouse.js';
 import pickingRoutes from './routes/picking.js';
 import shippingRoutes from './routes/shipping.js';
 import receivingRoutes from './routes/receiving.js';
+import supplierRoutes from './routes/suppliers.js';
 import imageRoutes from './routes/images.js';
 
 const app = express();
@@ -56,6 +57,7 @@ app.use('/api/v1/warehouse', warehouseRoutes);
 app.use('/api/v1/picking', pickingRoutes);
 app.use('/api/v1/shipping', shippingRoutes);
 app.use('/api/v1/receiving', receivingRoutes);
+app.use('/api/v1/suppliers', supplierRoutes);
 
 // Error handler
 app.use(errorHandler);

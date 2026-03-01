@@ -14,6 +14,10 @@ import {
   Loader2,
   Save,
   X,
+  Copy,
+  ExternalLink,
+  Link2,
+  Pencil,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
@@ -291,7 +295,16 @@ export default function PODetail() {
             <div className="divide-y divide-border/40 px-6">
               <div className="flex items-center justify-between py-3.5">
                 <span className="text-sm text-muted-foreground">Supplier</span>
-                <span className="text-sm font-semibold">{po.supplier}</span>
+                {po.supplierId ? (
+                  <button
+                    onClick={() => navigate(`/suppliers/${po.supplierId}`)}
+                    className="text-sm font-semibold text-primary hover:underline"
+                  >
+                    {po.supplier}
+                  </button>
+                ) : (
+                  <span className="text-sm font-semibold">{po.supplier}</span>
+                )}
               </div>
               <div className="flex items-center justify-between py-3.5">
                 <span className="text-sm text-muted-foreground">Status</span>
@@ -337,6 +350,83 @@ export default function PODetail() {
                   {new Date(po.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </span>
               </div>
+              {!['DRAFT', 'ORDERED'].includes(po.status) && po.trackingNumber && (
+                <div className="flex items-center justify-between py-3.5">
+                  <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Truck className="h-3.5 w-3.5" />
+                    Tracking #
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <code className="text-sm font-medium">{po.trackingNumber}</code>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(po.trackingNumber!)}
+                      className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                      title="Copy tracking number"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              )}
+              {!['DRAFT', 'ORDERED'].includes(po.status) && po.trackingUrl && (
+                <div className="flex items-center justify-between py-3.5">
+                  <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Link2 className="h-3.5 w-3.5" />
+                    Tracking Link
+                  </span>
+                  <a
+                    href={po.trackingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                  >
+                    Track Shipment
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              )}
+              {['DRAFT', 'ORDERED'].includes(po.status) && (
+                <div className="space-y-3 py-3.5">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Tracking Number</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        defaultValue={po.trackingNumber || ''}
+                        onBlur={async (e) => {
+                          const val = e.target.value.trim();
+                          if (val !== (po.trackingNumber || '')) {
+                            try {
+                              const { data } = await api.patch(`/receiving/${po.id}`, { trackingNumber: val || null });
+                              setPo(data.data);
+                            } catch { /* ignore */ }
+                          }
+                        }}
+                        placeholder="Enter tracking number..."
+                        className="h-8 flex-1 rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Tracking URL</label>
+                    <input
+                      type="url"
+                      defaultValue={po.trackingUrl || ''}
+                      onBlur={async (e) => {
+                        const val = e.target.value.trim();
+                        if (val !== (po.trackingUrl || '')) {
+                          try {
+                            const { data } = await api.patch(`/receiving/${po.id}`, { trackingUrl: val || null });
+                            setPo(data.data);
+                          } catch { /* ignore */ }
+                        }
+                      }}
+                      placeholder="https://tracking-url.com/..."
+                      className="h-8 w-full rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

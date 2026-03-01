@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // Models that have a tenantId column
-const TENANT_MODELS = new Set(['User', 'Store', 'Warehouse', 'PurchaseOrder']);
+const TENANT_MODELS = new Set(['User', 'Store', 'Warehouse', 'PurchaseOrder', 'Supplier']);
 
 function hasTenantId(model: string): boolean {
   return TENANT_MODELS.has(model);

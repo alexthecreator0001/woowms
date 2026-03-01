@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -6,9 +6,13 @@ import {
   Plus,
   Trash2,
   Loader2,
+  ChevronDown,
+  Search,
+  Info,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
+import type { Supplier } from '../types';
 
 interface POItemForm {
   key: number;
@@ -40,6 +44,35 @@ export default function POCreate() {
     { key: itemKeyCounter++, sku: '', productName: '', orderedQty: 1, unitCost: '' },
   ]);
 
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [supplierId, setSupplierId] = useState<number | null>(null);
+  const [supplierSearch, setSupplierSearch] = useState('');
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
+  const supplierRef = useRef<HTMLDivElement>(null);
+
+  // Tracking fields
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [trackingUrl, setTrackingUrl] = useState('');
+
+  // Package qty hints
+  const [packageHints, setPackageHints] = useState<Record<number, number>>({});
+
+  useEffect(() => {
+    api.get('/suppliers', { params: { limit: 100 } })
+      .then(({ data }) => setSuppliers(data.data))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (supplierRef.current && !supplierRef.current.contains(e.target as Node)) {
+        setShowSupplierDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
   function addItem() {
     setItems((prev) => [
       ...prev,
@@ -55,6 +88,16 @@ export default function POCreate() {
     setItems((prev) =>
       prev.map((i) => (i.key === key ? { ...i, [field]: value } : i))
     );
+  }
+
+  async function fetchPackageHint(key: number, sku: string) {
+    if (!sku.trim()) return;
+    try {
+      const { data } = await api.get('/receiving/product-info', { params: { sku: sku.trim() } });
+      if (data.data?.packageQty) {
+        setPackageHints((prev) => ({ ...prev, [key]: data.data.packageQty }));
+      }
+    } catch { /* ignore */ }
   }
 
   async function handleSubmit(markOrdered: boolean) {
@@ -82,6 +125,9 @@ export default function POCreate() {
       const { data } = await api.post('/receiving', {
         poNumber: poNumber.trim(),
         supplier: supplier.trim(),
+        supplierId: supplierId || undefined,
+        trackingNumber: trackingNumber.trim() || undefined,
+        trackingUrl: trackingUrl.trim() || undefined,
         expectedDate: expectedDate || undefined,
         notes: notes.trim() || undefined,
         items: validItems,
@@ -155,15 +201,52 @@ export default function POCreate() {
                   className="h-9 w-full rounded-lg border border-border/60 bg-background px-3 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
-              <div>
+              <div ref={supplierRef} className="relative">
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Supplier</label>
-                <input
-                  type="text"
-                  value={supplier}
-                  onChange={(e) => setSupplier(e.target.value)}
-                  placeholder="Supplier name"
-                  className="h-9 w-full rounded-lg border border-border/60 bg-background px-3 text-sm shadow-sm placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={supplier}
+                    onChange={(e) => {
+                      setSupplier(e.target.value);
+                      setSupplierId(null);
+                      setShowSupplierDropdown(true);
+                    }}
+                    onFocus={() => setShowSupplierDropdown(true)}
+                    placeholder="Search or type supplier name"
+                    className="h-9 w-full rounded-lg border border-border/60 bg-background px-3 text-sm shadow-sm placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                  {supplierId && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                      Linked
+                    </span>
+                  )}
+                </div>
+                {showSupplierDropdown && (
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border/60 bg-card shadow-lg">
+                    {suppliers
+                      .filter((s) => s.isActive && s.name.toLowerCase().includes(supplier.toLowerCase()))
+                      .slice(0, 8)
+                      .map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => {
+                            setSupplier(s.name);
+                            setSupplierId(s.id);
+                            setShowSupplierDropdown(false);
+                          }}
+                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors hover:bg-muted/60"
+                        >
+                          <span className="font-medium">{s.name}</span>
+                          {s.email && <span className="text-xs text-muted-foreground">{s.email}</span>}
+                        </button>
+                      ))}
+                    {suppliers.filter((s) => s.isActive && s.name.toLowerCase().includes(supplier.toLowerCase())).length === 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">No matching suppliers — will use as text</div>
+                    )}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Expected Date</label>
@@ -181,6 +264,26 @@ export default function POCreate() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Optional notes..."
+                  className="h-9 w-full rounded-lg border border-border/60 bg-background px-3 text-sm shadow-sm placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Tracking Number</label>
+                <input
+                  type="text"
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value)}
+                  placeholder="Optional tracking #"
+                  className="h-9 w-full rounded-lg border border-border/60 bg-background px-3 text-sm shadow-sm placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Tracking URL</label>
+                <input
+                  type="url"
+                  value={trackingUrl}
+                  onChange={(e) => setTrackingUrl(e.target.value)}
+                  placeholder="https://..."
                   className="h-9 w-full rounded-lg border border-border/60 bg-background px-3 text-sm shadow-sm placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
@@ -240,8 +343,23 @@ export default function POCreate() {
                             min={1}
                             value={item.orderedQty}
                             onChange={(e) => updateItem(item.key, 'orderedQty', parseInt(e.target.value) || 1)}
+                            onBlur={() => fetchPackageHint(item.key, item.sku)}
                             className="h-8 w-full rounded-lg border border-border/60 bg-background px-2 text-center text-sm font-medium shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                           />
+                          {packageHints[item.key] && item.orderedQty % packageHints[item.key] !== 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const packQty = packageHints[item.key];
+                                const rounded = Math.ceil(item.orderedQty / packQty) * packQty;
+                                updateItem(item.key, 'orderedQty', rounded);
+                              }}
+                              className="mt-1 flex items-center gap-1 text-[10px] text-amber-600 hover:underline"
+                            >
+                              <Info className="h-3 w-3" />
+                              Packs of {packageHints[item.key]}. Round to {Math.ceil(item.orderedQty / packageHints[item.key]) * packageHints[item.key]}?
+                            </button>
+                          )}
                         </td>
                         <td className="px-4 py-2">
                           <input

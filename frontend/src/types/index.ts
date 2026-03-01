@@ -213,10 +213,16 @@ export interface ProductDetail extends Product {
   length: string | null;
   width: string | null;
   height: string | null;
+  packageQty: number | null;
+  isBundle: boolean;
   createdAt: string;
   updatedAt: string;
   stockMovements?: StockMovement[];
   store?: Store;
+  barcodes?: ProductBarcode[];
+  supplierProducts?: SupplierProduct[];
+  bundleComponents?: BundleItem[];
+  bundleParents?: BundleItem[];
 }
 
 export interface InventoryStats {
@@ -237,6 +243,51 @@ export interface TableColumnDef {
   defaultVisible?: boolean;
 }
 
+// ─── Suppliers ──────────────────────────────────────
+
+export interface Supplier {
+  id: number;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  notes: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  _count?: { supplierProducts: number; purchaseOrders: number };
+}
+
+export interface SupplierProduct {
+  id: number;
+  supplierId: number;
+  productId: number;
+  supplierSku: string;
+  supplierPrice: string | null;
+  leadTimeDays: number | null;
+  product?: Product;
+  supplier?: Supplier;
+}
+
+export interface ProductBarcode {
+  id: number;
+  barcode: string;
+  type: string;
+  isPrimary: boolean;
+  createdAt: string;
+}
+
+export interface BundleItem {
+  id: number;
+  bundleProductId: number;
+  componentProductId: number;
+  quantity: number;
+  componentProduct?: Product;
+  bundleProduct?: Product;
+}
+
+// ─── Purchase Orders ────────────────────────────────
+
 export type POStatus = 'DRAFT' | 'ORDERED' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'CANCELLED';
 
 export interface PurchaseOrderItem {
@@ -252,6 +303,10 @@ export interface PurchaseOrder {
   id: number;
   poNumber: string;
   supplier: string;
+  supplierId: number | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  supplierRef?: Supplier;
   status: POStatus;
   expectedDate: string | null;
   receivedDate: string | null;

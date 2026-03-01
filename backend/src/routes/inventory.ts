@@ -132,6 +132,10 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
         store: true,
         stockLocations: { include: { bin: { include: { zone: true } } } },
         stockMovements: { orderBy: { createdAt: 'desc' }, take: 20 },
+        barcodes: true,
+        supplierProducts: { include: { supplier: true } },
+        bundleComponents: { include: { componentProduct: true } },
+        bundleParents: { include: { bundleProduct: true } },
       },
     });
 
@@ -355,7 +359,7 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
       return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     }
 
-    const { description, price, weight, length, width, height, lowStockThreshold } = req.body as {
+    const { description, price, weight, length, width, height, lowStockThreshold, packageQty, isBundle } = req.body as {
       description?: string;
       price?: string;
       weight?: string | null;
@@ -363,6 +367,8 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
       width?: string | null;
       height?: string | null;
       lowStockThreshold?: number;
+      packageQty?: number | null;
+      isBundle?: boolean;
     };
 
     const data: Record<string, unknown> = {};
@@ -373,6 +379,8 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
     if (width !== undefined) data.width = width ? parseFloat(width) : null;
     if (height !== undefined) data.height = height ? parseFloat(height) : null;
     if (lowStockThreshold !== undefined) data.lowStockThreshold = lowStockThreshold;
+    if (packageQty !== undefined) data.packageQty = packageQty;
+    if (isBundle !== undefined) data.isBundle = isBundle;
 
     const product = await prisma.product.update({
       where: { id: productId },
@@ -539,6 +547,285 @@ router.get('/:id/stock-movements', async (req: Request, res: Response, next: Nex
   } catch (err) {
     next(err);
   }
+});
+
+// ─── Barcode Endpoints ────────────────────────────────
+
+// GET /api/v1/inventory/:id/barcodes — list barcodes for a product
+router.get('/:id/barcodes', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const prismaClient = req.prisma!;
+    const product = await prismaClient.product.findUnique({ where: { id: productId }, include: { store: true } });
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+    const barcodes = await prismaClient.productBarcode.findMany({ where: { productId }, orderBy: { createdAt: 'desc' } });
+    res.json({ data: barcodes });
+  } catch (err) { next(err); }
+});
+
+// POST /api/v1/inventory/:id/barcodes — add barcode (ADMIN/MANAGER)
+router.post('/:id/barcodes', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const prismaClient = req.prisma!;
+    const product = await prismaClient.product.findUnique({ where: { id: productId }, include: { store: true } });
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    const { barcode, type, isPrimary } = req.body as { barcode: string; type?: string; isPrimary?: boolean };
+    if (!barcode || !barcode.trim()) {
+      return res.status(400).json({ error: true, message: 'Barcode value is required', code: 'VALIDATION_ERROR' });
+    }
+
+    // If setting as primary, unset all existing primary barcodes for this product
+    if (isPrimary) {
+      await prismaClient.productBarcode.updateMany({
+        where: { productId, isPrimary: true },
+        data: { isPrimary: false },
+      });
+    }
+
+    const created = await prismaClient.productBarcode.create({
+      data: {
+        productId,
+        barcode: barcode.trim(),
+        type: type || 'EAN13',
+        isPrimary: isPrimary || false,
+      },
+    });
+
+    res.status(201).json({ data: created });
+  } catch (err) { next(err); }
+});
+
+// PATCH /api/v1/inventory/:id/barcodes/:barcodeId — update barcode (ADMIN/MANAGER)
+router.patch('/:id/barcodes/:barcodeId', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const barcodeId = parseInt(req.params.barcodeId);
+    const prismaClient = req.prisma!;
+
+    const product = await prismaClient.product.findUnique({ where: { id: productId }, include: { store: true } });
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    const existing = await prismaClient.productBarcode.findFirst({ where: { id: barcodeId, productId } });
+    if (!existing) {
+      return res.status(404).json({ error: true, message: 'Barcode not found', code: 'NOT_FOUND' });
+    }
+
+    const { isPrimary, type } = req.body as { isPrimary?: boolean; type?: string };
+    const data: Record<string, unknown> = {};
+
+    if (isPrimary !== undefined) {
+      // If setting as primary, unset all others first
+      if (isPrimary) {
+        await prismaClient.productBarcode.updateMany({
+          where: { productId, isPrimary: true },
+          data: { isPrimary: false },
+        });
+      }
+      data.isPrimary = isPrimary;
+    }
+    if (type !== undefined) data.type = type;
+
+    const updated = await prismaClient.productBarcode.update({
+      where: { id: barcodeId },
+      data,
+    });
+
+    res.json({ data: updated });
+  } catch (err) { next(err); }
+});
+
+// DELETE /api/v1/inventory/:id/barcodes/:barcodeId — delete barcode (ADMIN/MANAGER)
+router.delete('/:id/barcodes/:barcodeId', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const barcodeId = parseInt(req.params.barcodeId);
+    const prismaClient = req.prisma!;
+
+    const product = await prismaClient.product.findUnique({ where: { id: productId }, include: { store: true } });
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    const existing = await prismaClient.productBarcode.findFirst({ where: { id: barcodeId, productId } });
+    if (!existing) {
+      return res.status(404).json({ error: true, message: 'Barcode not found', code: 'NOT_FOUND' });
+    }
+
+    await prismaClient.productBarcode.delete({ where: { id: barcodeId } });
+    res.json({ data: { message: 'Barcode deleted' } });
+  } catch (err) { next(err); }
+});
+
+// ─── Bundle Endpoints ─────────────────────────────────
+
+// GET /api/v1/inventory/:id/bundle — get bundle components
+router.get('/:id/bundle', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const prismaClient = req.prisma!;
+
+    const product = await prismaClient.product.findUnique({ where: { id: productId }, include: { store: true } });
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    const components = await prismaClient.bundleItem.findMany({
+      where: { bundleProductId: productId },
+      include: {
+        componentProduct: {
+          select: { id: true, name: true, sku: true, stockQty: true, reservedQty: true, imageUrl: true },
+        },
+      },
+    });
+
+    res.json({ data: components });
+  } catch (err) { next(err); }
+});
+
+// POST /api/v1/inventory/:id/bundle — add component to bundle (ADMIN/MANAGER)
+router.post('/:id/bundle', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const prismaClient = req.prisma!;
+
+    const product = await prismaClient.product.findUnique({ where: { id: productId }, include: { store: true } });
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    const { componentProductId, quantity } = req.body as { componentProductId: number; quantity?: number };
+    if (!componentProductId) {
+      return res.status(400).json({ error: true, message: 'componentProductId is required', code: 'VALIDATION_ERROR' });
+    }
+
+    // Auto-set isBundle on the product if not already
+    if (!product.isBundle) {
+      await prismaClient.product.update({ where: { id: productId }, data: { isBundle: true } });
+    }
+
+    const item = await prismaClient.bundleItem.create({
+      data: {
+        bundleProductId: productId,
+        componentProductId,
+        quantity: quantity || 1,
+      },
+      include: {
+        componentProduct: {
+          select: { id: true, name: true, sku: true, stockQty: true, reservedQty: true, imageUrl: true },
+        },
+      },
+    });
+
+    res.status(201).json({ data: item });
+  } catch (err) { next(err); }
+});
+
+// PATCH /api/v1/inventory/:id/bundle/:itemId — update bundle component quantity (ADMIN/MANAGER)
+router.patch('/:id/bundle/:itemId', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const itemId = parseInt(req.params.itemId);
+    const prismaClient = req.prisma!;
+
+    const product = await prismaClient.product.findUnique({ where: { id: productId }, include: { store: true } });
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    const existing = await prismaClient.bundleItem.findFirst({ where: { id: itemId, bundleProductId: productId } });
+    if (!existing) {
+      return res.status(404).json({ error: true, message: 'Bundle item not found', code: 'NOT_FOUND' });
+    }
+
+    const { quantity } = req.body as { quantity: number };
+    const updated = await prismaClient.bundleItem.update({
+      where: { id: itemId },
+      data: { quantity },
+      include: {
+        componentProduct: {
+          select: { id: true, name: true, sku: true, stockQty: true, reservedQty: true, imageUrl: true },
+        },
+      },
+    });
+
+    res.json({ data: updated });
+  } catch (err) { next(err); }
+});
+
+// DELETE /api/v1/inventory/:id/bundle/:itemId — remove component from bundle (ADMIN/MANAGER)
+router.delete('/:id/bundle/:itemId', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const itemId = parseInt(req.params.itemId);
+    const prismaClient = req.prisma!;
+
+    const product = await prismaClient.product.findUnique({ where: { id: productId }, include: { store: true } });
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    const existing = await prismaClient.bundleItem.findFirst({ where: { id: itemId, bundleProductId: productId } });
+    if (!existing) {
+      return res.status(404).json({ error: true, message: 'Bundle item not found', code: 'NOT_FOUND' });
+    }
+
+    await prismaClient.bundleItem.delete({ where: { id: itemId } });
+    res.json({ data: { message: 'Bundle component removed' } });
+  } catch (err) { next(err); }
+});
+
+// ─── Incoming Stock Endpoint ──────────────────────────
+
+// GET /api/v1/inventory/:id/incoming — get incoming stock from purchase orders
+router.get('/:id/incoming', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const prismaClient = req.prisma!;
+
+    const product = await prismaClient.product.findUnique({ where: { id: productId }, include: { store: true } });
+    if (!product || product.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    if (!product.sku) {
+      return res.json({ data: { incoming: 0, purchaseOrders: [] } });
+    }
+
+    const items = await prismaClient.purchaseOrderItem.findMany({
+      where: {
+        sku: product.sku,
+        purchaseOrder: {
+          tenantId: req.tenantId!,
+          status: { in: ['ORDERED', 'PARTIALLY_RECEIVED'] },
+        },
+      },
+      include: {
+        purchaseOrder: true,
+      },
+    });
+
+    const incoming = items.reduce((sum, i) => sum + Math.max(i.orderedQty - i.receivedQty, 0), 0);
+
+    const purchaseOrders = items
+      .filter((i) => i.orderedQty - i.receivedQty > 0)
+      .map((i) => ({
+        id: i.purchaseOrder.id,
+        poNumber: i.purchaseOrder.poNumber,
+        supplier: i.purchaseOrder.supplier,
+        expectedDate: i.purchaseOrder.expectedDate,
+        incoming: i.orderedQty - i.receivedQty,
+      }));
+
+    res.json({ data: { incoming, purchaseOrders } });
+  } catch (err) { next(err); }
 });
 
 export default router;

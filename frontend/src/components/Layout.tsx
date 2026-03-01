@@ -9,6 +9,7 @@ import {
   ListChecks,
   TruckTrailer,
   Package,
+  UsersThree,
   GearSix,
   Question,
   SignOut,
@@ -52,6 +53,7 @@ const navSections: NavSection[] = [
     items: [
       { path: '/shipping', label: 'Shipping', icon: TruckTrailer },
       { path: '/receiving', label: 'Receiving', icon: Package },
+      { path: '/suppliers', label: 'Suppliers', icon: UsersThree },
     ],
   },
 ];

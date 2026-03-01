@@ -46,7 +46,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const [purchaseOrders, total] = await Promise.all([
       req.prisma!.purchaseOrder.findMany({
         where,
-        include: { items: true },
+        include: { items: true, supplierRef: true },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
@@ -63,13 +63,44 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
+// GET /api/v1/receiving/product-info — Get product package qty and supplier info for PO creation
+router.get('/product-info', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const sku = req.query.sku as string;
+    if (!sku) {
+      return res.status(400).json({ error: true, message: 'SKU is required', code: 'VALIDATION_ERROR' });
+    }
+
+    const product = await req.prisma!.product.findFirst({
+      where: { sku, store: { tenantId: req.tenantId } },
+      select: {
+        id: true,
+        name: true,
+        sku: true,
+        packageQty: true,
+        supplierProducts: {
+          include: { supplier: true },
+        },
+      },
+    });
+
+    if (!product) {
+      return res.json({ data: null });
+    }
+
+    res.json({ data: product });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/v1/receiving/:id — single PO with items
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const poId = parseInt(req.params.id);
     const po = await req.prisma!.purchaseOrder.findFirst({
       where: { id: poId, tenantId: req.tenantId },
-      include: { items: true },
+      include: { items: true, supplierRef: true },
     });
 
     if (!po) {
@@ -85,12 +116,15 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 // POST /api/v1/receiving — create PO
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { poNumber, supplier, expectedDate, notes, items } = req.body as {
+    const { poNumber, supplier, expectedDate, notes, items, supplierId, trackingNumber, trackingUrl } = req.body as {
       poNumber: string;
       supplier: string;
       expectedDate?: string;
       notes?: string;
       items: CreatePOItem[];
+      supplierId?: number;
+      trackingNumber?: string;
+      trackingUrl?: string;
     };
 
     if (!poNumber || !supplier) {
@@ -104,9 +138,12 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
         supplier,
         expectedDate: expectedDate ? new Date(expectedDate) : null,
         notes,
+        supplierId: supplierId || undefined,
+        trackingNumber: trackingNumber?.trim() || undefined,
+        trackingUrl: trackingUrl?.trim() || undefined,
         items: { create: items || [] },
       },
-      include: { items: true },
+      include: { items: true, supplierRef: true },
     });
 
     res.status(201).json({ data: po });
@@ -132,16 +169,26 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
       return res.status(404).json({ error: true, message: 'Purchase order not found', code: 'NOT_FOUND' });
     }
 
-    if (existing.status !== 'DRAFT') {
-      return res.status(400).json({ error: true, message: 'Only DRAFT purchase orders can be edited', code: 'INVALID_STATUS' });
-    }
-
-    const { supplier, expectedDate, notes, items } = req.body as {
+    const { supplier, expectedDate, notes, items, trackingNumber, trackingUrl, supplierId } = req.body as {
       supplier?: string;
       expectedDate?: string | null;
       notes?: string | null;
       items?: CreatePOItem[];
+      trackingNumber?: string | null;
+      trackingUrl?: string | null;
+      supplierId?: number | null;
     };
+
+    // Split: tracking fields can be edited for DRAFT and ORDERED, other fields only in DRAFT
+    const isDraft = existing.status === 'DRAFT';
+    const canEditTracking = ['DRAFT', 'ORDERED'].includes(existing.status);
+
+    if (!isDraft && (supplier !== undefined || items !== undefined || expectedDate !== undefined || notes !== undefined || supplierId !== undefined)) {
+      return res.status(400).json({ error: true, message: 'Only DRAFT purchase orders can be fully edited', code: 'INVALID_STATUS' });
+    }
+    if (!canEditTracking && (trackingNumber !== undefined || trackingUrl !== undefined)) {
+      return res.status(400).json({ error: true, message: 'Tracking can only be edited for DRAFT or ORDERED POs', code: 'INVALID_STATUS' });
+    }
 
     // If items provided, replace all items
     if (items) {
@@ -154,6 +201,9 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
         ...(supplier !== undefined && { supplier }),
         ...(expectedDate !== undefined && { expectedDate: expectedDate ? new Date(expectedDate) : null }),
         ...(notes !== undefined && { notes }),
+        ...(trackingNumber !== undefined && { trackingNumber: trackingNumber?.trim() || null }),
+        ...(trackingUrl !== undefined && { trackingUrl: trackingUrl?.trim() || null }),
+        ...(supplierId !== undefined && { supplierId: supplierId || null }),
         ...(items && { items: { create: items } }),
       },
       include: { items: true },
