@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  Lightning,
-  SlackLogo,
   ArrowLeft,
   Check,
   Copy,
@@ -13,6 +11,7 @@ import {
   Clock,
   ShieldCheck,
   ArrowSquareOut,
+  GearSix,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
@@ -20,37 +19,26 @@ import type { PluginCatalogItem } from '../types';
 
 // ─── Brand colors & icons for plugins ──────────────
 
-const PLUGIN_BRANDS: Record<string, { color: string; bg: string; border: string }> = {
-  zapier: { color: 'text-[#FF4A00]', bg: 'bg-[#FF4A00]/10', border: 'border-[#FF4A00]/20' },
-  slack: { color: 'text-[#4A154B]', bg: 'bg-[#4A154B]/10', border: 'border-[#4A154B]/20' },
-  quickbooks: { color: 'text-[#2CA01C]', bg: 'bg-[#2CA01C]/10', border: 'border-[#2CA01C]/20' },
-  shipstation: { color: 'text-[#66BB47]', bg: 'bg-[#66BB47]/10', border: 'border-[#66BB47]/20' },
+const PLUGIN_BRANDS: Record<string, { bg: string; installBg: string; installHover: string }> = {
+  zapier: { bg: 'bg-[#FFF4EE]', installBg: 'bg-[#FF4A00]', installHover: 'hover:bg-[#e64300]' },
+  slack: { bg: 'bg-[#F8F0F9]', installBg: 'bg-[#4A154B]', installHover: 'hover:bg-[#3B0F3C]' },
+  quickbooks: { bg: 'bg-[#EEFBEC]', installBg: 'bg-[#2CA01C]', installHover: 'hover:bg-[#238815]' },
+  shipstation: { bg: 'bg-[#EDF4FF]', installBg: 'bg-[#1E3A5F]', installHover: 'hover:bg-[#162D4A]' },
 };
 
-function PluginIcon({ pluginKey, size = 32 }: { pluginKey: string; size?: number }) {
-  const brand = PLUGIN_BRANDS[pluginKey];
-  const iconClass = cn('flex-shrink-0', brand?.color || 'text-[#6b6b6b]');
+const PLUGIN_LOGOS: Record<string, string> = {
+  zapier: '/plugins/zapier.png',
+  slack: '/plugins/slack.png',
+  quickbooks: '/plugins/qb.png',
+  shipstation: '/plugins/shipstation.png',
+};
 
-  switch (pluginKey) {
-    case 'zapier':
-      return <Lightning size={size} weight="fill" className={iconClass} />;
-    case 'slack':
-      return <SlackLogo size={size} weight="fill" className={iconClass} />;
-    case 'quickbooks':
-      return (
-        <div className={cn('flex items-center justify-center rounded-lg', brand?.bg)} style={{ width: size + 8, height: size + 8 }}>
-          <span className={cn('font-bold', brand?.color)} style={{ fontSize: size * 0.6 }}>QB</span>
-        </div>
-      );
-    case 'shipstation':
-      return (
-        <div className={cn('flex items-center justify-center rounded-lg', brand?.bg)} style={{ width: size + 8, height: size + 8 }}>
-          <span className={cn('font-bold', brand?.color)} style={{ fontSize: size * 0.6 }}>SS</span>
-        </div>
-      );
-    default:
-      return <Plug size={size} weight="fill" className={iconClass} />;
+function PluginIcon({ pluginKey, size = 28 }: { pluginKey: string; size?: number }) {
+  const logo = PLUGIN_LOGOS[pluginKey];
+  if (logo) {
+    return <img src={logo} alt={pluginKey} width={size} height={size} className="flex-shrink-0 object-contain" />;
   }
+  return <Plug size={size} weight="fill" className="flex-shrink-0 text-[#6b6b6b]" />;
 }
 
 // ─── Category filter ───────────────────────────────
@@ -317,7 +305,7 @@ export default function Plugins() {
           {configuringPlugin.key === 'zapier' && (
             <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
               <div className="mb-4 flex items-center gap-2">
-                <Lightning size={18} weight="fill" className="text-[#6b6b6b]" />
+                <GearSix size={18} weight="fill" className="text-[#6b6b6b]" />
                 <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Webhook Settings</h2>
               </div>
 
@@ -542,9 +530,8 @@ export default function Plugins() {
                       disabled={actionLoading === plugin.key}
                       className={cn(
                         'flex items-center gap-1.5 rounded-lg px-4 py-2 text-[12px] font-medium text-white transition-colors disabled:opacity-50',
-                        brand?.color === 'text-[#FF4A00]'
-                          ? 'bg-[#FF4A00] hover:bg-[#e64300]'
-                          : 'bg-[#0a0a0a] hover:bg-[#1a1a1a]'
+                        brand?.installBg || 'bg-[#0a0a0a]',
+                        brand?.installHover || 'hover:bg-[#1a1a1a]'
                       )}
                     >
                       {actionLoading === plugin.key ? (
