@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Cube,
@@ -8,13 +8,16 @@ import {
   Package,
   WarningCircle,
   CaretRight,
-  Funnel,
   ArrowDown,
   Lock,
   CheckCircle,
   ImageSquare,
   MapPin,
-  Export,
+  CaretUpDown,
+  CaretUp,
+  CaretDown as CaretDownIcon,
+  X,
+  Info,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import { proxyUrl } from '../lib/image';
@@ -23,6 +26,16 @@ import Pagination from '../components/Pagination';
 import type { Product, InventoryStats, PaginationMeta } from '../types';
 
 type StockFilter = 'all' | 'low' | 'out' | 'healthy';
+type SortField = 'name' | 'sku' | 'price' | 'stock' | 'reserved';
+type SortOrder = 'asc' | 'desc';
+type SyncMode = 'add_only' | 'update_only' | 'add_and_update';
+
+interface FilterCounts {
+  total: number;
+  outOfStock: number;
+  lowStock: number;
+  inStock: number;
+}
 
 export default function Inventory() {
   const navigate = useNavigate();
@@ -34,10 +47,31 @@ export default function Inventory() {
   const [stats, setStats] = useState<InventoryStats | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [stockFilter, setStockFilter] = useState<StockFilter>('all');
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+  // Server-side filter counts
+  const [filterCounts, setFilterCounts] = useState<FilterCounts | null>(null);
+
+  // Sync modal
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [syncMode, setSyncMode] = useState<SyncMode>('add_and_update');
+  const [importStock, setImportStock] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ added: number; updated: number; skipped: number } | null>(null);
+
+  const loadFilterCounts = useCallback(async () => {
+    try {
+      const { data } = await api.get('/inventory/filter-counts');
+      setFilterCounts(data.data);
+    } catch (err) {
+      console.error('Failed to load filter counts:', err);
+    }
+  }, []);
 
   useEffect(() => {
     loadProducts();
     loadStats();
+    loadFilterCounts();
   }, []);
 
   useEffect(() => {
@@ -46,7 +80,7 @@ export default function Inventory() {
 
   useEffect(() => {
     loadProducts();
-  }, [search, page, stockFilter]);
+  }, [search, page, stockFilter, sortField, sortOrder]);
 
   async function loadStats() {
     try {
@@ -60,9 +94,9 @@ export default function Inventory() {
   async function loadProducts() {
     try {
       setLoading(true);
-      const params: Record<string, string | number> = { limit: 25, page };
+      const params: Record<string, string | number> = { limit: 25, page, sort: sortField, order: sortOrder };
       if (search) params.search = search;
-      if (stockFilter === 'low') params.lowStock = 'true';
+      if (stockFilter !== 'all') params.stockFilter = stockFilter;
       const { data } = await api.get('/inventory', { params });
       setProducts(data.data);
       setMeta(data.meta);
@@ -76,8 +110,10 @@ export default function Inventory() {
   async function handleSync() {
     try {
       setSyncing(true);
-      await api.post('/inventory/sync');
-      await Promise.all([loadProducts(), loadStats()]);
+      setSyncResult(null);
+      const { data } = await api.post('/inventory/sync', { mode: syncMode, importStock });
+      setSyncResult(data.data);
+      await Promise.all([loadProducts(), loadStats(), loadFilterCounts()]);
     } catch (err) {
       console.error('Sync failed:', err);
     } finally {
@@ -85,12 +121,21 @@ export default function Inventory() {
     }
   }
 
-  // Client-side filter for out-of-stock and healthy (API doesn't support these directly)
-  const filteredProducts = useMemo(() => {
-    if (stockFilter === 'out') return products.filter((p) => p.stockQty <= 0);
-    if (stockFilter === 'healthy') return products.filter((p) => (p.stockQty - p.reservedQty) > p.lowStockThreshold);
-    return products;
-  }, [products, stockFilter]);
+  function handleSort(field: SortField) {
+    if (sortField === field) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  }
+
+  function SortIcon({ field }: { field: SortField }) {
+    if (sortField !== field) return <CaretUpDown size={12} className="text-muted-foreground/30" />;
+    return sortOrder === 'asc'
+      ? <CaretUp size={12} weight="bold" className="text-foreground" />
+      : <CaretDownIcon size={12} weight="bold" className="text-foreground" />;
+  }
 
   function getStockLevel(product: Product) {
     const available = product.stockQty - product.reservedQty;
@@ -98,16 +143,6 @@ export default function Inventory() {
     if (available <= product.lowStockThreshold) return { level: 'low' as const, color: 'text-amber-600', bg: 'bg-amber-500', barBg: 'bg-amber-100', label: 'Low stock', pct: Math.min((available / Math.max(product.lowStockThreshold * 3, 1)) * 100, 100) };
     return { level: 'healthy' as const, color: 'text-emerald-600', bg: 'bg-emerald-500', barBg: 'bg-emerald-100', label: 'In stock', pct: Math.min((available / Math.max(product.lowStockThreshold * 3, 1)) * 100, 100) };
   }
-
-  const filterCounts = useMemo(() => {
-    const all = products.length;
-    const out = products.filter((p) => p.stockQty <= 0).length;
-    const low = products.filter((p) => {
-      const avail = p.stockQty - p.reservedQty;
-      return p.stockQty > 0 && avail <= p.lowStockThreshold;
-    }).length;
-    return { all, out, low, healthy: all - out - low };
-  }, [products]);
 
   return (
     <div className="space-y-5">
@@ -127,21 +162,11 @@ export default function Inventory() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={handleSync}
-            disabled={syncing}
-            className={cn(
-              'inline-flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium shadow-sm transition-all',
-              syncing
-                ? 'bg-primary/80 text-primary-foreground'
-                : 'bg-primary text-primary-foreground hover:bg-primary/90'
-            )}
+            onClick={() => { setShowSyncModal(true); setSyncResult(null); }}
+            className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
           >
-            {syncing ? (
-              <CircleNotch size={15} className="animate-spin" />
-            ) : (
-              <ArrowsClockwise size={15} weight="bold" />
-            )}
-            {syncing ? 'Syncing...' : 'Sync Products'}
+            <ArrowsClockwise size={15} weight="bold" />
+            Sync Products
           </button>
         </div>
       </div>
@@ -172,7 +197,7 @@ export default function Inventory() {
           <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
           <input
             type="text"
-            placeholder="Search products or SKUs..."
+            placeholder="Search products, SKUs, barcodes..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="h-9 w-full rounded-lg border border-border/60 bg-card pl-9 pr-4 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -182,11 +207,11 @@ export default function Inventory() {
         {/* Quick filters */}
         <div className="flex items-center gap-1 rounded-lg border border-border/60 bg-card p-0.5 shadow-sm">
           {([
-            { key: 'all' as const, label: 'All' },
-            { key: 'low' as const, label: 'Low Stock', count: filterCounts.low },
-            { key: 'out' as const, label: 'Out of Stock', count: filterCounts.out },
-            { key: 'healthy' as const, label: 'In Stock' },
-          ] as const).map(({ key, label, count }: { key: StockFilter; label: string; count?: number }) => (
+            { key: 'all' as const, label: 'All', count: filterCounts?.total },
+            { key: 'low' as const, label: 'Low Stock', count: filterCounts?.lowStock },
+            { key: 'out' as const, label: 'Out of Stock', count: filterCounts?.outOfStock },
+            { key: 'healthy' as const, label: 'In Stock', count: filterCounts?.inStock },
+          ] as const).map(({ key, label, count }) => (
             <button
               key={key}
               onClick={() => setStockFilter(key)}
@@ -198,12 +223,12 @@ export default function Inventory() {
               )}
             >
               {label}
-              {count !== undefined && count > 0 && (
+              {count !== undefined && count > 0 && key !== 'all' && (
                 <span className={cn(
                   'rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none',
                   stockFilter === key
                     ? 'bg-background/20 text-background'
-                    : key === 'out' ? 'bg-red-500/10 text-red-600' : 'bg-amber-500/10 text-amber-600'
+                    : key === 'out' ? 'bg-red-500/10 text-red-600' : key === 'low' ? 'bg-amber-500/10 text-amber-600' : 'bg-emerald-500/10 text-emerald-600'
                 )}>
                   {count}
                 </span>
@@ -213,7 +238,7 @@ export default function Inventory() {
         </div>
 
         <div className="ml-auto text-sm text-muted-foreground">
-          {filteredProducts.length} result{filteredProducts.length !== 1 ? 's' : ''}
+          {meta ? `${meta.total} result${meta.total !== 1 ? 's' : ''}` : ''}
         </div>
       </div>
 
@@ -223,25 +248,50 @@ export default function Inventory() {
           <thead>
             <tr className="border-b border-border/50 bg-muted/40">
               <th className="w-[52px] py-2.5 pl-4 pr-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70" />
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Product</th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">SKU</th>
-              <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Price</th>
-              <th className="px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">On Hand</th>
-              <th className="px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Reserved</th>
+              <th
+                className="cursor-pointer px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors"
+                onClick={() => handleSort('name')}
+              >
+                <span className="inline-flex items-center gap-1">Product <SortIcon field="name" /></span>
+              </th>
+              <th
+                className="cursor-pointer px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors"
+                onClick={() => handleSort('sku')}
+              >
+                <span className="inline-flex items-center gap-1">SKU <SortIcon field="sku" /></span>
+              </th>
+              <th
+                className="cursor-pointer px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors"
+                onClick={() => handleSort('price')}
+              >
+                <span className="inline-flex items-center gap-1 justify-end">Price <SortIcon field="price" /></span>
+              </th>
+              <th
+                className="cursor-pointer px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors"
+                onClick={() => handleSort('stock')}
+              >
+                <span className="inline-flex items-center gap-1 justify-center">On Hand <SortIcon field="stock" /></span>
+              </th>
+              <th
+                className="cursor-pointer px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors"
+                onClick={() => handleSort('reserved')}
+              >
+                <span className="inline-flex items-center gap-1 justify-center">Reserved <SortIcon field="reserved" /></span>
+              </th>
               <th className="w-[180px] px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Available</th>
               <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Location</th>
               <th className="w-8 py-2.5 pr-4" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border/30">
-            {loading && filteredProducts.length === 0 ? (
+            {loading && products.length === 0 ? (
               <tr>
                 <td colSpan={9} className="py-20 text-center">
                   <CircleNotch size={24} className="mx-auto animate-spin text-muted-foreground/30" />
                   <p className="mt-3 text-sm text-muted-foreground/50">Loading inventory...</p>
                 </td>
               </tr>
-            ) : filteredProducts.length === 0 ? (
+            ) : products.length === 0 ? (
               <tr>
                 <td colSpan={9} className="py-20 text-center">
                   <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/50">
@@ -254,7 +304,7 @@ export default function Inventory() {
                 </td>
               </tr>
             ) : (
-              filteredProducts.map((product) => {
+              products.map((product) => {
                 const available = product.stockQty - product.reservedQty;
                 const stock = getStockLevel(product);
                 const locations = product.stockLocations?.map((sl) => sl.bin?.label).filter(Boolean) || [];
@@ -370,6 +420,138 @@ export default function Inventory() {
 
       {/* Pagination */}
       {meta && <Pagination meta={meta} onPageChange={setPage} />}
+
+      {/* Sync Modal */}
+      {showSyncModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-md rounded-2xl border border-border/60 bg-card shadow-xl">
+            <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
+              <div className="flex items-center gap-2.5">
+                <ArrowsClockwise size={18} weight="bold" className="text-primary" />
+                <h3 className="text-base font-semibold">Sync Products</h3>
+              </div>
+              <button
+                onClick={() => setShowSyncModal(false)}
+                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              >
+                <X size={16} weight="bold" />
+              </button>
+            </div>
+
+            <div className="space-y-5 p-6">
+              {/* Sync Mode */}
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Sync Mode
+                </label>
+                <div className="space-y-2">
+                  {([
+                    { value: 'add_and_update' as SyncMode, label: 'Add new + Update existing', desc: 'Import new products and update existing ones' },
+                    { value: 'add_only' as SyncMode, label: 'Add new products only', desc: 'Only import products not yet in the system' },
+                    { value: 'update_only' as SyncMode, label: 'Update existing only', desc: 'Only update products already imported' },
+                  ]).map((opt) => (
+                    <label
+                      key={opt.value}
+                      className={cn(
+                        'flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 transition-all',
+                        syncMode === opt.value
+                          ? 'border-primary/40 bg-primary/5'
+                          : 'border-border/60 hover:border-border hover:bg-muted/20'
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="syncMode"
+                        value={opt.value}
+                        checked={syncMode === opt.value}
+                        onChange={() => setSyncMode(opt.value)}
+                        className="mt-0.5 h-4 w-4 accent-primary"
+                      />
+                      <div>
+                        <p className="text-sm font-medium">{opt.label}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{opt.desc}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Stock Import */}
+              <div>
+                <label
+                  className={cn(
+                    'flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 transition-all',
+                    importStock
+                      ? 'border-amber-500/40 bg-amber-500/5'
+                      : 'border-border/60 hover:border-border hover:bg-muted/20'
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={importStock}
+                    onChange={(e) => setImportStock(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-primary"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Import stock quantities from WooCommerce</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      When enabled, your local stock levels will be overwritten with WooCommerce values
+                    </p>
+                  </div>
+                </label>
+                {importStock && (
+                  <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2">
+                    <Info size={14} weight="fill" className="mt-0.5 flex-shrink-0 text-amber-600" />
+                    <p className="text-xs text-amber-700">
+                      This will overwrite any manual stock adjustments you've made in PickNPack.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Sync Result */}
+              {syncResult && (
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3">
+                  <p className="text-sm font-medium text-emerald-700">Sync complete</p>
+                  <div className="mt-1.5 flex items-center gap-4 text-xs text-emerald-600">
+                    <span>{syncResult.added} added</span>
+                    <span>{syncResult.updated} updated</span>
+                    <span>{syncResult.skipped} skipped</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 border-t border-border/50 px-6 py-4">
+              <button
+                onClick={() => setShowSyncModal(false)}
+                className="h-9 rounded-lg border border-border/60 px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              >
+                {syncResult ? 'Close' : 'Cancel'}
+              </button>
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                className={cn(
+                  'inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:opacity-50',
+                )}
+              >
+                {syncing ? (
+                  <>
+                    <CircleNotch size={14} className="animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <ArrowsClockwise size={14} weight="bold" />
+                    Start Sync
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

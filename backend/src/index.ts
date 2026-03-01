@@ -23,6 +23,7 @@ import shippingRoutes from './routes/shipping.js';
 import receivingRoutes from './routes/receiving.js';
 import supplierRoutes from './routes/suppliers.js';
 import imageRoutes from './routes/images.js';
+import searchRoutes from './routes/search.js';
 import pluginRoutes, { zapierWebhookRouter } from './routes/plugins.js';
 
 const app = express();
@@ -62,6 +63,7 @@ app.use('/api/v1/picking', pickingRoutes);
 app.use('/api/v1/shipping', shippingRoutes);
 app.use('/api/v1/receiving', receivingRoutes);
 app.use('/api/v1/suppliers', supplierRoutes);
+app.use('/api/v1/search', searchRoutes);
 app.use('/api/v1/plugins', pluginRoutes);
 
 // Error handler
@@ -84,7 +86,7 @@ cron.schedule('* * * * *', async () => {
 
       try {
         await syncOrders(store);
-        await syncProducts(store);
+        await syncProducts(store, { mode: 'add_and_update', importStock: true });
         await prisma.store.update({
           where: { id: store.id },
           data: { lastSyncAt: new Date() },

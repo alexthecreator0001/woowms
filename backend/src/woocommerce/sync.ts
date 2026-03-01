@@ -172,10 +172,25 @@ export async function syncOrders(store: Store): Promise<void> {
   console.log(`[SYNC] Order sync complete for store: ${store.name}`);
 }
 
-export async function syncProducts(store: Store): Promise<void> {
+export interface SyncOptions {
+  mode?: 'add_only' | 'update_only' | 'add_and_update';
+  importStock?: boolean;
+}
+
+export interface SyncResult {
+  added: number;
+  updated: number;
+  skipped: number;
+}
+
+export async function syncProducts(store: Store, options?: SyncOptions): Promise<SyncResult> {
+  const mode = options?.mode || 'add_and_update';
+  const importStock = options?.importStock ?? false;
+  const result: SyncResult = { added: 0, updated: 0, skipped: 0 };
+
   if (!store.syncProducts) {
     console.log(`[SYNC] Product sync disabled for store: ${store.name}`);
-    return;
+    return result;
   }
 
   const woo = getWooClient(store);
@@ -184,7 +199,7 @@ export async function syncProducts(store: Store): Promise<void> {
   let page = 1;
   let hasMore = true;
 
-  console.log(`[SYNC] Starting product sync for store: ${store.name}`);
+  console.log(`[SYNC] Starting product sync for store: ${store.name} (mode: ${mode}, importStock: ${importStock})`);
 
   // Fetch store currency from WooCommerce settings
   let currency = 'USD';
@@ -208,49 +223,63 @@ export async function syncProducts(store: Store): Promise<void> {
     }
 
     for (const product of products) {
-      await prisma.product.upsert({
-        where: {
-          wooId_storeId: { wooId: product.id, storeId: store.id },
-        },
-        update: {
-          name: product.name,
-          sku: product.sku || null,
-          description: product.short_description || null,
-          price: product.price || '0',
-          currency,
-          stockQty: product.stock_quantity || 0,
-          weight: product.weight ? parseFloat(product.weight) : null,
-          length: product.dimensions?.length ? parseFloat(product.dimensions.length) : null,
-          width: product.dimensions?.width ? parseFloat(product.dimensions.width) : null,
-          height: product.dimensions?.height ? parseFloat(product.dimensions.height) : null,
-          imageUrl: product.images?.[0]?.src || null,
-          isActive: product.status === 'publish',
-        },
-        create: {
-          wooId: product.id,
-          storeId: store.id,
-          name: product.name,
-          sku: product.sku || null,
-          description: product.short_description || null,
-          price: product.price || '0',
-          currency,
-          stockQty: product.stock_quantity || 0,
-          lowStockThreshold,
-          weight: product.weight ? parseFloat(product.weight) : null,
-          length: product.dimensions?.length ? parseFloat(product.dimensions.length) : null,
-          width: product.dimensions?.width ? parseFloat(product.dimensions.width) : null,
-          height: product.dimensions?.height ? parseFloat(product.dimensions.height) : null,
-          imageUrl: product.images?.[0]?.src || null,
-          isActive: product.status === 'publish',
-        },
+      const existing = await prisma.product.findUnique({
+        where: { wooId_storeId: { wooId: product.id, storeId: store.id } },
       });
+
+      if (existing && mode === 'add_only') {
+        result.skipped++;
+        continue;
+      }
+      if (!existing && mode === 'update_only') {
+        result.skipped++;
+        continue;
+      }
+
+      const updateData: Record<string, unknown> = {
+        name: product.name,
+        sku: product.sku || null,
+        description: product.short_description || null,
+        price: product.price || '0',
+        currency,
+        weight: product.weight ? parseFloat(product.weight) : null,
+        length: product.dimensions?.length ? parseFloat(product.dimensions.length) : null,
+        width: product.dimensions?.width ? parseFloat(product.dimensions.width) : null,
+        height: product.dimensions?.height ? parseFloat(product.dimensions.height) : null,
+        imageUrl: product.images?.[0]?.src || null,
+        isActive: product.status === 'publish',
+      };
+
+      if (importStock) {
+        updateData.stockQty = product.stock_quantity || 0;
+      }
+
+      if (existing) {
+        await prisma.product.update({
+          where: { id: existing.id },
+          data: updateData,
+        });
+        result.updated++;
+      } else {
+        await prisma.product.create({
+          data: {
+            wooId: product.id,
+            storeId: store.id,
+            ...updateData,
+            stockQty: (importStock ? product.stock_quantity : 0) || 0,
+            lowStockThreshold,
+          } as any,
+        });
+        result.added++;
+      }
     }
 
     console.log(`[SYNC] Processed page ${page} (${products.length} products)`);
     page++;
   }
 
-  console.log(`[SYNC] Product sync complete for store: ${store.name}`);
+  console.log(`[SYNC] Product sync complete for store: ${store.name} — added: ${result.added}, updated: ${result.updated}, skipped: ${result.skipped}`);
+  return result;
 }
 
 // ─── Stock Push Types ─────────────────────────────────

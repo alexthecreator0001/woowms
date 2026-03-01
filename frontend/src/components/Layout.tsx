@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import {
@@ -17,10 +17,12 @@ import {
   CaretLineRight,
   CaretDown,
   Plug,
+  MagnifyingGlass,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import { LogoMark } from './Logo';
 import api from '../services/api';
+import GlobalSearch from './GlobalSearch';
 
 interface NavItem {
   path: string;
@@ -69,6 +71,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [companyName, setCompanyName] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     api.get('/auth/me')
@@ -76,6 +79,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         setCompanyName(data.data.tenantName || '');
       })
       .catch(() => {});
+  }, []);
+
+  // Cmd+K / Ctrl+K keyboard shortcut for global search
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const handleLogout = () => {
@@ -123,6 +138,24 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 </span>
                 <CaretDown size={12} className="flex-shrink-0 text-[#a0a0a0]" />
               </div>
+            </>
+          )}
+        </button>
+
+        {/* Search trigger */}
+        <button
+          onClick={() => setSearchOpen(true)}
+          title={collapsed ? 'Search (⌘K)' : undefined}
+          className={cn(
+            'flex items-center mx-2.5 mt-3 mb-1 rounded-lg border border-border/50 bg-muted/30 text-[13px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground',
+            collapsed ? 'justify-center p-2' : 'gap-2.5 px-2.5 py-[7px]'
+          )}
+        >
+          <MagnifyingGlass size={collapsed ? 18 : 15} className="flex-shrink-0" />
+          {!collapsed && (
+            <>
+              <span className="flex-1 text-left text-muted-foreground/60">Search...</span>
+              <kbd className="hidden sm:inline-flex h-5 items-center rounded border border-border/40 bg-background px-1.5 text-[10px] font-medium text-muted-foreground/40">⌘K</kbd>
             </>
           )}
         </button>
@@ -261,6 +294,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </main>
+
+      {/* Global Search */}
+      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }

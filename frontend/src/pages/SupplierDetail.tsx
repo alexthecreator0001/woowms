@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
+import ProductSearchDropdown from '../components/ProductSearchDropdown';
 import type { Supplier, SupplierProduct, PurchaseOrder, Product } from '../types';
 
 const poStatusStyles: Record<string, { label: string; bg: string; text: string }> = {
@@ -42,9 +43,6 @@ export default function SupplierDetail() {
 
   // Add product mapping modal
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const [productSearch, setProductSearch] = useState('');
-  const [productResults, setProductResults] = useState<Product[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
   const [addForm, setAddForm] = useState({ productId: 0, productName: '', supplierSku: '', supplierPrice: '', leadTimeDays: '' });
   const [addSaving, setAddSaving] = useState(false);
 
@@ -68,19 +66,6 @@ export default function SupplierDetail() {
 
   useEffect(() => { loadSupplier(); }, [loadSupplier]);
 
-  // Product search for add mapping
-  useEffect(() => {
-    if (!productSearch || productSearch.length < 2) { setProductResults([]); return; }
-    const timer = setTimeout(async () => {
-      try {
-        setSearchLoading(true);
-        const { data } = await api.get('/inventory', { params: { search: productSearch, limit: 8 } });
-        setProductResults(data.data);
-      } catch { setProductResults([]); }
-      finally { setSearchLoading(false); }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [productSearch]);
 
   const handleSave = async () => {
     if (!id) return;
@@ -117,7 +102,6 @@ export default function SupplierDetail() {
       });
       setShowAddProduct(false);
       setAddForm({ productId: 0, productName: '', supplierSku: '', supplierPrice: '', leadTimeDays: '' });
-      setProductSearch('');
       loadSupplier();
     } catch {
       // Could show error
@@ -460,7 +444,7 @@ export default function SupplierDetail() {
             <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
               <h3 className="text-base font-semibold">Add Product Mapping</h3>
               <button
-                onClick={() => { setShowAddProduct(false); setProductSearch(''); setProductResults([]); }}
+                onClick={() => { setShowAddProduct(false); setAddForm({ productId: 0, productName: '', supplierSku: '', supplierPrice: '', leadTimeDays: '' }); }}
                 className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
               >
                 <X className="h-4 w-4" />
@@ -474,42 +458,19 @@ export default function SupplierDetail() {
                   <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
                     <span className="text-sm font-medium">{addForm.productName}</span>
                     <button
-                      onClick={() => { setAddForm({ ...addForm, productId: 0, productName: '' }); setProductSearch(''); }}
+                      onClick={() => setAddForm({ ...addForm, productId: 0, productName: '' })}
                       className="text-muted-foreground hover:text-foreground"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 ) : (
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={productSearch}
-                      onChange={(e) => setProductSearch(e.target.value)}
-                      placeholder="Search by name or SKU..."
-                      className="h-9 w-full rounded-lg border border-border/60 bg-background px-3 text-sm shadow-sm placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      autoFocus
-                    />
-                    {searchLoading && <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />}
-                    {productResults.length > 0 && (
-                      <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border/60 bg-card shadow-lg">
-                        {productResults.map((p) => (
-                          <button
-                            key={p.id}
-                            onClick={() => {
-                              setAddForm({ ...addForm, productId: p.id, productName: p.name });
-                              setProductSearch('');
-                              setProductResults([]);
-                            }}
-                            className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/60"
-                          >
-                            <span className="font-medium">{p.name}</span>
-                            {p.sku && <span className="text-xs text-muted-foreground">{p.sku}</span>}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <ProductSearchDropdown
+                    onSelect={(p) => setAddForm({ ...addForm, productId: p.id, productName: p.name })}
+                    excludeIds={supplier?.supplierProducts?.map((sp) => sp.productId) || []}
+                    placeholder="Search by name, SKU, or barcode..."
+                    autoFocus
+                  />
                 )}
               </div>
 
@@ -552,7 +513,7 @@ export default function SupplierDetail() {
             </div>
             <div className="flex items-center justify-end gap-3 border-t border-border/50 px-6 py-4">
               <button
-                onClick={() => { setShowAddProduct(false); setProductSearch(''); setProductResults([]); }}
+                onClick={() => { setShowAddProduct(false); setAddForm({ productId: 0, productName: '', supplierSku: '', supplierPrice: '', leadTimeDays: '' }); }}
                 className="h-9 rounded-lg border border-border/60 px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
               >
                 Cancel

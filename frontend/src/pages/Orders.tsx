@@ -4,6 +4,7 @@ import {
   ShoppingBag,
   ChevronDown,
   ChevronRight,
+  Search,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getStatusStyle, fetchAllStatuses, type StatusDef } from '../lib/statuses';
@@ -27,6 +28,7 @@ export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [filter, setFilter] = useState('');
+  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [allStatuses, setAllStatuses] = useState<StatusDef[]>([]);
@@ -38,17 +40,18 @@ export default function Orders() {
 
   useEffect(() => {
     setPage(1);
-  }, [filter]);
+  }, [filter, search]);
 
   useEffect(() => {
     loadOrders();
-  }, [filter, page]);
+  }, [filter, search, page]);
 
   async function loadOrders() {
     try {
       setLoading(true);
       const params: Record<string, string | number> = { limit: 25, page };
       if (filter) params.status = filter;
+      if (search) params.search = search;
       const { data } = await api.get('/orders', { params });
       setOrders(data.data);
       setMeta(data.meta);
@@ -78,6 +81,16 @@ export default function Orders() {
 
       {/* Filters Bar */}
       <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
+          <input
+            type="text"
+            placeholder="Search orders, customers..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-9 w-full rounded-lg border border-border/60 bg-card pl-9 pr-4 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+        </div>
         <div className="relative">
           <select
             value={filter}

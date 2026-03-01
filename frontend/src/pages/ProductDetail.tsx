@@ -38,6 +38,7 @@ import { proxyUrl } from '../lib/image';
 import { getStatusStyle } from '../lib/statuses';
 import api from '../services/api';
 import Pagination from '../components/Pagination';
+import ProductSearchDropdown from '../components/ProductSearchDropdown';
 import type {
   ProductDetail as ProductDetailType,
   StockMovement,
@@ -151,8 +152,6 @@ export default function ProductDetail() {
 
   // Bundle
   const [bundleItems, setBundleItems] = useState<BundleItem[]>([]);
-  const [bundleSearch, setBundleSearch] = useState('');
-  const [bundleSearchResults, setBundleSearchResults] = useState<Array<{ id: number; name: string; sku: string | null }>>([]);
   const [bundleAdding, setBundleAdding] = useState(false);
 
   // ─── Data loading ─────────────────────────────────────
@@ -354,16 +353,6 @@ export default function ProductDetail() {
     } catch { /* ignore */ }
   };
 
-  useEffect(() => {
-    if (!bundleSearch || bundleSearch.length < 2) { setBundleSearchResults([]); return; }
-    const timer = setTimeout(async () => {
-      try {
-        const { data } = await api.get('/inventory', { params: { search: bundleSearch, limit: 6 } });
-        setBundleSearchResults(data.data.filter((p: any) => p.id !== parseInt(id || '0')));
-      } catch { setBundleSearchResults([]); }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [bundleSearch, id]);
 
   // ─── Render ───────────────────────────────────────────
 
@@ -1197,30 +1186,11 @@ export default function ProductDetail() {
               )}
 
               {/* Add component search */}
-              <div className="relative">
-                <input
-                  type="text"
-                  value={bundleSearch}
-                  onChange={(e) => setBundleSearch(e.target.value)}
-                  placeholder="Search product to add as component..."
-                  className="h-9 w-full rounded-lg border border-border/60 bg-background px-3 text-sm shadow-sm placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                {bundleAdding && <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />}
-                {bundleSearchResults.length > 0 && (
-                  <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border/60 bg-card shadow-lg">
-                    {bundleSearchResults.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => handleAddBundleComponent(p.id)}
-                        className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/60"
-                      >
-                        <span className="font-medium">{p.name}</span>
-                        {p.sku && <span className="text-xs text-muted-foreground">{p.sku}</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <ProductSearchDropdown
+                onSelect={(p) => handleAddBundleComponent(p.id)}
+                excludeIds={[parseInt(id || '0'), ...bundleItems.map((i) => i.componentProduct.id)]}
+                placeholder="Search product to add as component..."
+              />
             </div>
           </div>
         </div>

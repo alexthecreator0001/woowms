@@ -64,18 +64,48 @@ router.get('/stats', async (req: Request, res: Response, next: NextFunction) => 
 router.post('/sync', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const prisma = req.prisma!;
+    const { mode = 'add_and_update', importStock = false } = req.body as {
+      mode?: 'add_only' | 'update_only' | 'add_and_update';
+      importStock?: boolean;
+    };
 
     const stores = await prisma.store.findMany({
       where: { tenantId: req.tenantId, isActive: true },
     });
 
+    let added = 0;
+    let updated = 0;
+    let skipped = 0;
+
     for (const store of stores) {
-      await syncProducts(store as any);
+      const result = await syncProducts(store as any, { mode, importStock });
+      added += result.added;
+      updated += result.updated;
+      skipped += result.skipped;
     }
 
     res.json({
-      data: { message: 'Product sync completed', storeCount: stores.length },
+      data: { message: 'Product sync completed', storeCount: stores.length, added, updated, skipped },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/inventory/filter-counts
+router.get('/filter-counts', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = req.prisma!;
+    const baseWhere = { isActive: true, store: { tenantId: req.tenantId } };
+    const threshold = await getLowStockThreshold(req.tenantId!);
+
+    const [total, outOfStock, lowStock] = await Promise.all([
+      prisma.product.count({ where: baseWhere }),
+      prisma.product.count({ where: { ...baseWhere, stockQty: { lte: 0 } } }),
+      prisma.product.count({ where: { ...baseWhere, stockQty: { gt: 0, lte: threshold } } }),
+    ]);
+
+    res.json({ data: { total, outOfStock, lowStock, inStock: total - outOfStock - lowStock } });
   } catch (err) {
     next(err);
   }
@@ -84,7 +114,7 @@ router.post('/sync', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
 // GET /api/v1/inventory
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { page = '1', limit = '25', search, lowStock } = req.query as Record<string, string | undefined>;
+    const { page = '1', limit = '25', search, lowStock, stockFilter, sort, order } = req.query as Record<string, string | undefined>;
     const prisma = req.prisma!;
 
     const pageNum = parseInt(page || '1');
@@ -95,18 +125,35 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { sku: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { barcodes: { some: { barcode: { contains: search, mode: 'insensitive' } } } },
       ];
     }
-    if (lowStock === 'true') {
+
+    // Server-side stock filtering
+    if (stockFilter === 'out') {
+      where.stockQty = { lte: 0 };
+    } else if (stockFilter === 'low') {
+      const threshold = await getLowStockThreshold(req.tenantId!);
+      where.stockQty = { gt: 0, lte: threshold };
+    } else if (stockFilter === 'healthy') {
+      const threshold = await getLowStockThreshold(req.tenantId!);
+      where.stockQty = { gt: threshold };
+    } else if (lowStock === 'true') {
       const threshold = await getLowStockThreshold(req.tenantId!);
       where.stockQty = { lte: threshold };
     }
+
+    // Sorting
+    const sortMap: Record<string, string> = { name: 'name', sku: 'sku', price: 'price', stock: 'stockQty', reserved: 'reservedQty' };
+    const sortField = sortMap[sort || ''] || 'name';
+    const sortOrder = order === 'desc' ? 'desc' : 'asc';
 
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
         include: { stockLocations: { include: { bin: { include: { zone: true } } } } },
-        orderBy: { name: 'asc' },
+        orderBy: { [sortField]: sortOrder },
         skip: (pageNum - 1) * limitNum,
         take: limitNum,
       }),

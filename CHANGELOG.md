@@ -3,6 +3,25 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.12.0 / 2.16.0] - 2026-03-01
+
+### Added
+- **Global search (Cmd+K)** — command palette searching across orders, products, purchase orders, and suppliers with keyboard navigation, recent searches, and status badges
+- **Global search endpoint** — `GET /api/v1/search?q=` searches orders (by number, customer, tracking), products (by name, SKU, barcode), POs (by number, supplier, tracking), and suppliers (by name, email, phone) in parallel
+- **Inventory filter-counts endpoint** — `GET /api/v1/inventory/filter-counts` returns server-side counts for total, out-of-stock, low-stock, and in-stock products
+- **Sync options modal** — replaces the simple Sync button with a modal offering sync mode (add only, update only, add+update) and stock import toggle with warning
+- **Product search dropdown** — reusable `ProductSearchDropdown` component with thumbnails, SKU badges, stock levels, keyboard navigation, and click-outside-to-close
+- **Orders search bar** — text search input on the Orders page for searching by order number, customer name, or email
+- **Inventory column sorting** — sortable column headers (Product, SKU, Price, On Hand, Reserved) with asc/desc toggle and backend sort params
+
+### Changed
+- **Product search expanded** — search now includes description and barcode fields in addition to name and SKU (backend + all product search UIs)
+- **Inventory stock filters** — counts now come from server-side totals instead of being computed from the current 25-item page; filtering is fully server-side
+- **Sync endpoint** — `POST /api/v1/inventory/sync` accepts `mode` and `importStock` options; returns added/updated/skipped counts
+- **ProductDetail bundle search** — replaced inline search with reusable `ProductSearchDropdown` showing images, SKUs, and stock
+- **SupplierDetail product mapping search** — replaced inline search with reusable `ProductSearchDropdown`
+- **Layout sidebar** — added search trigger button with ⌘K keyboard shortcut hint
+
 ## [3.11.0 / 2.15.0] - 2026-03-01
 
 ### Added
