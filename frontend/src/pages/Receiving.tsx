@@ -146,7 +146,7 @@ export default function Receiving() {
               return (
                 <tr
                   key={po.id}
-                  onClick={() => navigate(`/receiving/${po.id}`)}
+                  onClick={() => navigate(`/receiving/${po.poNumber}`)}
                   className="group cursor-pointer border-l-4 border-l-transparent transition-all hover:border-l-amber-500 hover:bg-amber-500/[0.03]"
                 >
                   <td className="px-5 py-3.5 text-sm font-semibold">{po.poNumber}</td>

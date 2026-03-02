@@ -3,6 +3,22 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.31.0 / 2.27.0] - 2026-03-03
+
+### Changed
+- **URL structure overhaul** — URLs now use natural identifiers instead of auto-increment IDs:
+  - Orders: `/orders/12345` (order number) instead of `/orders/2905`
+  - Products: `/inventory/WIDGET-01` (SKU) instead of `/inventory/2905`, falls back to numeric ID for products without SKU
+  - Purchase Orders: `/receiving/PO-2024-001` (PO number) instead of `/receiving/5`
+  - Suppliers: unchanged (internal entity, numeric ID is fine)
+- **Backend smart resolvers** — all inventory and receiving API endpoints now accept both numeric IDs and natural identifiers (SKU, poNumber). Orders already had this
+- **Global search** — search results now navigate using natural identifiers
+- **Stock movement references** — PO receive movements now store the actual PO number instead of `PO-{id}`
+
+### Fixed
+- **Dashboard order links** — were using numeric `order.id` instead of `order.orderNumber`, breaking the smart resolver pattern
+- **Product detail order links** — same fix as Dashboard
+
 ## [3.30.4 / 2.26.4] - 2026-03-03
 
 ### Fixed

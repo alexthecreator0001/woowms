@@ -219,7 +219,7 @@ export default function SupplierDetail() {
                       <tr key={sp.id} className="border-l-4 border-l-transparent transition-all hover:border-l-violet-500 hover:bg-violet-500/[0.02]">
                         <td className="px-6 py-3">
                           <button
-                            onClick={() => sp.product && navigate(`/inventory/${sp.product.id}`)}
+                            onClick={() => sp.product && navigate(`/inventory/${sp.product.sku || sp.product.id}`)}
                             className="text-sm font-medium text-primary hover:underline"
                           >
                             {sp.product?.name || `Product #${sp.productId}`}
@@ -287,7 +287,7 @@ export default function SupplierDetail() {
                       return (
                         <tr
                           key={po.id}
-                          onClick={() => navigate(`/receiving/${po.id}`)}
+                          onClick={() => navigate(`/receiving/${po.poNumber}`)}
                           className="cursor-pointer border-l-4 border-l-transparent transition-all hover:border-l-amber-500 hover:bg-amber-500/[0.02]"
                         >
                           <td className="px-6 py-3 text-sm font-semibold">{po.poNumber}</td>

@@ -118,12 +118,12 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
         setResults(data.data);
         setActiveIndex(-1);
 
-        // Build flat list of navigable items
-        const items: Array<{ type: string; id: number }> = [];
-        data.data.orders?.forEach((o: { id: number }) => items.push({ type: 'order', id: o.id }));
-        data.data.products?.forEach((p: { id: number }) => items.push({ type: 'product', id: p.id }));
-        data.data.purchaseOrders?.forEach((po: { id: number }) => items.push({ type: 'po', id: po.id }));
-        data.data.suppliers?.forEach((s: { id: number }) => items.push({ type: 'supplier', id: s.id }));
+        // Build flat list of navigable items using natural identifiers
+        const items: Array<{ type: string; slug: string }> = [];
+        data.data.orders?.forEach((o: { orderNumber: string }) => items.push({ type: 'order', slug: o.orderNumber }));
+        data.data.products?.forEach((p: { id: number; sku?: string }) => items.push({ type: 'product', slug: p.sku || String(p.id) }));
+        data.data.purchaseOrders?.forEach((po: { poNumber: string }) => items.push({ type: 'po', slug: po.poNumber }));
+        data.data.suppliers?.forEach((s: { id: number }) => items.push({ type: 'supplier', slug: String(s.id) }));
         resultItemsRef.current = items;
       } catch {
         setResults(null);
@@ -135,14 +135,14 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
     return () => clearTimeout(timer);
   }, [query]);
 
-  const navigateTo = useCallback((type: string, id: number) => {
+  const navigateTo = useCallback((type: string, slug: string) => {
     if (query.length >= 2) addRecent(query);
     onClose();
     const paths: Record<string, string> = {
-      order: `/orders/${id}`,
-      product: `/inventory/${id}`,
-      po: `/receiving/${id}`,
-      supplier: `/suppliers/${id}`,
+      order: `/orders/${slug}`,
+      product: `/inventory/${slug}`,
+      po: `/receiving/${slug}`,
+      supplier: `/suppliers/${slug}`,
     };
     navigate(paths[type] || '/');
   }, [navigate, onClose, query]);
@@ -165,12 +165,12 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
       setActiveIndex((prev) => (prev > 0 ? prev - 1 : items.length - 1));
     } else if (e.key === 'Enter' && activeIndex >= 0 && items[activeIndex]) {
       e.preventDefault();
-      navigateTo(items[activeIndex].type, items[activeIndex].id);
+      navigateTo(items[activeIndex].type, items[activeIndex].slug);
     }
   }
 
-  function getItemIndex(type: string, id: number): number {
-    return resultItemsRef.current.findIndex((i) => i.type === type && i.id === id);
+  function getItemIndex(type: string, slug: string): number {
+    return resultItemsRef.current.findIndex((i) => i.type === type && i.slug === slug);
   }
 
   if (!open) return null;
@@ -235,12 +235,12 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
                 <div className="mb-1">
                   <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Orders</p>
                   {results!.orders.map((order) => {
-                    const idx = getItemIndex('order', order.id);
+                    const idx = getItemIndex('order', order.orderNumber);
                     const badge = statusBadge[order.status] || statusBadge.PENDING;
                     return (
                       <button
                         key={order.id}
-                        onClick={() => navigateTo('order', order.id)}
+                        onClick={() => navigateTo('order', order.orderNumber)}
                         className={cn(
                           'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
                           idx === activeIndex ? 'bg-primary/8' : 'hover:bg-muted/40'
@@ -264,12 +264,13 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
                 <div className="mb-1">
                   <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Products</p>
                   {results!.products.map((product) => {
-                    const idx = getItemIndex('product', product.id);
+                    const slug = product.sku || String(product.id);
+                    const idx = getItemIndex('product', slug);
                     const avail = product.stockQty - product.reservedQty;
                     return (
                       <button
                         key={product.id}
-                        onClick={() => navigateTo('product', product.id)}
+                        onClick={() => navigateTo('product', slug)}
                         className={cn(
                           'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
                           idx === activeIndex ? 'bg-primary/8' : 'hover:bg-muted/40'
@@ -306,12 +307,12 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
                 <div className="mb-1">
                   <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Purchase Orders</p>
                   {results!.purchaseOrders.map((po) => {
-                    const idx = getItemIndex('po', po.id);
+                    const idx = getItemIndex('po', po.poNumber);
                     const badge = statusBadge[po.status] || statusBadge.DRAFT;
                     return (
                       <button
                         key={po.id}
-                        onClick={() => navigateTo('po', po.id)}
+                        onClick={() => navigateTo('po', po.poNumber)}
                         className={cn(
                           'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
                           idx === activeIndex ? 'bg-primary/8' : 'hover:bg-muted/40'
@@ -335,11 +336,11 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
                 <div className="mb-1">
                   <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Suppliers</p>
                   {results!.suppliers.map((supplier) => {
-                    const idx = getItemIndex('supplier', supplier.id);
+                    const idx = getItemIndex('supplier', String(supplier.id));
                     return (
                       <button
                         key={supplier.id}
-                        onClick={() => navigateTo('supplier', supplier.id)}
+                        onClick={() => navigateTo('supplier', String(supplier.id))}
                         className={cn(
                           'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
                           idx === activeIndex ? 'bg-primary/8' : 'hover:bg-muted/40'

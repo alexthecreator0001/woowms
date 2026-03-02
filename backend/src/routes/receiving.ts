@@ -12,6 +12,20 @@ async function getTenantSettings(tenantId: number): Promise<Record<string, unkno
   return (tenant?.settings as Record<string, unknown>) || {};
 }
 
+/**
+ * Resolve :id param to a numeric PO ID.
+ * Accepts: numeric ID (e.g. "5") or poNumber string (e.g. "PO-2024-001").
+ */
+async function resolvePOId(param: string, tenantId: number): Promise<number | null> {
+  const isNumeric = /^\d+$/.test(param);
+  if (isNumeric) return parseInt(param);
+  const po = await prisma.purchaseOrder.findFirst({
+    where: { poNumber: param, tenantId },
+    select: { id: true },
+  });
+  return po?.id ?? null;
+}
+
 interface ReceiveItem {
   itemId: number;
   receivedQty: number;
@@ -97,7 +111,8 @@ router.get('/product-info', async (req: Request, res: Response, next: NextFuncti
 // GET /api/v1/receiving/:id — single PO with items
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const poId = parseInt(req.params.id);
+    const poId = await resolvePOId(req.params.id, req.tenantId!);
+    if (!poId) return res.status(404).json({ error: true, message: 'Purchase order not found', code: 'NOT_FOUND' });
     const po = await req.prisma!.purchaseOrder.findFirst({
       where: { id: poId, tenantId: req.tenantId },
       include: { items: true, supplierRef: true },
@@ -158,7 +173,8 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
 // PATCH /api/v1/receiving/:id — update PO (only DRAFT)
 router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const poId = parseInt(req.params.id);
+    const poId = await resolvePOId(req.params.id, req.tenantId!);
+    if (!poId) return res.status(404).json({ error: true, message: 'Purchase order not found', code: 'NOT_FOUND' });
     const prisma = req.prisma!;
 
     const existing = await prisma.purchaseOrder.findFirst({
@@ -218,7 +234,8 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
 // PATCH /api/v1/receiving/:id/status — transition PO status
 router.patch('/:id/status', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const poId = parseInt(req.params.id);
+    const poId = await resolvePOId(req.params.id, req.tenantId!);
+    if (!poId) return res.status(404).json({ error: true, message: 'Purchase order not found', code: 'NOT_FOUND' });
     const { status } = req.body as { status: string };
     const prisma = req.prisma!;
 
@@ -264,7 +281,8 @@ router.patch('/:id/status', async (req: Request, res: Response, next: NextFuncti
 router.patch('/:id/receive', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { items } = req.body as { items: ReceiveItem[] };
-    const poId = parseInt(req.params.id);
+    const poId = await resolvePOId(req.params.id, req.tenantId!);
+    if (!poId) return res.status(404).json({ error: true, message: 'Purchase order not found', code: 'NOT_FOUND' });
     const prisma = req.prisma!;
 
     const existingPo = await prisma.purchaseOrder.findFirst({
@@ -313,7 +331,7 @@ router.patch('/:id/receive', async (req: Request, res: Response, next: NextFunct
             type: 'RECEIVED',
             quantity: item.receivedQty,
             toBin: binLabel,
-            reference: `PO-${poId}`,
+            reference: existingPo.poNumber,
           },
         });
 
@@ -362,7 +380,8 @@ router.patch('/:id/receive', async (req: Request, res: Response, next: NextFunct
 // DELETE /api/v1/receiving/:id — delete PO (only DRAFT)
 router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const poId = parseInt(req.params.id);
+    const poId = await resolvePOId(req.params.id, req.tenantId!);
+    if (!poId) return res.status(404).json({ error: true, message: 'Purchase order not found', code: 'NOT_FOUND' });
     const prisma = req.prisma!;
 
     const existing = await prisma.purchaseOrder.findFirst({

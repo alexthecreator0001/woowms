@@ -144,7 +144,7 @@ export default function POCreate() {
         await api.patch(`/receiving/${createdPo.id}/status`, { status: 'ORDERED' });
       }
 
-      navigate(`/receiving/${createdPo.id}`);
+      navigate(`/receiving/${createdPo.poNumber || createdPo.id}`);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setError(msg || 'Failed to create purchase order.');

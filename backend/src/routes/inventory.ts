@@ -42,6 +42,21 @@ async function getLowStockThreshold(tenantId: number): Promise<number> {
   return typeof settings.lowStockThreshold === 'number' ? settings.lowStockThreshold : 5;
 }
 
+/**
+ * Resolve :id param to a numeric product ID.
+ * Accepts: numeric ID (e.g. "2905") or SKU string (e.g. "WIDGET-01").
+ */
+async function resolveProductId(param: string, tenantId: number): Promise<number | null> {
+  const isNumeric = /^\d+$/.test(param);
+  if (isNumeric) return parseInt(param);
+  // Look up by SKU
+  const product = await prisma.product.findFirst({
+    where: { sku: param, store: { tenantId } },
+    select: { id: true },
+  });
+  return product?.id ?? null;
+}
+
 // GET /api/v1/inventory/stats
 router.get('/stats', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -247,8 +262,10 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const prisma = req.prisma!;
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const product = await prisma.product.findUnique({
-      where: { id: parseInt(req.params.id) },
+      where: { id: productId },
       include: {
         store: true,
         stockLocations: { include: { bin: { include: { zone: true } } } },
@@ -274,7 +291,8 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 router.patch('/:id/adjust', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { quantity, reason, binId } = req.body as { quantity: number; reason?: string; binId?: number };
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const prisma = req.prisma!;
 
     // Verify product belongs to tenant's store
@@ -389,7 +407,8 @@ router.get('/low-stock', async (req: Request, res: Response, next: NextFunction)
 // POST /api/v1/inventory/:id/push-stock (ADMIN/MANAGER only)
 router.post('/:id/push-stock', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const prisma = req.prisma!;
 
     const product = await prisma.product.findUnique({
@@ -411,7 +430,8 @@ router.post('/:id/push-stock', authorize('ADMIN', 'MANAGER'), async (req: Reques
 // GET /api/v1/inventory/:id/sync-settings
 router.get('/:id/sync-settings', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const prisma = req.prisma!;
 
     const product = await prisma.product.findUnique({
@@ -432,7 +452,8 @@ router.get('/:id/sync-settings', async (req: Request, res: Response, next: NextF
 // PATCH /api/v1/inventory/:id/sync-settings (ADMIN/MANAGER only)
 router.patch('/:id/sync-settings', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const prisma = req.prisma!;
 
     const product = await prisma.product.findUnique({
@@ -469,7 +490,8 @@ router.patch('/:id/sync-settings', authorize('ADMIN', 'MANAGER'), async (req: Re
 // PATCH /api/v1/inventory/:id — update product fields (ADMIN/MANAGER only)
 router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const prisma = req.prisma!;
 
     const existing = await prisma.product.findUnique({
@@ -547,7 +569,8 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
 // GET /api/v1/inventory/:id/orders — orders containing this product
 router.get('/:id/orders', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const prisma = req.prisma!;
     const page = Math.max(parseInt(String(req.query.page)) || 1, 1);
     const limit = Math.min(Math.max(parseInt(String(req.query.limit)) || 10, 1), 50);
@@ -605,7 +628,8 @@ router.get('/:id/orders', async (req: Request, res: Response, next: NextFunction
 // GET /api/v1/inventory/:id/purchase-orders — POs containing this product's SKU
 router.get('/:id/purchase-orders', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const prisma = req.prisma!;
     const page = Math.max(parseInt(String(req.query.page)) || 1, 1);
     const limit = Math.min(Math.max(parseInt(String(req.query.limit)) || 10, 1), 50);
@@ -652,7 +676,8 @@ router.get('/:id/purchase-orders', async (req: Request, res: Response, next: Nex
 // GET /api/v1/inventory/:id/stock-movements — paginated stock movements
 router.get('/:id/stock-movements', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const prisma = req.prisma!;
     const page = Math.max(parseInt(String(req.query.page)) || 1, 1);
     const limit = Math.min(Math.max(parseInt(String(req.query.limit)) || 20, 1), 100);
@@ -690,7 +715,8 @@ router.get('/:id/stock-movements', async (req: Request, res: Response, next: Nex
 // GET /api/v1/inventory/:id/barcodes — list barcodes for a product
 router.get('/:id/barcodes', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const prismaClient = req.prisma!;
     const product = await prismaClient.product.findUnique({ where: { id: productId }, include: { store: true } });
     if (!product || product.store.tenantId !== req.tenantId) {
@@ -704,7 +730,8 @@ router.get('/:id/barcodes', async (req: Request, res: Response, next: NextFuncti
 // POST /api/v1/inventory/:id/barcodes — add barcode (ADMIN/MANAGER)
 router.post('/:id/barcodes', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const prismaClient = req.prisma!;
     const product = await prismaClient.product.findUnique({ where: { id: productId }, include: { store: true } });
     if (!product || product.store.tenantId !== req.tenantId) {
@@ -740,7 +767,8 @@ router.post('/:id/barcodes', authorize('ADMIN', 'MANAGER'), async (req: Request,
 // PATCH /api/v1/inventory/:id/barcodes/:barcodeId — update barcode (ADMIN/MANAGER)
 router.patch('/:id/barcodes/:barcodeId', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const barcodeId = parseInt(req.params.barcodeId);
     const prismaClient = req.prisma!;
 
@@ -781,7 +809,8 @@ router.patch('/:id/barcodes/:barcodeId', authorize('ADMIN', 'MANAGER'), async (r
 // DELETE /api/v1/inventory/:id/barcodes/:barcodeId — delete barcode (ADMIN/MANAGER)
 router.delete('/:id/barcodes/:barcodeId', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const barcodeId = parseInt(req.params.barcodeId);
     const prismaClient = req.prisma!;
 
@@ -805,7 +834,8 @@ router.delete('/:id/barcodes/:barcodeId', authorize('ADMIN', 'MANAGER'), async (
 // GET /api/v1/inventory/:id/bundle — get bundle components
 router.get('/:id/bundle', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const prismaClient = req.prisma!;
 
     const product = await prismaClient.product.findUnique({ where: { id: productId }, include: { store: true } });
@@ -829,7 +859,8 @@ router.get('/:id/bundle', async (req: Request, res: Response, next: NextFunction
 // POST /api/v1/inventory/:id/bundle — add component to bundle (ADMIN/MANAGER)
 router.post('/:id/bundle', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const prismaClient = req.prisma!;
 
     const product = await prismaClient.product.findUnique({ where: { id: productId }, include: { store: true } });
@@ -867,7 +898,8 @@ router.post('/:id/bundle', authorize('ADMIN', 'MANAGER'), async (req: Request, r
 // PATCH /api/v1/inventory/:id/bundle/:itemId — update bundle component quantity (ADMIN/MANAGER)
 router.patch('/:id/bundle/:itemId', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const itemId = parseInt(req.params.itemId);
     const prismaClient = req.prisma!;
 
@@ -899,7 +931,8 @@ router.patch('/:id/bundle/:itemId', authorize('ADMIN', 'MANAGER'), async (req: R
 // DELETE /api/v1/inventory/:id/bundle/:itemId — remove component from bundle (ADMIN/MANAGER)
 router.delete('/:id/bundle/:itemId', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const itemId = parseInt(req.params.itemId);
     const prismaClient = req.prisma!;
 
@@ -949,7 +982,8 @@ function calculateProductSize(length: number | null, width: number | null, heigh
 // POST /api/v1/inventory/:id/assign-bin — Assign stock to a bin location
 router.post('/:id/assign-bin', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const { binId, quantity } = req.body as { binId: number; quantity: number };
     const prisma = req.prisma!;
 
@@ -1033,7 +1067,8 @@ router.post('/:id/assign-bin', authorize('ADMIN', 'MANAGER'), async (req: Reques
 // POST /api/v1/inventory/:id/transfer — Move stock between bins
 router.post('/:id/transfer', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const { fromBinId, toBinId, quantity } = req.body as { fromBinId: number; toBinId: number; quantity: number };
     const prisma = req.prisma!;
 
@@ -1119,7 +1154,8 @@ router.post('/:id/transfer', authorize('ADMIN', 'MANAGER'), async (req: Request,
 // GET /api/v1/inventory/:id/incoming — get incoming stock from purchase orders
 router.get('/:id/incoming', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = await resolveProductId(req.params.id, req.tenantId!);
+    if (!productId) return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     const prismaClient = req.prisma!;
 
     const product = await prismaClient.product.findUnique({ where: { id: productId }, include: { store: true } });

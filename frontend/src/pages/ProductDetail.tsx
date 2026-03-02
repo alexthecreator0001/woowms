@@ -863,7 +863,7 @@ export default function ProductDetail() {
                     return (
                       <div
                         key={item.id}
-                        onClick={() => cp && navigate(`/inventory/${cp.id}`)}
+                        onClick={() => cp && navigate(`/inventory/${cp.sku || cp.id}`)}
                         className={cn(
                           'flex items-center justify-between rounded-lg border px-4 py-2.5 transition-colors cursor-pointer',
                           isLimiting && compAvail > 0 ? 'border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10' :
@@ -1051,7 +1051,7 @@ export default function ProductDetail() {
                   {incomingPOs.map((po) => (
                     <tr
                       key={po.id}
-                      onClick={() => navigate(`/receiving/${po.id}`)}
+                      onClick={() => navigate(`/receiving/${po.poNumber || po.id}`)}
                       className="cursor-pointer transition-colors hover:bg-blue-500/5"
                     >
                       <td className="px-6 py-2.5 text-sm font-semibold text-blue-700">{po.poNumber}</td>
@@ -1295,7 +1295,7 @@ export default function ProductDetail() {
                     return (
                       <tr
                         key={order.id}
-                        onClick={() => navigate(`/orders/${order.id}`)}
+                        onClick={() => navigate(`/orders/${order.orderNumber}`)}
                         className="cursor-pointer border-l-4 border-l-transparent transition-all hover:border-l-primary hover:bg-primary/[0.02]"
                       >
                         <td className="px-6 py-3 text-sm font-semibold">#{order.orderNumber}</td>
@@ -1371,7 +1371,7 @@ export default function ProductDetail() {
                     return (
                       <tr
                         key={po.id}
-                        onClick={() => navigate(`/receiving/${po.id}`)}
+                        onClick={() => navigate(`/receiving/${po.poNumber || po.id}`)}
                         className="cursor-pointer border-l-4 border-l-transparent transition-all hover:border-l-amber-500 hover:bg-amber-500/[0.02]"
                       >
                         <td className="px-6 py-3 text-sm font-semibold">{po.poNumber}</td>
@@ -1458,9 +1458,9 @@ export default function ProductDetail() {
                         <td className="px-6 py-2.5 text-sm text-muted-foreground">{m.toBin || '—'}</td>
                         <td className="px-6 py-2.5 text-sm text-muted-foreground">
                           {m.reason || m.reference || '—'}
-                          {m.reference && m.reference.startsWith('PO-') && (
+                          {m.reference && (m.reference.startsWith('PO-') || m.reference.startsWith('po-')) && (
                             <button
-                              onClick={() => navigate(`/receiving/${m.reference!.replace('PO-', '')}`)}
+                              onClick={() => navigate(`/receiving/${m.reference}`)}
                               className="ml-1.5 inline-flex items-center gap-0.5 text-primary hover:underline"
                             >
                               <ExternalLink className="h-3 w-3" />
@@ -1586,7 +1586,7 @@ export default function ProductDetail() {
                     return (
                       <div key={item.id} className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 px-4 py-2.5">
                         <div className="flex items-center gap-3">
-                          <button onClick={() => cp && navigate(`/inventory/${cp.id}`)} className="text-sm font-medium text-primary hover:underline">
+                          <button onClick={() => cp && navigate(`/inventory/${cp.sku || cp.id}`)} className="text-sm font-medium text-primary hover:underline">
                             {cp?.name || `Product #${item.componentProductId}`}
                           </button>
                           {cp?.sku && <code className="text-[11px] text-muted-foreground">{cp.sku}</code>}

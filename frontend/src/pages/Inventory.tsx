@@ -367,7 +367,7 @@ export default function Inventory() {
                 return (
                   <tr
                     key={product.id}
-                    onClick={() => navigate(`/inventory/${product.id}`)}
+                    onClick={() => navigate(`/inventory/${product.sku || product.id}`)}
                     className="group cursor-pointer transition-colors hover:bg-muted/30"
                   >
                     {/* Thumbnail */}

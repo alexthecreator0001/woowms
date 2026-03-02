@@ -170,7 +170,7 @@ export default function Dashboard() {
                 return (
                   <div
                     key={order.id}
-                    onClick={() => navigate(`/orders/${order.id}`)}
+                    onClick={() => navigate(`/orders/${order.orderNumber}`)}
                     className="flex cursor-pointer items-center gap-3 border-b border-border/40 px-5 py-3 last:border-b-0 transition-colors hover:bg-muted/40"
                   >
                     <span className={cn('h-2 w-2 flex-shrink-0 rounded-full', colors.dot)} />
