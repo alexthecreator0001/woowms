@@ -252,7 +252,7 @@ export default function FloorPlanEditor({ warehouse, onSaved, highlightZoneId, o
   const handleCreateZone = async () => {
     if (!selectedId || !floorPlan) return;
     const element = floorPlan.elements.find((e) => e.id === selectedId);
-    if (!element) return;
+    if (!element || !getTemplate(element.type).hasZone) return;
 
     setCreatingZone(true);
     try {

@@ -3,6 +3,12 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.25.1 / 2.23.1] - 2026-03-02
+
+### Fixed
+- **Backend blocks non-storage zone creation** — the auto-zone API endpoint now rejects dock_door, packing_table, receiving_area, shipping_area, staging_area. Only shelf, pallet_rack, pallet_storage can create zones. This is a hard block at the API level so zones can never be created for non-storage elements regardless of frontend state
+- **Manual zone creation also guarded** — the "Create Zone" button in floor plan element properties now checks `hasZone` before calling the API
+
 ## [3.25.0] - 2026-03-02
 
 ### Added

@@ -408,21 +408,19 @@ router.post('/:id/floor-plan/auto-zone', authorize('ADMIN', 'MANAGER'), async (r
       return res.status(404).json({ error: true, message: 'Warehouse not found', code: 'NOT_FOUND' });
     }
 
+    // Only storage element types can create zones with locations
+    const STORAGE_TYPES = ['shelf', 'pallet_rack', 'pallet_storage'];
+    if (!STORAGE_TYPES.includes(elementType)) {
+      return res.status(400).json({ error: true, message: `Element type "${elementType}" cannot have a zone — only storage elements (shelf, pallet rack, pallet storage) create zones`, code: 'VALIDATION_ERROR' });
+    }
+
     // Map element type to zone type
     const typeMap: Record<string, string> = {
       shelf: 'STORAGE',
       pallet_rack: 'STORAGE',
       pallet_storage: 'STORAGE',
-      packing_table: 'PACKING',
-      receiving_area: 'RECEIVING',
-      shipping_area: 'SHIPPING',
-      dock_door: 'RECEIVING',
-      staging_area: 'PICKING',
     };
-    const zoneType = typeMap[elementType];
-    if (!zoneType) {
-      return res.status(400).json({ error: true, message: `Element type "${elementType}" cannot have a zone`, code: 'VALIDATION_ERROR' });
-    }
+    const zoneType = typeMap[elementType]!;
 
     const zone = await req.prisma!.zone.create({
       data: { warehouseId, name: label, type: zoneType as any, description: `Auto-created from floor plan (${elementType})` },
