@@ -161,6 +161,13 @@ export default function ProductDetail() {
   const [spForm, setSpForm] = useState({ supplierId: 0, supplierSku: '', supplierPrice: '', leadTimeDays: '' });
   const [spAdding, setSpAdding] = useState(false);
 
+  // Assign bin
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [allBins, setAllBins] = useState<Array<{ id: number; label: string; zoneName: string }>>([]);
+  const [assignBinId, setAssignBinId] = useState(0);
+  const [assignQty, setAssignQty] = useState('1');
+  const [assigning, setAssigning] = useState(false);
+
   // ─── Data loading ─────────────────────────────────────
 
   useEffect(() => {
@@ -400,6 +407,39 @@ export default function ProductDetail() {
     } catch { /* ignore */ }
   };
 
+
+  // ─── Assign bin ──────────────────────────────────────
+  const handleOpenAssign = async () => {
+    setAssignOpen(true);
+    if (allBins.length === 0) {
+      try {
+        const { data } = await api.get('/warehouse');
+        const bins: Array<{ id: number; label: string; zoneName: string }> = [];
+        for (const wh of data.data || []) {
+          for (const zone of wh.zones || []) {
+            for (const bin of zone.bins || []) {
+              bins.push({ id: bin.id, label: bin.label, zoneName: zone.name });
+            }
+          }
+        }
+        setAllBins(bins);
+        if (bins.length > 0 && !assignBinId) setAssignBinId(bins[0].id);
+      } catch {}
+    }
+  };
+
+  const handleAssignBin = async () => {
+    if (!assignBinId || !assignQty || parseInt(assignQty) <= 0) return;
+    setAssigning(true);
+    try {
+      await api.post(`/inventory/${id}/assign-bin`, { binId: assignBinId, quantity: parseInt(assignQty) });
+      const { data } = await api.get(`/inventory/${id}`);
+      setProduct(data.data);
+      setAssignOpen(false);
+      setAssignQty('1');
+    } catch {}
+    setAssigning(false);
+  };
 
   // ─── Render ───────────────────────────────────────────
 
@@ -904,7 +944,7 @@ export default function ProductDetail() {
             </div>
           ) : (
             <div className="rounded-xl border border-border/60 bg-card shadow-sm">
-              <div className="border-b border-border/50 px-6 py-3.5">
+              <div className="flex items-center justify-between border-b border-border/50 px-6 py-3.5">
                 <h3 className="flex items-center gap-2 text-sm font-semibold">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                   Warehouse Locations
@@ -914,7 +954,60 @@ export default function ProductDetail() {
                     </span>
                   )}
                 </h3>
+                <button
+                  onClick={handleOpenAssign}
+                  className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/20"
+                >
+                  <Plus className="h-3 w-3" />
+                  Assign
+                </button>
               </div>
+              {/* Assign bin form */}
+              {assignOpen && (
+                <div className="border-b border-border/40 bg-muted/20 px-6 py-3">
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <label className="mb-1 block text-[11px] font-semibold text-muted-foreground">Bin</label>
+                      <select
+                        value={assignBinId}
+                        onChange={(e) => setAssignBinId(parseInt(e.target.value))}
+                        className="h-8 w-full rounded-md border border-border bg-background px-2 text-[12px] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
+                      >
+                        {allBins.map((b) => (
+                          <option key={b.id} value={b.id}>{b.label} — {b.zoneName}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="w-20">
+                      <label className="mb-1 block text-[11px] font-semibold text-muted-foreground">Qty</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={assignQty}
+                        onChange={(e) => setAssignQty(e.target.value)}
+                        className="h-8 w-full rounded-md border border-border bg-background px-2 text-center text-[12px] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
+                      />
+                    </div>
+                    <button
+                      onClick={handleAssignBin}
+                      disabled={assigning || !assignBinId}
+                      className="h-8 rounded-md bg-primary px-3 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      {assigning ? '...' : 'Add'}
+                    </button>
+                    <button
+                      onClick={() => setAssignOpen(false)}
+                      className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted/40"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  {allBins.length === 0 && (
+                    <p className="mt-2 text-[11px] text-muted-foreground">No bins found. Create zones and bins in Warehouse first.</p>
+                  )}
+                </div>
+              )}
+
               <div className="p-4">
                 {product.stockLocations && product.stockLocations.length > 0 ? (
                   <div className="space-y-2">
