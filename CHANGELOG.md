@@ -3,14 +3,13 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [3.29.0 / 2.26.2] - 2026-03-02
+## [3.29.1 / 2.26.2] - 2026-03-02
 
 ### Changed
-- **Packing station redesigned from scratch** — professional-grade three-column layout inspired by ShipBob/ShipHero. Left panel: order queue with status badges and item counts. Center panel: scan-to-verify bar, progress indicator, item cards with large product images, SKU, bin location, and quantity. Right sidebar: ship-to address, customer info, shipping method, payment status, order notes, and total. Actions pinned at bottom with prominent "Print Label & Ship" button
-- **Scan-to-verify workflow** — barcode/SKU scan input at top of packing area, auto-matches and checks items by SKU
-- **Item verification progress bar** — visual indicator showing how many items have been verified out of total
-- **Ship-to address panel** — shipping address prominently displayed in right sidebar so packers can see destination at a glance
-- **Item cards replace table** — each item is now a card with image, name, SKU, bin location, and large quantity display, replacing the old flat table rows
+- **Packing station v3** — tighter, denser layout with less wasted space. Active queue item now uses inverted (black) highlight. Items are compact cards with larger images (56px), orange hover states, emerald checked states. Scan bar + progress merged into single row. Ship-to address in a subtle card. Overall more professional and warehouse-tool-like
+- **Currency formatting** — proper symbols for EUR (€), GBP (£), CZK (Kč), and 30+ currencies instead of showing raw currency codes like "EUR0.14"
+- **System notes filtered** — packing station sidebar hides system-generated notes ("Packing started by user X at...") and only shows actual customer/order notes
+- **Compact top bar** — standalone mode top bar reduced to 44px, embedded page header tightened
 
 ## [3.28.3 / 2.26.2] - 2026-03-02
 
