@@ -9,7 +9,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const prisma = req.prisma!;
 
     const pageNum = parseInt(page || '1');
-    const limitNum = parseInt(limit || '25');
+    const limitNum = Math.min(parseInt(limit || '25'), 100);
 
     const where: any = {};
     if (status) where.status = status;

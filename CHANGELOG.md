@@ -3,6 +3,24 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.24.0] - 2026-03-02
+
+### Added
+- **Production secret guards** — backend now throws a fatal error at startup if JWT_SECRET or ENCRYPTION_KEY are left at default values in production
+- **Rate limiting on auth routes** — 15 requests per 15 minutes on all auth endpoints; stricter 5 requests per 15 minutes on verify-email and reset-password
+- **Helmet security headers** — added helmet middleware for HTTP security headers (XSS protection, content-type sniffing prevention, etc.)
+- **SSRF protection on image proxy** — DNS resolution check blocks requests to private/internal IP ranges (127.x, 10.x, 192.168.x, etc.)
+- **Webhook secret required** — WooCommerce webhooks now reject requests if the store has no webhook secret configured (was previously optional)
+- **Tenant isolation on picking/shipping** — pick-item and shipment update handlers now verify tenant ownership before modifying data
+- **JWT algorithm pinning** — token verification now explicitly requires HS256 algorithm, preventing algorithm confusion attacks
+- **Error message hardening** — 500 errors in production now return generic "Internal server error" instead of leaking internal details; stack traces only shown in development
+- **Pagination caps** — inventory and orders list endpoints now cap page size at 100; picking and shipping list endpoints limited to 200 results
+- **Password length validation on registration** — register endpoint now requires passwords of at least 8 characters
+
+### Changed
+- **Image proxy now requires authentication** — moved behind the authenticate middleware (previously public)
+- **Webhook error responses no longer leak details** — catch block returns generic "Processing failed" instead of the actual error message
+
 ## [3.25.4 / 2.23.3] - 2026-03-02
 
 ### Fixed

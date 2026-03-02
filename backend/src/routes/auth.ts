@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import config from '../config/index.js';
 import prisma from '../lib/prisma.js';
 import { authenticate } from '../middleware/auth.js';
@@ -13,6 +14,14 @@ async function loadEmailService() {
 }
 
 const router = Router();
+
+const verifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: true, message: 'Too many attempts, please try again later', code: 'RATE_LIMITED' },
+});
 
 function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -41,6 +50,10 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
 
     if (!companyName || !name || !email || !password) {
       return res.status(400).json({ error: true, message: 'All fields are required', code: 'VALIDATION_ERROR' });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ error: true, message: 'Password must be at least 8 characters', code: 'VALIDATION_ERROR' });
     }
 
     // Check if email already taken
@@ -173,7 +186,7 @@ router.post('/send-verification', authenticate, async (req: Request, res: Respon
 });
 
 // POST /api/v1/auth/verify-email — verify the 6-digit code
-router.post('/verify-email', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post('/verify-email', verifyLimiter, authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { code } = req.body;
     if (!code) {
@@ -253,7 +266,7 @@ router.post('/forgot-password', async (req: Request, res: Response, next: NextFu
 });
 
 // POST /api/v1/auth/reset-password — verify code and set new password (public)
-router.post('/reset-password', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/reset-password', verifyLimiter, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, code, newPassword } = req.body;
     if (!email || !code || !newPassword) {

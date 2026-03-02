@@ -61,6 +61,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       where,
       include: { items: true, order: true },
       orderBy: { createdAt: 'desc' },
+      take: 200,
     });
     res.json({ data: pickLists });
   } catch (err) {
@@ -73,26 +74,36 @@ router.patch('/:id/pick-item', async (req: Request, res: Response, next: NextFun
   try {
     const { itemId, pickedQty } = req.body as { itemId: number; pickedQty: number };
     const prisma = req.prisma!;
+    const pickListId = parseInt(req.params.id);
+
+    // Verify tenant ownership
+    const pickList = await prisma.pickList.findUnique({
+      where: { id: pickListId },
+      include: { order: { include: { store: true } }, items: true },
+    });
+
+    if (!pickList || pickList.order.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Pick list not found', code: 'NOT_FOUND' });
+    }
+
+    // Verify item belongs to this pick list
+    if (!pickList.items.some((i) => i.id === itemId)) {
+      return res.status(400).json({ error: true, message: 'Item does not belong to this pick list', code: 'VALIDATION_ERROR' });
+    }
 
     const item = await prisma.pickListItem.update({
       where: { id: itemId },
       data: { pickedQty, isPicked: true },
     });
 
-    // Check if all items picked
-    const pickList = await prisma.pickList.findUnique({
-      where: { id: parseInt(req.params.id) },
-      include: { items: true },
-    });
-
-    const allPicked = pickList!.items.every((i) => i.isPicked);
+    const allPicked = pickList.items.every((i) => i.id === itemId ? true : i.isPicked);
     if (allPicked) {
       await prisma.pickList.update({
-        where: { id: pickList!.id },
+        where: { id: pickList.id },
         data: { status: 'COMPLETED', completedAt: new Date() },
       });
       await prisma.order.update({
-        where: { id: pickList!.orderId },
+        where: { id: pickList.orderId },
         data: { status: 'PICKED' },
       });
     }

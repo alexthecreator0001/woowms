@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
+import dns from 'dns';
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
@@ -35,6 +36,23 @@ router.get('/proxy', async (req: Request, res: Response, next: NextFunction) => 
       }
     } catch {
       return res.status(400).json({ error: true, message: 'Invalid URL', code: 'VALIDATION_ERROR' });
+    }
+
+    // SSRF protection: resolve hostname and block private IPs
+    let resolvedIp: string;
+    try {
+      const { address } = await dns.promises.lookup(parsedUrl.hostname);
+      resolvedIp = address;
+    } catch {
+      return res.status(400).json({ error: true, message: 'Could not resolve hostname', code: 'VALIDATION_ERROR' });
+    }
+
+    const privateRanges = [
+      /^127\./, /^10\./, /^172\.(1[6-9]|2\d|3[01])\./, /^192\.168\./,
+      /^169\.254\./, /^0\./, /^::1$/, /^localhost$/i,
+    ];
+    if (privateRanges.some((r) => r.test(resolvedIp))) {
+      return res.status(403).json({ error: true, message: 'Access to private addresses is not allowed', code: 'FORBIDDEN' });
     }
 
     const width = Math.min(Math.max(parseInt(String(w)) || 96, 16), MAX_WIDTH);

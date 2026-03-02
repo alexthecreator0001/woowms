@@ -47,6 +47,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       where: { order: { store: { tenantId: req.tenantId } } },
       include: { order: true },
       orderBy: { createdAt: 'desc' },
+      take: 200,
     });
     res.json({ data: shipments });
   } catch (err) {
@@ -63,6 +64,15 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
       trackingUrl?: string;
     };
     const prisma = req.prisma!;
+
+    // Verify tenant ownership
+    const existing = await prisma.shipment.findUnique({
+      where: { id: parseInt(req.params.id) },
+      include: { order: { include: { store: true } } },
+    });
+    if (!existing || existing.order.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Shipment not found', code: 'NOT_FOUND' });
+    }
 
     const data: Prisma.ShipmentUpdateInput = {};
     if (status) data.status = status;

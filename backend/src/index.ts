@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
 import cron from 'node-cron';
 
 import config from './config/index.js';
@@ -32,6 +34,7 @@ const app = express();
 app.use(cors({ origin: config.frontendUrl, credentials: true }));
 app.use(morgan(config.isDev ? 'dev' : 'combined'));
 app.use(express.json());
+app.use(helmet());
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -39,19 +42,27 @@ app.get('/api/health', (_req, res) => {
 });
 
 // Auth routes (no tenant middleware — login/register happen before tenant context)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 15,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: true, message: 'Too many requests, please try again later', code: 'RATE_LIMITED' },
+});
+app.use('/api/v1/auth', authLimiter);
 app.use('/api/v1/auth', authRoutes);
 
 // WooCommerce webhooks — per-store, no JWT (uses HMAC verification)
 app.post('/api/webhooks/woocommerce/:storeId', handleStoreWebhook);
-
-// Image proxy — public (no auth needed, used by <img> tags)
-app.use('/api/v1/images', imageRoutes);
 
 // Zapier webhook — uses API key auth, not JWT (must be before authenticate middleware)
 app.use('/api/v1/zapier/webhook', zapierWebhookRouter);
 
 // All other API routes require authentication + tenant context
 app.use('/api/v1', authenticate, injectTenant);
+
+// Image proxy — behind auth (moved from public)
+app.use('/api/v1/images', imageRoutes);
 
 app.use('/api/v1/account', accountRoutes);
 app.use('/api/v1/team', teamRoutes);

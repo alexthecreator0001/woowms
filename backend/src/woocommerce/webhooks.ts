@@ -18,23 +18,26 @@ export async function handleStoreWebhook(req: Request, res: Response): Promise<v
       return;
     }
 
-    // Verify HMAC signature
-    if (store.webhookSecret) {
-      const signature = req.headers['x-wc-webhook-signature'] as string | undefined;
-      if (!signature) {
-        res.status(401).json({ error: true, message: 'No webhook signature' });
-        return;
-      }
+    // Verify HMAC signature (required)
+    if (!store.webhookSecret) {
+      res.status(403).json({ error: true, message: 'Webhook secret not configured' });
+      return;
+    }
 
-      const hash = crypto
-        .createHmac('sha256', store.webhookSecret)
-        .update(JSON.stringify(req.body))
-        .digest('base64');
+    const signature = req.headers['x-wc-webhook-signature'] as string | undefined;
+    if (!signature) {
+      res.status(401).json({ error: true, message: 'No webhook signature' });
+      return;
+    }
 
-      if (hash !== signature) {
-        res.status(401).json({ error: true, message: 'Invalid webhook signature' });
-        return;
-      }
+    const hash = crypto
+      .createHmac('sha256', store.webhookSecret)
+      .update(JSON.stringify(req.body))
+      .digest('base64');
+
+    if (hash !== signature) {
+      res.status(401).json({ error: true, message: 'Invalid webhook signature' });
+      return;
     }
 
     const topic = req.headers['x-wc-webhook-topic'] as string | undefined;
@@ -45,6 +48,6 @@ export async function handleStoreWebhook(req: Request, res: Response): Promise<v
     res.status(200).json({ received: true });
   } catch (err) {
     console.error(`[WEBHOOK] Store #${storeId} error:`, err);
-    res.status(200).json({ received: true, error: (err as Error).message });
+    res.status(200).json({ received: true, error: 'Processing failed' });
   }
 }

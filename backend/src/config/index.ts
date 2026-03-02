@@ -36,4 +36,13 @@ const config: AppConfig = {
   emailFrom: process.env.EMAIL_FROM || 'PickNPack <noreply@picknpack.io>',
 };
 
+if (!config.isDev) {
+  if (config.jwt.secret === 'dev-secret-change-me') {
+    throw new Error('FATAL: JWT_SECRET must be set in production');
+  }
+  if (config.encryptionKey === 'dev-encryption-key-change-in-production') {
+    throw new Error('FATAL: ENCRYPTION_KEY must be set in production');
+  }
+}
+
 export default config;
