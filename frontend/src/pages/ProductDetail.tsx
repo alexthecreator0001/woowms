@@ -432,7 +432,7 @@ export default function ProductDetail() {
 
   const stockCards = isBundle
     ? [
-        { label: 'Can Build', value: bundleAvailable, icon: Boxes, color: bundleAvailable > 0 ? 'text-violet-600' : 'text-red-500', bg: bundleAvailable > 0 ? 'bg-violet-500/10' : 'bg-red-500/10', border: bundleAvailable > 0 ? 'border-violet-500/20' : 'border-red-500/20' },
+        { label: 'Available', value: bundleAvailable, icon: Boxes, color: bundleAvailable > 0 ? 'text-violet-600' : 'text-red-500', bg: bundleAvailable > 0 ? 'bg-violet-500/10' : 'bg-red-500/10', border: bundleAvailable > 0 ? 'border-violet-500/20' : 'border-red-500/20' },
         { label: 'In Stock', value: product.stockQty, icon: Package, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
         { label: 'Reserved', value: product.reservedQty, icon: Lock, color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
         { label: 'Components', value: bundleComponentCount, icon: AlertTriangle, color: 'text-muted-foreground', bg: 'bg-muted/50', border: 'border-border/60' },
@@ -1331,7 +1331,7 @@ export default function ProductDetail() {
             <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-violet-600">Available Bundles</p>
+                  <p className="text-xs font-medium uppercase tracking-wider text-violet-600">Available</p>
                   <p className="mt-1 text-3xl font-bold text-violet-700">
                     {Math.min(...bundleItems.map((i) => {
                       const avail = (i.componentProduct?.stockQty || 0) - (i.componentProduct?.reservedQty || 0);
@@ -1352,6 +1352,27 @@ export default function ProductDetail() {
               <Boxes className="mx-auto mb-3 h-8 w-8 text-muted-foreground/30" />
               <p className="mb-1 text-sm font-medium">This product is not a bundle</p>
               <p className="mb-4 text-xs text-muted-foreground">Add components to automatically mark it as a bundle product.</p>
+            </div>
+          )}
+
+          {/* Stuck bundle — isBundle true but no components */}
+          {product.isBundle && bundleItems.length === 0 && (
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-6 text-center shadow-sm">
+              <Boxes className="mx-auto mb-3 h-8 w-8 text-amber-500/50" />
+              <p className="mb-1 text-sm font-medium">This product is marked as a bundle but has no components</p>
+              <p className="mb-4 text-xs text-muted-foreground">Convert it back to a regular product, or add components below.</p>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await api.patch(`/inventory/${id}`, { isBundle: false });
+                    setProduct((prev) => prev ? { ...prev, isBundle: false } : prev);
+                  } catch { /* ignore */ }
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-white px-4 py-2 text-sm font-medium text-amber-700 shadow-sm transition-colors hover:bg-amber-50"
+              >
+                Convert to regular product
+              </button>
             </div>
           )}
 

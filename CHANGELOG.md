@@ -3,6 +3,12 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.26.1] - 2026-03-02
+
+### Fixed
+- **Bundle "Can Build" renamed to "Available"** — bundle products in inventory list and product detail now use standard "Available" / "In stock" / "Out of stock" labels instead of confusing "Can build" / "Cannot build"
+- **Can convert stuck bundles back to regular products** — if a product is marked as a bundle but has no components, a "Convert to regular product" button now appears in the Bundle tab
+
 ## [3.26.0] - 2026-03-02
 
 ### Added
