@@ -3,6 +3,12 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.30.4 / 2.26.4] - 2026-03-03
+
+### Fixed
+- **Product edit destroying stock/barcodes** — PATCH endpoint was returning incomplete data (missing barcodes, supplier SKUs, bundle components). Frontend was overwriting product state with this incomplete response, making stock appear as 0 and barcodes disappear. Now returns all relations matching the GET endpoint
+- **Inline edit debounce** — auto-save now debounces (500ms) and skips if nothing changed, preventing duplicate/concurrent API calls when tabbing between fields
+
 ## [3.30.3 / 2.26.3] - 2026-03-02
 
 ### Changed

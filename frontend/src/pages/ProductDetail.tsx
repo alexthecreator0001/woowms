@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Package,
@@ -111,6 +111,8 @@ export default function ProductDetail() {
   });
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedRef = useRef('');
 
   // Orders tab
   const [orders, setOrders] = useState<Order[]>([]);
@@ -174,7 +176,7 @@ export default function ProductDetail() {
       .then(({ data }) => {
         const p = data.data;
         setProduct(p);
-        setEditFields({
+        const fields = {
           description: p.description || '',
           price: String(p.price),
           weight: p.weight ? String(p.weight) : '',
@@ -183,7 +185,9 @@ export default function ProductDetail() {
           height: p.height ? String(p.height) : '',
           lowStockThreshold: p.lowStockThreshold,
           packageQty: p.packageQty ? String(p.packageQty) : '',
-        });
+        };
+        setEditFields(fields);
+        lastSavedRef.current = JSON.stringify(fields);
         setBarcodes(p.barcodes || []);
         setBundleItems(p.bundleComponents || []);
       })
@@ -255,20 +259,24 @@ export default function ProductDetail() {
 
   // ─── Handlers ─────────────────────────────────────────
 
-  const handleSaveProduct = async () => {
+  const doSave = useCallback(async (fields: typeof editFields) => {
     if (!id) return;
+    const fingerprint = JSON.stringify(fields);
+    if (fingerprint === lastSavedRef.current) return;
     setSaving(true);
     setSaveMsg('');
     try {
-      const payload: Record<string, unknown> = { ...editFields };
-      if (editFields.packageQty) {
-        payload.packageQty = parseInt(editFields.packageQty) || null;
+      const payload: Record<string, unknown> = { ...fields };
+      if (fields.packageQty) {
+        payload.packageQty = parseInt(fields.packageQty) || null;
       } else {
         payload.packageQty = null;
       }
       const { data } = await api.patch(`/inventory/${id}`, payload);
       setProduct(data.data);
       setBarcodes(data.data.barcodes || []);
+      setBundleItems(data.data.bundleComponents || []);
+      lastSavedRef.current = fingerprint;
       setSaveMsg('Saved');
       setTimeout(() => setSaveMsg(''), 2000);
     } catch (err: unknown) {
@@ -277,7 +285,12 @@ export default function ProductDetail() {
     } finally {
       setSaving(false);
     }
-  };
+  }, [id]);
+
+  const handleSaveProduct = useCallback(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => doSave(editFields), 500);
+  }, [editFields, doSave]);
 
   const handleSyncSave = async () => {
     if (!id) return;

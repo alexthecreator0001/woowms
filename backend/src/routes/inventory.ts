@@ -521,6 +521,10 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
         store: true,
         stockLocations: { include: { bin: { include: { zone: true } } } },
         stockMovements: { orderBy: { createdAt: 'desc' }, take: 20 },
+        barcodes: true,
+        supplierProducts: { include: { supplier: true } },
+        bundleComponents: { include: { componentProduct: true } },
+        bundleParents: { include: { bundleProduct: true } },
       },
     });
 
