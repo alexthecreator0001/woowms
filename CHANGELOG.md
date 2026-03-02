@@ -11,6 +11,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Ship Without Label** — skip label generation for manual shipping workflows
 - **Packing backend API** — 4 new endpoints: `GET /packing/queue`, `POST /packing/start`, `POST /packing/complete`, `POST /packing/skip`
 - **Sidebar navigation** — "Packing" added to Warehouse section in the sidebar
+- **Standalone subdomain mode** — packing station runs fullscreen on `pack.yourdomain.com` with its own top bar (no sidebar), auto-detected via subdomain. Same build, same API, just a different shell
 
 ## [3.27.0 / 2.25.0] - 2026-03-02
 

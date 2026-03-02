@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Package,
   Check,
@@ -11,13 +12,19 @@ import {
   CheckCircle2,
   Loader2,
   ExternalLink,
+  LogOut,
 } from 'lucide-react';
 import { Package as PhPackage } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
 import type { Order, OrderItem } from '../types';
 
-export default function PackingStation() {
+interface PackingStationProps {
+  standalone?: boolean;
+}
+
+export default function PackingStation({ standalone = false }: PackingStationProps) {
+  const navigate = useNavigate();
   const [queue, setQueue] = useState<Order[]>([]);
   const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -147,31 +154,38 @@ export default function PackingStation() {
     return { bg: 'bg-muted/40', text: 'text-muted-foreground' };
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className={cn('flex items-center justify-center', standalone ? 'min-h-screen' : 'min-h-[60vh]')}>
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center gap-4">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500/10">
-          <PhPackage size={22} weight="duotone" className="text-orange-600" />
+  const content = (
+    <div className={cn(standalone ? 'space-y-4' : 'space-y-6')}>
+      {/* Page Header — only shown in embedded mode (standalone has its own top bar) */}
+      {!standalone && (
+        <div className="flex items-center gap-4">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500/10">
+            <PhPackage size={22} weight="duotone" className="text-orange-600" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Packing Station</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Verify items, print labels, and ship orders.
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Packing Station</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Verify items, print labels, and ship orders.
-          </p>
-        </div>
-      </div>
+      )}
 
       {/* Two-panel Layout */}
-      <div className="flex gap-6" style={{ minHeight: 'calc(100vh - 220px)' }}>
+      <div className="flex gap-6" style={{ minHeight: standalone ? 'calc(100vh - 72px)' : 'calc(100vh - 220px)' }}>
         {/* Left Panel - Order Queue */}
         <div className="w-80 flex-shrink-0">
           <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
@@ -427,4 +441,38 @@ export default function PackingStation() {
       </div>
     </div>
   );
+
+  // Standalone mode: wrap in fullscreen shell with top bar
+  if (standalone) {
+    return (
+      <div className="min-h-screen bg-white">
+        {/* Top Bar */}
+        <div className="flex h-14 items-center justify-between border-b border-[#ebebeb] bg-white px-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10">
+              <PhPackage size={18} weight="duotone" className="text-orange-600" />
+            </div>
+            <span className="text-sm font-bold tracking-tight">Packing Station</span>
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+              {queue.length} in queue
+            </span>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-[13px] font-medium text-[#6b6b6b] transition-colors hover:bg-red-50 hover:text-red-600"
+          >
+            <LogOut className="h-4 w-4" />
+            Log out
+          </button>
+        </div>
+
+        {/* Packing Content — full width, no sidebar margins */}
+        <div className="px-6 py-4">
+          {content}
+        </div>
+      </div>
+    );
+  }
+
+  return content;
 }

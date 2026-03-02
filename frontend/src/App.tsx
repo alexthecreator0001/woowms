@@ -68,7 +68,29 @@ function OnboardingRoute({ children }: { children: React.ReactNode }) {
   return children;
 }
 
+// Detect pack.* subdomain for standalone packing station mode
+function isPackSubdomain() {
+  return window.location.hostname.startsWith('pack.');
+}
+
 export default function App() {
+  // Subdomain mode: pack.yourdomain.com → fullscreen packing station
+  if (isPackSubdomain()) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/*"
+          element={
+            <PrivateRoute>
+              <PackingStation standalone />
+            </PrivateRoute>
+          }
+        />
+      </Routes>
+    );
+  }
+
   return (
     <Routes>
       <Route path="/login" element={<Login />} />

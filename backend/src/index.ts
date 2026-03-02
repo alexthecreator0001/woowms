@@ -36,8 +36,19 @@ registerProvider(shippoProvider);
 
 const app = express();
 
-// Middleware
-app.use(cors({ origin: config.frontendUrl, credentials: true }));
+// Middleware — allow main frontend + pack.* subdomain
+const allowedOrigins = [config.frontendUrl];
+try {
+  const mainUrl = new URL(config.frontendUrl);
+  allowedOrigins.push(`${mainUrl.protocol}//pack.${mainUrl.host}`);
+} catch { /* invalid URL, skip */ }
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(null, false);
+  },
+  credentials: true,
+}));
 app.use(morgan(config.isDev ? 'dev' : 'combined'));
 app.use(express.json());
 app.use(helmet());
