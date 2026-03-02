@@ -51,18 +51,18 @@ export default function FloorPlanMini({ highlightZoneIds, zoneQty, className }: 
   const placed = fp.elements.filter((el) => el.x >= 0 && el.y >= 0);
   if (placed.length === 0) return null;
 
-  // Scale to fit
-  const MAX_W = 220;
-  const MAX_H = 140;
-  const scale = Math.min(MAX_W / fp.width, MAX_H / fp.height, 18);
+  // Scale to fit — bigger canvas
+  const MAX_W = 280;
+  const MAX_H = 200;
+  const scale = Math.min(MAX_W / fp.width, MAX_H / fp.height, 22);
   const pxW = fp.width * scale;
   const pxH = fp.height * scale;
 
   return (
-    <div className={cn('rounded-lg border border-border/30 bg-[#fafafa] p-2.5', className)}>
+    <div className={cn('rounded-lg border border-border/30 bg-[#fafafa] p-3', className)}>
       <div
         className="relative mx-auto overflow-hidden rounded"
-        style={{ width: pxW, height: pxH, backgroundColor: '#f5f5f5' }}
+        style={{ width: pxW, height: pxH, backgroundColor: '#f0f0f0' }}
       >
         {placed.map((el) => {
           const ew = el.rotation === 90 ? el.h : el.w;
@@ -84,13 +84,13 @@ export default function FloorPlanMini({ highlightZoneIds, zoneQty, className }: 
                 top: el.y * scale,
                 width: elW,
                 height: elH,
-                backgroundColor: isHit ? '#10b981' : '#e0e0e0',
+                backgroundColor: isHit ? '#10b981' : '#d4d4d4',
               }}
             >
               {isHit && qty != null && elW >= 14 && elH >= 14 && (
                 <span
                   className="font-bold text-white drop-shadow-sm"
-                  style={{ fontSize: Math.min(elW * 0.4, elH * 0.4, 13) }}
+                  style={{ fontSize: Math.min(elW * 0.4, elH * 0.4, 14) }}
                 >
                   {qty}
                 </span>
@@ -98,6 +98,18 @@ export default function FloorPlanMini({ highlightZoneIds, zoneQty, className }: 
             </div>
           );
         })}
+      </div>
+
+      {/* Legend */}
+      <div className="mt-2 flex items-center justify-center gap-4">
+        <div className="flex items-center gap-1.5">
+          <div className="h-2.5 w-2.5 rounded-[2px] bg-[#10b981]" />
+          <span className="text-[10px] text-muted-foreground">Product location</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-2.5 w-2.5 rounded-[2px] bg-[#d4d4d4]" />
+          <span className="text-[10px] text-muted-foreground">Other zones</span>
+        </div>
       </div>
     </div>
   );

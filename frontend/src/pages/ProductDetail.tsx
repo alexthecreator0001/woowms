@@ -22,7 +22,6 @@ import {
   ShoppingCart,
   ClipboardList,
   Settings,
-  Pencil,
   X,
   Plus,
   ExternalLink,
@@ -100,7 +99,6 @@ export default function ProductDetail() {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
 
   // Edit state
-  const [editing, setEditing] = useState(false);
   const [editFields, setEditFields] = useState({
     description: '',
     price: '',
@@ -271,9 +269,8 @@ export default function ProductDetail() {
       const { data } = await api.patch(`/inventory/${id}`, payload);
       setProduct(data.data);
       setBarcodes(data.data.barcodes || []);
-      setEditing(false);
-      setSaveMsg('Product updated');
-      setTimeout(() => setSaveMsg(''), 3000);
+      setSaveMsg('Saved');
+      setTimeout(() => setSaveMsg(''), 2000);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setSaveMsg(msg || 'Failed to save');
@@ -529,15 +526,6 @@ export default function ProductDetail() {
             </div>
           </div>
           <div className="flex flex-shrink-0 items-center gap-1.5">
-            {!editing && (
-              <button
-                onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-1 rounded-lg border border-border/60 bg-background px-2.5 py-1.5 text-xs font-medium shadow-sm transition-all hover:bg-muted/60"
-              >
-                <Pencil className="h-3 w-3" />
-                Edit
-              </button>
-            )}
             <button
               onClick={handlePushStock}
               disabled={syncPushing}
@@ -694,15 +682,6 @@ export default function ProductDetail() {
 
             {/* Quick actions */}
             <div className="space-y-2 border-t border-border/50 pt-4">
-              {!editing && (
-                <button
-                  onClick={() => setEditing(true)}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-2 text-xs font-medium shadow-sm transition-all hover:bg-muted/60"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  Edit Product
-                </button>
-              )}
               {!product.isBundle && (
                 <button
                   onClick={() => navigate('/receiving/new', { state: { sku: product.sku, productName: product.name } })}
@@ -729,9 +708,6 @@ export default function ProductDetail() {
                 Pushed qty {pushResult.stockQuantity}, status: {pushResult.stockStatus}
               </p>
             )}
-            {saveMsg && (
-              <p className={cn('text-xs', saveMsg.includes('Failed') ? 'text-destructive' : 'text-emerald-600')}>{saveMsg}</p>
-            )}
           </div>
         </aside>
 
@@ -744,94 +720,68 @@ export default function ProductDetail() {
       {activeTab === 'overview' && (
         <div className="space-y-6">
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* Product Info (Editable) */}
+          {/* Product Info (Always editable inline) */}
           <div className="rounded-xl border border-border/60 bg-card shadow-sm">
             <div className="flex items-center justify-between border-b border-border/50 px-6 py-3.5">
               <h3 className="flex items-center gap-2 text-sm font-semibold">
                 <Package className="h-4 w-4 text-muted-foreground" />
                 Product Information
               </h3>
-              {editing && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setEditing(false)}
-                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/60"
-                  >
-                    <X className="h-3 w-3" /> Cancel
-                  </button>
-                  <button
-                    onClick={handleSaveProduct}
-                    disabled={saving}
-                    className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                  >
-                    {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-                    Save
-                  </button>
-                </div>
-              )}
+              {saving ? (
+                <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Saving...
+                </span>
+              ) : saveMsg ? (
+                <span className={cn('text-[11px]', saveMsg.includes('Failed') ? 'text-destructive' : 'text-emerald-600')}>
+                  {saveMsg}
+                </span>
+              ) : null}
             </div>
             <div className="divide-y divide-border/40 px-6">
               {/* Description */}
               <div className="py-3.5">
                 <p className="mb-1 text-xs font-medium text-muted-foreground">Description</p>
-                {editing ? (
-                  <textarea
-                    value={editFields.description}
-                    onChange={(e) => setEditFields({ ...editFields, description: e.target.value })}
-                    rows={3}
-                    className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                ) : (
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {product.description ? (
-                      <span dangerouslySetInnerHTML={{ __html: product.description }} />
-                    ) : (
-                      <span className="italic">No description</span>
-                    )}
-                  </p>
-                )}
+                <textarea
+                  value={editFields.description}
+                  onChange={(e) => setEditFields({ ...editFields, description: e.target.value })}
+                  onBlur={handleSaveProduct}
+                  rows={2}
+                  placeholder="No description"
+                  className="w-full rounded-lg border border-transparent bg-transparent px-0 py-1 text-sm leading-relaxed text-foreground transition-colors placeholder:italic placeholder:text-muted-foreground/50 hover:border-border/40 focus:border-primary focus:bg-background focus:px-3 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
               </div>
 
               {/* Price */}
               <div className="flex items-center justify-between py-3.5">
                 <span className="text-sm text-muted-foreground">Price</span>
-                {editing ? (
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">{product.currency}</span>
                   <input
                     type="text"
                     value={editFields.price}
                     onChange={(e) => setEditFields({ ...editFields, price: e.target.value })}
-                    className="h-8 w-28 rounded-lg border border-border/60 bg-background px-2 text-right text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    onBlur={handleSaveProduct}
+                    className="h-7 w-24 rounded-md border border-transparent bg-transparent px-2 text-right text-sm font-semibold transition-colors hover:border-border/40 focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
-                ) : (
-                  <span className="text-sm font-semibold">{product.currency} {product.price}</span>
-                )}
+                </div>
               </div>
 
               {/* Weight + Dimensions */}
               <div className="flex items-center justify-between py-3.5">
                 <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Scale className="h-3.5 w-3.5" />
-                  Weight / Dimensions
+                  Weight / Dims
                 </span>
-                {editing ? (
-                  <div className="flex items-center gap-1.5">
-                    <input type="text" placeholder="kg" value={editFields.weight} onChange={(e) => setEditFields({ ...editFields, weight: e.target.value })} className="h-8 w-16 rounded-lg border border-border/60 bg-background px-2 text-center text-xs shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
-                    <span className="text-xs text-muted-foreground">kg</span>
-                    <input type="text" placeholder="L" value={editFields.length} onChange={(e) => setEditFields({ ...editFields, length: e.target.value })} className="h-8 w-12 rounded-lg border border-border/60 bg-background px-1.5 text-center text-xs shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
-                    <span className="text-xs text-muted-foreground">x</span>
-                    <input type="text" placeholder="W" value={editFields.width} onChange={(e) => setEditFields({ ...editFields, width: e.target.value })} className="h-8 w-12 rounded-lg border border-border/60 bg-background px-1.5 text-center text-xs shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
-                    <span className="text-xs text-muted-foreground">x</span>
-                    <input type="text" placeholder="H" value={editFields.height} onChange={(e) => setEditFields({ ...editFields, height: e.target.value })} className="h-8 w-12 rounded-lg border border-border/60 bg-background px-1.5 text-center text-xs shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
-                    <span className="text-xs text-muted-foreground">cm</span>
-                  </div>
-                ) : (
-                  <span className="text-sm font-medium">
-                    {[
-                      product.weight && `${product.weight} kg`,
-                      product.length && `${product.length} × ${product.width} × ${product.height} cm`,
-                    ].filter(Boolean).join(' · ') || '—'}
-                  </span>
-                )}
+                <div className="flex items-center gap-1">
+                  <input type="text" placeholder="—" value={editFields.weight} onChange={(e) => setEditFields({ ...editFields, weight: e.target.value })} onBlur={handleSaveProduct} className="h-7 w-14 rounded-md border border-transparent bg-transparent px-1.5 text-center text-xs font-medium transition-colors hover:border-border/40 focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  <span className="text-[10px] text-muted-foreground/60">kg</span>
+                  <input type="text" placeholder="L" value={editFields.length} onChange={(e) => setEditFields({ ...editFields, length: e.target.value })} onBlur={handleSaveProduct} className="h-7 w-11 rounded-md border border-transparent bg-transparent px-1 text-center text-xs font-medium transition-colors hover:border-border/40 focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  <span className="text-[10px] text-muted-foreground/40">×</span>
+                  <input type="text" placeholder="W" value={editFields.width} onChange={(e) => setEditFields({ ...editFields, width: e.target.value })} onBlur={handleSaveProduct} className="h-7 w-11 rounded-md border border-transparent bg-transparent px-1 text-center text-xs font-medium transition-colors hover:border-border/40 focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  <span className="text-[10px] text-muted-foreground/40">×</span>
+                  <input type="text" placeholder="H" value={editFields.height} onChange={(e) => setEditFields({ ...editFields, height: e.target.value })} onBlur={handleSaveProduct} className="h-7 w-11 rounded-md border border-transparent bg-transparent px-1 text-center text-xs font-medium transition-colors hover:border-border/40 focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  <span className="text-[10px] text-muted-foreground/60">cm</span>
+                </div>
               </div>
 
               {/* Low stock threshold */}
@@ -840,17 +790,14 @@ export default function ProductDetail() {
                   <AlertTriangle className="h-3.5 w-3.5" />
                   Low Stock Threshold
                 </span>
-                {editing ? (
-                  <input
-                    type="number"
-                    min={0}
-                    value={editFields.lowStockThreshold}
-                    onChange={(e) => setEditFields({ ...editFields, lowStockThreshold: Math.max(0, parseInt(e.target.value) || 0) })}
-                    className="h-8 w-20 rounded-lg border border-border/60 bg-background px-2 text-right text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                ) : (
-                  <span className="text-sm font-semibold text-red-500">{product.lowStockThreshold}</span>
-                )}
+                <input
+                  type="number"
+                  min={0}
+                  value={editFields.lowStockThreshold}
+                  onChange={(e) => setEditFields({ ...editFields, lowStockThreshold: Math.max(0, parseInt(e.target.value) || 0) })}
+                  onBlur={handleSaveProduct}
+                  className="h-7 w-16 rounded-md border border-transparent bg-transparent px-2 text-right text-sm font-semibold text-red-500 transition-colors hover:border-border/40 focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
               </div>
 
               {/* Package Qty */}
@@ -859,20 +806,15 @@ export default function ProductDetail() {
                   <Boxes className="h-3.5 w-3.5" />
                   Package Qty
                 </span>
-                {editing ? (
-                  <input
-                    type="number"
-                    min={1}
-                    value={editFields.packageQty}
-                    onChange={(e) => setEditFields({ ...editFields, packageQty: e.target.value })}
-                    placeholder="e.g. 20"
-                    className="h-8 w-20 rounded-lg border border-border/60 bg-background px-2 text-right text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                ) : (
-                  <span className="text-sm font-medium">
-                    {product.packageQty ? `${product.packageQty} units/pack` : '—'}
-                  </span>
-                )}
+                <input
+                  type="number"
+                  min={1}
+                  value={editFields.packageQty}
+                  onChange={(e) => setEditFields({ ...editFields, packageQty: e.target.value })}
+                  onBlur={handleSaveProduct}
+                  placeholder="—"
+                  className="h-7 w-16 rounded-md border border-transparent bg-transparent px-2 text-right text-sm font-medium transition-colors placeholder:text-muted-foreground hover:border-border/40 focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
               </div>
 
               {/* Last updated */}

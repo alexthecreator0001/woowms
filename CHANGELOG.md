@@ -3,6 +3,12 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.30.3 / 2.26.3] - 2026-03-02
+
+### Changed
+- **Floor plan mini — bigger with legend** — increased canvas size, added color legend ("Product location" = green, "Other zones" = gray) below the map
+- **Product Information inline editing** — all fields are now always editable inline without needing to click "Edit Product" first. Auto-saves on blur. Inputs appear as plain text until focused
+
 ## [3.30.2 / 2.26.3] - 2026-03-02
 
 ### Fixed
