@@ -3,6 +3,15 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.28.0 / 2.26.0] - 2026-03-02
+
+### Added
+- **Packing Station** — new full-width packing page at `/packing-station` with two-panel layout: order queue on the left (PICKED/PACKING orders sorted by priority), active order on the right with item checklist, shipping info, and action buttons
+- **Print Label & Ship** — one-click button generates a shipping label via the configured provider (Shippo), creates shipment record, sets order to SHIPPED, and auto-advances to the next order
+- **Ship Without Label** — skip label generation for manual shipping workflows
+- **Packing backend API** — 4 new endpoints: `GET /packing/queue`, `POST /packing/start`, `POST /packing/complete`, `POST /packing/skip`
+- **Sidebar navigation** — "Packing" added to Warehouse section in the sidebar
+
 ## [3.27.0 / 2.25.0] - 2026-03-02
 
 ### Added

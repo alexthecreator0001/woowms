@@ -17,6 +17,7 @@ import WarehouseDetail from './pages/WarehouseDetail';
 import ZoneDetail from './pages/ZoneDetail';
 import WarehouseGuide from './pages/WarehouseGuide';
 import Picking from './pages/Picking';
+import PackingStation from './pages/PackingStation';
 import Shipping from './pages/Shipping';
 import Receiving from './pages/Receiving';
 import PODetail from './pages/PODetail';
@@ -125,6 +126,7 @@ export default function App() {
                 <Route path="/warehouse/:warehouseId" element={<WarehouseDetail />} />
                 <Route path="/warehouse/:warehouseId/zones/:zoneId" element={<ZoneDetail />} />
                 <Route path="/picking" element={<Picking />} />
+                <Route path="/packing-station" element={<PackingStation />} />
                 <Route path="/shipping" element={<Shipping />} />
                 <Route path="/receiving" element={<Receiving />} />
                 <Route path="/receiving/new" element={<POCreate />} />
