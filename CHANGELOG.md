@@ -3,6 +3,13 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.25.2 / 2.23.2] - 2026-03-02
+
+### Fixed
+- **Bundle "Available" shows Can Build in inventory list** — bundle products now show the number of bundles that can be built from component stock instead of always showing 0. Backend calculates `_canBuild` and includes it in the list API response
+- **Bundle badge in inventory list** — bundle products show a violet "BUNDLE" badge next to the product name
+- **Bundle stock bar uses violet color** — distinguishes bundle availability from regular stock at a glance
+
 ## [3.25.1 / 2.23.1] - 2026-03-02
 
 ### Fixed

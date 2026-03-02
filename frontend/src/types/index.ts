@@ -127,8 +127,10 @@ export interface Product {
   lowStockThreshold: number;
   imageUrl: string | null;
   isActive: boolean;
+  isBundle: boolean;
   sizeCategory?: ProductSize | null;
   stockLocations?: StockLocation[];
+  _canBuild?: number;
 }
 
 export interface StockLocation {
@@ -275,7 +277,6 @@ export interface ProductDetail extends Product {
   width: string | null;
   height: string | null;
   packageQty: number | null;
-  isBundle: boolean;
   sizeCategory?: ProductSize | null;
   createdAt: string;
   updatedAt: string;

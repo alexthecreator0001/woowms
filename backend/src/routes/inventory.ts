@@ -206,7 +206,12 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
-        include: { stockLocations: { include: { bin: { include: { zone: true } } } } },
+        include: {
+          stockLocations: { include: { bin: { include: { zone: true } } } },
+          bundleComponents: {
+            include: { componentProduct: { select: { stockQty: true, reservedQty: true } } },
+          },
+        },
         orderBy: { [sortField]: sortOrder },
         skip: (pageNum - 1) * limitNum,
         take: limitNum,
@@ -214,8 +219,23 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       prisma.product.count({ where }),
     ]);
 
+    // Compute _canBuild for bundle products
+    const enriched = products.map((p: any) => {
+      const out: any = { ...p };
+      if (p.isBundle && p.bundleComponents && p.bundleComponents.length > 0) {
+        out._canBuild = Math.max(0, Math.min(
+          ...p.bundleComponents.map((bc: any) => {
+            const avail = (bc.componentProduct?.stockQty || 0) - (bc.componentProduct?.reservedQty || 0);
+            return Math.floor(avail / bc.quantity);
+          })
+        ));
+      }
+      delete out.bundleComponents; // Don't send full component data to list
+      return out;
+    });
+
     res.json({
-      data: products,
+      data: enriched,
       meta: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
     });
   } catch (err) {

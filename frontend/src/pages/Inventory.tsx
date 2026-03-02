@@ -172,10 +172,13 @@ export default function Inventory() {
   }
 
   function getStockLevel(product: Product) {
-    const available = product.stockQty - product.reservedQty;
-    if (product.stockQty <= 0) return { level: 'out' as const, color: 'text-red-600', bg: 'bg-red-500', barBg: 'bg-red-100', label: 'Out of stock', pct: 0 };
+    // For bundles, use _canBuild as the effective available value
+    const available = product.isBundle && product._canBuild !== undefined
+      ? product._canBuild
+      : product.stockQty - product.reservedQty;
+    if (available <= 0) return { level: 'out' as const, color: 'text-red-600', bg: 'bg-red-500', barBg: 'bg-red-100', label: product.isBundle ? 'Cannot build' : 'Out of stock', pct: 0 };
     if (available <= product.lowStockThreshold) return { level: 'low' as const, color: 'text-amber-600', bg: 'bg-amber-500', barBg: 'bg-amber-100', label: 'Low stock', pct: Math.min((available / Math.max(product.lowStockThreshold * 3, 1)) * 100, 100) };
-    return { level: 'healthy' as const, color: 'text-emerald-600', bg: 'bg-emerald-500', barBg: 'bg-emerald-100', label: 'In stock', pct: Math.min((available / Math.max(product.lowStockThreshold * 3, 1)) * 100, 100) };
+    return { level: 'healthy' as const, color: product.isBundle ? 'text-violet-600' : 'text-emerald-600', bg: product.isBundle ? 'bg-violet-500' : 'bg-emerald-500', barBg: product.isBundle ? 'bg-violet-100' : 'bg-emerald-100', label: product.isBundle ? 'Can build' : 'In stock', pct: Math.min((available / Math.max(product.lowStockThreshold * 3, 1)) * 100, 100) };
   }
 
   return (
@@ -355,7 +358,9 @@ export default function Inventory() {
               </tr>
             ) : (
               products.map((product) => {
-                const available = product.stockQty - product.reservedQty;
+                const available = product.isBundle && product._canBuild !== undefined
+                  ? product._canBuild
+                  : product.stockQty - product.reservedQty;
                 const stock = getStockLevel(product);
                 const locations = product.stockLocations?.map((sl) => sl.bin?.label).filter(Boolean) || [];
 
@@ -385,9 +390,14 @@ export default function Inventory() {
 
                     {/* Product Name */}
                     <td className="px-4 py-2.5">
-                      <p className="text-sm font-medium leading-tight text-foreground group-hover:text-primary transition-colors">
-                        {product.name}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-medium leading-tight text-foreground group-hover:text-primary transition-colors">
+                          {product.name}
+                        </p>
+                        {product.isBundle && (
+                          <span className="flex-shrink-0 rounded bg-violet-500/10 px-1 py-px text-[9px] font-semibold text-violet-600">BUNDLE</span>
+                        )}
+                      </div>
                     </td>
 
                     {/* SKU */}
