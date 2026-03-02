@@ -1,6 +1,5 @@
 import type { ShippingProvider, Carrier, ShippingService, CreateShipmentParams, ShipmentResult } from './types.js';
 
-// Shippo uses REST API — we call it directly with fetch
 const SHIPPO_BASE = 'https://api.goshippo.com';
 
 async function shippoFetch(path: string, apiKey: string, options: RequestInit = {}) {
@@ -40,66 +39,117 @@ export const shippoProvider: ShippingProvider = {
   },
 
   async getServices(apiKey: string, carrierId: string): Promise<ShippingService[]> {
-    // Shippo doesn't have a per-carrier service list endpoint
-    // Services are returned when creating a shipment/getting rates
-    // For now, return common services based on carrier name
-    const carriers = await shippoProvider.getCarriers(apiKey);
-    const carrier = carriers.find(c => c.id === carrierId);
-    if (!carrier) return [];
+    // Create a test shipment to discover available service levels for this carrier
+    // Use standard US test addresses
+    try {
+      const shipment = await shippoFetch('/shipments', apiKey, {
+        method: 'POST',
+        body: JSON.stringify({
+          address_from: {
+            name: 'Test', street1: '215 Clayton St.', city: 'San Francisco',
+            state: 'CA', zip: '94117', country: 'US',
+          },
+          address_to: {
+            name: 'Test', street1: '965 Mission St.', city: 'San Francisco',
+            state: 'CA', zip: '94105', country: 'US',
+          },
+          parcels: [{ length: '5', width: '5', height: '5', distance_unit: 'in', weight: '2', mass_unit: 'lb' }],
+          async: false,
+        }),
+      });
 
-    // Use rates endpoint to discover services
-    return [{ id: 'auto', name: 'Best available rate', carrierId }];
+      const rates = (shipment.rates || []).filter((r: any) => r.carrier_account === carrierId);
+      const seen = new Set<string>();
+      const services: ShippingService[] = [];
+
+      for (const rate of rates) {
+        const token = rate.servicelevel?.token;
+        if (token && !seen.has(token)) {
+          seen.add(token);
+          services.push({
+            id: token,
+            name: rate.servicelevel?.name || token,
+            carrierId,
+          });
+        }
+      }
+
+      return services.length > 0 ? services : [{ id: 'auto', name: 'Best available rate', carrierId }];
+    } catch {
+      return [{ id: 'auto', name: 'Best available rate', carrierId }];
+    }
   },
 
   async createShipment(apiKey: string, params: CreateShipmentParams): Promise<ShipmentResult> {
+    const distanceUnit = params.parcel.unit === 'kg' ? 'cm' : 'in';
+    const massUnit = params.parcel.unit === 'kg' ? 'kg' : 'lb';
+
+    // If we know the carrier + service, use single-call label creation (Workflow 2)
+    if (params.carrierId && params.serviceId && params.serviceId !== 'auto') {
+      const transaction = await shippoFetch('/transactions', apiKey, {
+        method: 'POST',
+        body: JSON.stringify({
+          shipment: {
+            address_from: formatAddress(params.fromAddress),
+            address_to: formatAddress(params.toAddress),
+            parcels: [{
+              length: String(params.parcel.length),
+              width: String(params.parcel.width),
+              height: String(params.parcel.height),
+              distance_unit: distanceUnit,
+              weight: String(params.parcel.weight),
+              mass_unit: massUnit,
+            }],
+          },
+          carrier_account: params.carrierId,
+          servicelevel_token: params.serviceId,
+          label_file_type: 'PDF',
+          async: false,
+        }),
+      });
+
+      if (transaction.status !== 'SUCCESS') {
+        throw new Error(`Label creation failed: ${JSON.stringify(transaction.messages)}`);
+      }
+
+      return {
+        providerShipmentId: transaction.object_id,
+        trackingNumber: transaction.tracking_number || '',
+        labelUrl: transaction.label_url || '',
+        trackingUrl: transaction.tracking_url_provider || '',
+        rate: transaction.rate ? { amount: parseFloat(transaction.rate), currency: 'USD' } : undefined,
+      };
+    }
+
+    // Workflow 1: Create shipment → get rates → pick best rate → purchase label
     const shipment = await shippoFetch('/shipments', apiKey, {
       method: 'POST',
       body: JSON.stringify({
-        address_from: {
-          name: params.fromAddress.name,
-          company: params.fromAddress.company || '',
-          street1: params.fromAddress.street1,
-          street2: params.fromAddress.street2 || '',
-          city: params.fromAddress.city,
-          state: params.fromAddress.state,
-          zip: params.fromAddress.zip,
-          country: params.fromAddress.country,
-          phone: params.fromAddress.phone || '',
-          email: params.fromAddress.email || '',
-        },
-        address_to: {
-          name: params.toAddress.name,
-          company: params.toAddress.company || '',
-          street1: params.toAddress.street1,
-          street2: params.toAddress.street2 || '',
-          city: params.toAddress.city,
-          state: params.toAddress.state,
-          zip: params.toAddress.zip,
-          country: params.toAddress.country,
-          phone: params.toAddress.phone || '',
-          email: params.toAddress.email || '',
-        },
+        address_from: formatAddress(params.fromAddress),
+        address_to: formatAddress(params.toAddress),
         parcels: [{
           length: String(params.parcel.length),
           width: String(params.parcel.width),
           height: String(params.parcel.height),
+          distance_unit: distanceUnit,
           weight: String(params.parcel.weight),
-          distance_unit: params.parcel.unit === 'kg' ? 'cm' : 'in',
-          mass_unit: params.parcel.unit,
+          mass_unit: massUnit,
         }],
         async: false,
       }),
     });
 
-    // Get best rate
+    // Find rate for the specified carrier, or cheapest overall
     const rates = shipment.rates || [];
-    const rate = rates.find((r: any) => r.carrier_account === params.carrierId) || rates[0];
+    const rate = (params.carrierId
+      ? rates.find((r: any) => r.carrier_account === params.carrierId)
+      : null) || rates[0];
 
     if (!rate) {
       throw new Error('No shipping rates available for this shipment');
     }
 
-    // Purchase the label via transaction
+    // Purchase the label
     const transaction = await shippoFetch('/transactions', apiKey, {
       method: 'POST',
       body: JSON.stringify({
@@ -122,3 +172,18 @@ export const shippoProvider: ShippingProvider = {
     };
   },
 };
+
+function formatAddress(addr: CreateShipmentParams['fromAddress']) {
+  return {
+    name: addr.name,
+    company: addr.company || '',
+    street1: addr.street1,
+    street2: addr.street2 || '',
+    city: addr.city,
+    state: addr.state,
+    zip: addr.zip,
+    country: addr.country,
+    phone: addr.phone || '',
+    email: addr.email || '',
+  };
+}
