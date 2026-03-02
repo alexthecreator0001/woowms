@@ -440,166 +440,262 @@ export default function ProductDetail() {
         { label: 'Low Threshold', value: product.lowStockThreshold, icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/20' },
       ];
 
+  const filteredTabs = TABS.filter((tab) => {
+    if (!isBundle) return true;
+    if (tab.key === 'purchase-orders' || tab.key === 'stock-history') return false;
+    return true;
+  });
+
+  const getTabCount = (key: TabKey) => {
+    if (key === 'orders' && ordersMeta && ordersMeta.total > 0) return ordersMeta.total;
+    if (key === 'purchase-orders' && posMeta && posMeta.total > 0) return posMeta.total;
+    if (key === 'stock-history' && movementsMeta && movementsMeta.total > 0) return movementsMeta.total;
+    return 0;
+  };
+
   return (
-    <div className="space-y-6">
-      {/* ─── Header ──────────────────────────────────────── */}
-      <div>
-        <button
-          onClick={() => navigate('/inventory')}
-          className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Inventory
-        </button>
+    <div>
+      {/* ─── Back Button ─────────────────────────────────── */}
+      <button
+        onClick={() => navigate('/inventory')}
+        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Inventory
+      </button>
 
-        <div className="flex items-start justify-between gap-5">
-          <div className="flex items-start gap-5">
-            {/* Product Image */}
-            <div className="flex-shrink-0">
-              {product.imageUrl ? (
-                <div className="h-20 w-20 overflow-hidden rounded-2xl border border-border/60 bg-muted/20 shadow-sm">
-                  <img src={proxyUrl(product.imageUrl, 160)!} alt={product.name} className="h-full w-full object-cover" />
-                </div>
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-border/60 bg-muted/30 shadow-sm">
-                  <ImageIcon className="h-7 w-7 text-muted-foreground/20" />
-                </div>
-              )}
-            </div>
-
-            {/* Title + Meta */}
-            <div className="min-w-0">
-              <h2 className="text-xl font-bold tracking-tight leading-tight">{product.name}</h2>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                {product.sku && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                    <Hash className="h-3 w-3" />
-                    {product.sku}
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-600">
-                  <Tag className="h-3 w-3" />
-                  {product.currency} {product.price}
-                </span>
-                {product.store && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                    <Store className="h-3 w-3" />
-                    {product.store.name}
-                  </span>
-                )}
-                {product.isBundle && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-violet-500/10 px-2 py-0.5 text-xs font-semibold text-violet-600">
-                    <Boxes className="h-3 w-3" />
-                    Bundle
-                  </span>
-                )}
-                {!product.isActive && (
-                  <span className="rounded-md bg-red-500/10 px-2 py-0.5 text-xs font-semibold text-red-500">Inactive</span>
-                )}
+      {/* ─── Mobile Header (lg:hidden) ───────────────────── */}
+      <div className="lg:hidden mb-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex-shrink-0">
+            {product.imageUrl ? (
+              <div className="h-8 w-8 overflow-hidden rounded-lg border border-border/60 bg-muted/20">
+                <img src={proxyUrl(product.imageUrl, 64)!} alt={product.name} className="h-full w-full object-cover" />
               </div>
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-muted/30">
+                <ImageIcon className="h-4 w-4 text-muted-foreground/20" />
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-bold truncate">{product.name}</h2>
+            <div className="flex items-center gap-2 mt-0.5">
+              {product.sku && <span className="text-xs text-muted-foreground font-mono">{product.sku}</span>}
+              <span className="text-xs font-semibold text-emerald-600">
+                {isBundle ? bundleAvailable : available} available
+              </span>
             </div>
           </div>
-
-          {/* Action buttons */}
-          <div className="flex flex-shrink-0 items-center gap-2">
+          <div className="flex flex-shrink-0 items-center gap-1.5">
             {!editing && (
               <button
                 onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-2 text-xs font-medium shadow-sm transition-all hover:bg-muted/60"
+                className="inline-flex items-center gap-1 rounded-lg border border-border/60 bg-background px-2.5 py-1.5 text-xs font-medium shadow-sm transition-all hover:bg-muted/60"
               >
-                <Pencil className="h-3.5 w-3.5" />
+                <Pencil className="h-3 w-3" />
                 Edit
-              </button>
-            )}
-            {!product.isBundle && (
-              <button
-                onClick={() => navigate('/receiving/new', { state: { sku: product.sku, productName: product.name } })}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-2 text-xs font-medium shadow-sm transition-all hover:bg-muted/60"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Create PO
               </button>
             )}
             <button
               onClick={handlePushStock}
               disabled={syncPushing}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:opacity-50"
+              className="inline-flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:opacity-50"
             >
-              {syncPushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CloudUpload className="h-3.5 w-3.5" />}
-              Push to WooCommerce
+              {syncPushing ? <Loader2 className="h-3 w-3 animate-spin" /> : <CloudUpload className="h-3 w-3" />}
+              Push
             </button>
           </div>
         </div>
 
-        {/* Push result feedback */}
+        {/* Mobile feedback messages */}
         {pushResult && (
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600">
+          <p className="mb-2 flex items-center gap-1.5 text-xs text-emerald-600">
             <Check className="h-3.5 w-3.5" />
             Pushed qty {pushResult.stockQuantity}, status: {pushResult.stockStatus}
           </p>
         )}
         {saveMsg && (
-          <p className={cn('mt-2 text-xs', saveMsg.includes('Failed') ? 'text-destructive' : 'text-emerald-600')}>{saveMsg}</p>
+          <p className={cn('mb-2 text-xs', saveMsg.includes('Failed') ? 'text-destructive' : 'text-emerald-600')}>{saveMsg}</p>
         )}
-      </div>
 
-      {/* ─── Stock Cards ─────────────────────────────────── */}
-      <div className={cn('grid gap-3', isBundle ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2 lg:grid-cols-5')}>
-        {stockCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <div key={card.label} className={cn('rounded-xl border p-4 shadow-sm', card.border)}>
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{card.label}</p>
-                <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg', card.bg)}>
-                  <Icon className={cn('h-4 w-4', card.color)} />
-                </div>
-              </div>
-              <p className={cn('mt-1 text-2xl font-bold tracking-tight', card.color)}>
-                {card.value.toLocaleString()}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ─── Tab Bar ─────────────────────────────────────── */}
-      <div className="border-b border-border/60">
-        <div className="flex gap-0.5">
-          {TABS.filter((tab) => {
-            if (!isBundle) return true;
-            // Hide PO, Stock History for bundles
-            if (tab.key === 'purchase-orders' || tab.key === 'stock-history') return false;
-            return true;
-          }).map((tab) => {
+        {/* Scrollable horizontal pills */}
+        <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-1 px-1">
+          {filteredTabs.map((tab) => {
             const Icon = tab.icon;
+            const count = getTabCount(tab.key);
             return (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={cn(
-                  'inline-flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
+                  'flex-shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
                   activeTab === tab.key
-                    ? 'border-primary text-foreground'
-                    : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground'
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-3.5 w-3.5" />
                 {tab.label}
-                {tab.key === 'orders' && ordersMeta && ordersMeta.total > 0 && (
-                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold">{ordersMeta.total}</span>
-                )}
-                {tab.key === 'purchase-orders' && posMeta && posMeta.total > 0 && (
-                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold">{posMeta.total}</span>
-                )}
-                {tab.key === 'stock-history' && movementsMeta && movementsMeta.total > 0 && (
-                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold">{movementsMeta.total}</span>
+                {count > 0 && (
+                  <span className={cn(
+                    'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+                    activeTab === tab.key ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-background/60 text-muted-foreground'
+                  )}>
+                    {count}
+                  </span>
                 )}
               </button>
             );
           })}
         </div>
       </div>
+
+      {/* ─── Main Layout ─────────────────────────────────── */}
+      <div className="lg:flex lg:gap-6">
+
+        {/* ─── Sidebar (desktop only) ──────────────────────── */}
+        <aside className="hidden lg:block lg:w-[240px] lg:flex-shrink-0">
+          <div className="sticky top-6 space-y-5">
+            {/* Product identity */}
+            <div className="rounded-xl border border-border/60 bg-card shadow-sm p-4">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="flex-shrink-0">
+                  {product.imageUrl ? (
+                    <div className="h-12 w-12 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-sm">
+                      <img src={proxyUrl(product.imageUrl, 96)!} alt={product.name} className="h-full w-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border/60 bg-muted/30 shadow-sm">
+                      <ImageIcon className="h-5 w-5 text-muted-foreground/20" />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-sm font-bold leading-tight line-clamp-2">{product.name}</h2>
+                </div>
+              </div>
+
+              {/* Badges */}
+              <div className="flex flex-wrap gap-1.5">
+                {product.sku && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    <Hash className="h-2.5 w-2.5" />
+                    {product.sku}
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600">
+                  <Tag className="h-2.5 w-2.5" />
+                  {product.currency} {product.price}
+                </span>
+                {product.store && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    <Store className="h-2.5 w-2.5" />
+                    {product.store.name}
+                  </span>
+                )}
+                {product.isBundle && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-violet-600">
+                    <Boxes className="h-2.5 w-2.5" />
+                    Bundle
+                  </span>
+                )}
+                {!product.isActive && (
+                  <span className="rounded-md bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-red-500">Inactive</span>
+                )}
+              </div>
+            </div>
+
+            {/* Stock summary */}
+            <div className="rounded-xl border border-border/60 bg-card shadow-sm p-4">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Stock</p>
+              <div className="divide-y divide-border/30">
+                {stockCards.map((card) => (
+                  <div key={card.label} className="flex items-center justify-between py-1.5">
+                    <span className="text-xs text-muted-foreground">{card.label}</span>
+                    <span className={cn('text-sm font-semibold tabular-nums', card.color)}>
+                      {card.value.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation links */}
+            <nav className="rounded-xl border border-border/60 bg-card shadow-sm p-2">
+              <div className="space-y-0.5">
+                {filteredTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const count = getTabCount(tab.key);
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveTab(tab.key)}
+                      className={cn(
+                        'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors',
+                        activeTab === tab.key
+                          ? 'bg-muted font-medium text-foreground'
+                          : 'text-muted-foreground hover:bg-muted/50'
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="flex-1 text-left">{tab.label}</span>
+                      {count > 0 && (
+                        <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
+
+            {/* Quick actions */}
+            <div className="space-y-2 border-t border-border/50 pt-4">
+              {!editing && (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-2 text-xs font-medium shadow-sm transition-all hover:bg-muted/60"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit Product
+                </button>
+              )}
+              {!product.isBundle && (
+                <button
+                  onClick={() => navigate('/receiving/new', { state: { sku: product.sku, productName: product.name } })}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-2 text-xs font-medium shadow-sm transition-all hover:bg-muted/60"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Create PO
+                </button>
+              )}
+              <button
+                onClick={handlePushStock}
+                disabled={syncPushing}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:opacity-50"
+              >
+                {syncPushing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CloudUpload className="h-3.5 w-3.5" />}
+                Push to WooCommerce
+              </button>
+            </div>
+
+            {/* Push result / save msg feedback */}
+            {pushResult && (
+              <p className="flex items-center gap-1.5 text-xs text-emerald-600">
+                <Check className="h-3.5 w-3.5" />
+                Pushed qty {pushResult.stockQuantity}, status: {pushResult.stockStatus}
+              </p>
+            )}
+            {saveMsg && (
+              <p className={cn('text-xs', saveMsg.includes('Failed') ? 'text-destructive' : 'text-emerald-600')}>{saveMsg}</p>
+            )}
+          </div>
+        </aside>
+
+        {/* ─── Content Area ────────────────────────────────── */}
+        <div className="min-w-0 flex-1">
 
       {/* ─── Tab Content ─────────────────────────────────── */}
 
@@ -1557,6 +1653,9 @@ export default function ProductDetail() {
           </div>
         </div>
       )}
+
+        </div>{/* end content area */}
+      </div>{/* end lg:flex */}
     </div>
   );
 }

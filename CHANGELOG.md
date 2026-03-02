@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.26.3] - 2026-03-02
+
+### Changed
+- **Product detail page redesign** — replaced horizontal tab navigation with a sidebar + content layout. Desktop shows a sticky left sidebar with product identity, stock summary, vertical navigation, and quick actions. Mobile collapses to a compact header with horizontal scrollable pill navigation
+
 ## [3.26.2 / 2.24.1] - 2026-03-02
 
 ### Fixed
