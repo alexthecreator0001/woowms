@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.28.1 / 2.26.1] - 2026-03-02
+
+### Fixed
+- **Shipping settings API key persistence** — shipping provider now correctly shows "Connected" state after page refresh. Backend returns `shippingProvider` and `hasShippingApiKey` in store data without exposing the encrypted key. Connected view shows placeholder indicating key is saved with option to update it
+
 ## [3.28.0 / 2.26.0] - 2026-03-02
 
 ### Added

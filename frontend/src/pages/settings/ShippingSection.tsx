@@ -42,6 +42,7 @@ export default function ShippingSection() {
   const [provider, setProvider] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [connected, setConnected] = useState(false);
+  const [hasStoredKey, setHasStoredKey] = useState(false);
   const [validating, setValidating] = useState(false);
   const [validateMsg, setValidateMsg] = useState('');
 
@@ -63,6 +64,7 @@ export default function ShippingSection() {
           if (store.shippingProvider) {
             setProvider(store.shippingProvider);
             setConnected(true);
+            setHasStoredKey(!!store.hasShippingApiKey);
           }
         }
 
@@ -101,6 +103,7 @@ export default function ShippingSection() {
         // Save the provider + key
         await api.patch('/shipping-config/store', { shippingProvider: provider, shippingApiKey: apiKey });
         setConnected(true);
+        setHasStoredKey(true);
         setValidateMsg('Connected successfully');
         setApiKey('');
         // Fetch carriers
@@ -121,6 +124,7 @@ export default function ShippingSection() {
     await api.patch('/shipping-config/store', { shippingProvider: null, shippingApiKey: null });
     setProvider('');
     setConnected(false);
+    setHasStoredKey(false);
     setCarriers([]);
   };
 
@@ -187,25 +191,55 @@ export default function ShippingSection() {
         </div>
         <div className="p-6 space-y-4">
           {connected ? (
-            <div className="flex items-center justify-between rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
-                  <PlugsConnected className="h-4 w-4 text-emerald-600" weight="duotone" />
+            <>
+              <div className="flex items-center justify-between rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+                    <PlugsConnected className="h-4 w-4 text-emerald-600" weight="duotone" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-700">
+                      {PROVIDERS.find((p) => p.value === provider)?.label || provider}
+                    </p>
+                    <p className="text-xs text-emerald-600/70">Connected</p>
+                  </div>
                 </div>
+                <button
+                  onClick={handleDisconnect}
+                  className="text-xs font-medium text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  Disconnect
+                </button>
+              </div>
+              {/* Update API key section */}
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <p className="text-sm font-semibold text-emerald-700">
-                    {PROVIDERS.find((p) => p.value === provider)?.label || provider}
-                  </p>
-                  <p className="text-xs text-emerald-600/70">Connected</p>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">API Key</label>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder={hasStoredKey ? 'API key saved (enter new to update)' : 'Enter your API key'}
+                    className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="flex items-end gap-3">
+                  <button
+                    onClick={handleValidate}
+                    disabled={!apiKey || validating}
+                    className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-background px-4 py-2 text-sm font-medium shadow-sm transition-all hover:bg-muted/60 disabled:opacity-50"
+                  >
+                    {validating ? <CircleNotch className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" weight="bold" />}
+                    Update Key
+                  </button>
+                  {validateMsg && (
+                    <span className={cn('text-xs font-medium', validateMsg.includes('success') ? 'text-emerald-600' : 'text-destructive')}>
+                      {validateMsg}
+                    </span>
+                  )}
                 </div>
               </div>
-              <button
-                onClick={handleDisconnect}
-                className="text-xs font-medium text-muted-foreground hover:text-destructive transition-colors"
-              >
-                Disconnect
-              </button>
-            </div>
+            </>
           ) : (
             <>
               <div className="grid gap-3 sm:grid-cols-2">

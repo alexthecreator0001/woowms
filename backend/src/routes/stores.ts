@@ -25,12 +25,19 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         orderStatusFilter: true,
         syncDaysBack: true,
         syncSinceDate: true,
+        shippingProvider: true,
+        shippingApiKey: true,
         createdAt: true,
         _count: { select: { orders: true, products: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
-    res.json({ data: stores });
+    // Never expose the encrypted API key — only return a boolean indicator
+    const data = stores.map(({ shippingApiKey, ...store }) => ({
+      ...store,
+      hasShippingApiKey: !!shippingApiKey,
+    }));
+    res.json({ data });
   } catch (err) {
     next(err);
   }
