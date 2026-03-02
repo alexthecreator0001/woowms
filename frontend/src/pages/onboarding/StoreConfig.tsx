@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Truck,
   CreditCard,
-  RefreshCw,
-  Loader2,
-  Check,
+  Truck,
   ArrowRight,
-  Settings,
-  ChevronDown,
-} from 'lucide-react';
+  CircleNotch,
+  CheckCircle,
+  GearSix,
+  CaretDown,
+  CurrencyDollar,
+  Coins,
+  Package,
+  ArrowsLeftRight,
+} from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import api from '../../services/api';
+import Logo from '../../components/Logo';
 
 interface ShippingMethod {
   methodId: string;
@@ -118,79 +122,82 @@ export default function StoreConfig() {
     navigate('/onboarding/warehouse-setup');
   };
 
+  // Loading state
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="grain font-display flex min-h-screen items-center justify-center bg-[#fafafa]">
+        <div className="text-center">
+          <CircleNotch size={32} className="mx-auto animate-spin text-[#a0a0a0]" />
+          <p className="mt-4 text-[14px] text-[#8a8a8a]">Loading store configuration...</p>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-2xl">
-        {/* Step indicators */}
-        <nav className="mb-8 flex items-center justify-center gap-3">
-          {[
-            { label: 'Account', done: true },
-            { label: 'Connect store', done: true },
-            { label: 'Store config', current: true },
-            { label: 'Warehouse setup', done: false },
-          ].map((step, i) => (
-            <div key={i} className="flex items-center gap-3">
-              {i > 0 && <div className="h-px w-8 bg-border" />}
-              <div className="flex items-center gap-1.5">
-                <div
-                  className={cn(
-                    'flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold',
-                    step.done
-                      ? 'bg-primary text-primary-foreground'
-                      : step.current
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  )}
-                >
-                  {step.done ? <Check className="h-3.5 w-3.5" /> : i + 1}
-                </div>
-                <span className={cn('text-xs font-medium', step.current ? 'text-foreground' : 'text-muted-foreground')}>
-                  {step.label}
-                </span>
-              </div>
-            </div>
-          ))}
-        </nav>
+  const enabledGateways = paymentGateways.filter(g => g.enabled);
+  const enabledShipping = shippingMethods.filter(m => m.enabled);
 
-        <div className="rounded-2xl border border-border/60 bg-card p-8 shadow-sm">
-          <div className="mb-6 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Settings className="h-6 w-6 text-primary" />
-            </div>
-            <h1 className="text-xl font-bold">Configure your store</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+  return (
+    <div className="grain font-display relative flex min-h-screen flex-col bg-[#fafafa]">
+      {/* Nav */}
+      <nav className="flex items-center justify-between px-6 py-5 sm:px-10">
+        <div className="flex items-center">
+          <Logo width={120} className="text-[#0a0a0a]" />
+        </div>
+        {/* Steps */}
+        <div className="flex items-center gap-3 text-[13px]">
+          <span className="flex items-center gap-1.5 text-[#a0a0a0]">
+            <CheckCircle size={16} weight="fill" className="text-emerald-500" />
+            Account
+          </span>
+          <span className="text-[#d5d5d5]">/</span>
+          <span className="flex items-center gap-1.5 text-[#a0a0a0]">
+            <CheckCircle size={16} weight="fill" className="text-emerald-500" />
+            Connect store
+          </span>
+          <span className="text-[#d5d5d5]">/</span>
+          <span className="font-semibold text-[#0a0a0a]">Store config</span>
+          <span className="text-[#d5d5d5]">/</span>
+          <span className="text-[#c5c5c5]">Warehouse setup</span>
+        </div>
+      </nav>
+
+      {/* Content */}
+      <div className="flex flex-1 items-start justify-center px-4 pb-16 pt-8 sm:pt-4">
+        <div className="w-full max-w-[560px]">
+          <div className="mb-8">
+            <h1 className="text-[28px] font-extrabold tracking-tight text-[#0a0a0a]">
+              Configure your store
+            </h1>
+            <p className="mt-2 text-[15px] leading-relaxed text-[#6b6b6b]">
               We fetched your WooCommerce settings. Review and configure how they map to your warehouse.
             </p>
           </div>
 
           {/* Payment Methods */}
           <div className="mb-6">
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-              Payment Methods
-            </h3>
-            {paymentGateways.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No payment gateways found.</p>
+            <div className="mb-3 flex items-center gap-2">
+              <CreditCard size={16} weight="bold" className="text-[#6b6b6b]" />
+              <span className="text-[13px] font-semibold text-[#0a0a0a]">Payment Methods</span>
+            </div>
+
+            {enabledGateways.length === 0 ? (
+              <div className="flex flex-col items-center rounded-xl border border-[#e5e5e5] bg-white py-8">
+                <CreditCard size={28} weight="duotone" className="mb-2 text-[#c5c5c5]" />
+                <p className="text-[13px] text-[#a0a0a0]">No payment methods found</p>
+              </div>
             ) : (
               <div className="space-y-2">
-                {paymentGateways.filter(g => g.enabled).map((gw) => (
+                {enabledGateways.map((gw) => (
                   <div
                     key={gw.id}
-                    className="flex items-center justify-between rounded-lg border border-border/60 px-4 py-2.5"
+                    className="flex items-center justify-between rounded-xl border border-[#e5e5e5] bg-white px-4 py-3"
                   >
                     <div>
-                      <p className="text-sm font-medium">{gw.title}</p>
-                      <p className="text-xs text-muted-foreground">{gw.id}</p>
+                      <p className="text-[14px] font-semibold text-[#0a0a0a]">{gw.title}</p>
+                      <p className="text-[12px] text-[#a0a0a0]">{gw.id}</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <button
                         onClick={() =>
                           setPaymentConfig((prev) => ({
@@ -199,12 +206,13 @@ export default function StoreConfig() {
                           }))
                         }
                         className={cn(
-                          'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+                          'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-all',
                           paymentConfig[gw.id]?.isPaid !== false
-                            ? 'bg-emerald-500/10 text-emerald-600'
-                            : 'bg-muted text-muted-foreground'
+                            ? 'bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20'
+                            : 'bg-[#f5f5f5] text-[#a0a0a0] hover:bg-[#efefef]'
                         )}
                       >
+                        <CurrencyDollar size={14} weight="bold" />
                         Prepaid
                       </button>
                       <button
@@ -215,12 +223,13 @@ export default function StoreConfig() {
                           }))
                         }
                         className={cn(
-                          'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+                          'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-all',
                           paymentConfig[gw.id]?.isPaid === false
-                            ? 'bg-amber-500/10 text-amber-600'
-                            : 'bg-muted text-muted-foreground'
+                            ? 'bg-amber-500/10 text-amber-600 ring-1 ring-amber-500/20'
+                            : 'bg-[#f5f5f5] text-[#a0a0a0] hover:bg-[#efefef]'
                         )}
                       >
+                        <Coins size={14} weight="bold" />
                         COD
                       </button>
                     </div>
@@ -232,96 +241,125 @@ export default function StoreConfig() {
 
           {/* Shipping Methods */}
           <div className="mb-6">
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-              <Truck className="h-4 w-4 text-muted-foreground" />
-              Shipping Methods
-            </h3>
-            {shippingMethods.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No shipping methods found.</p>
+            <div className="mb-3 flex items-center gap-2">
+              <Truck size={16} weight="bold" className="text-[#6b6b6b]" />
+              <span className="text-[13px] font-semibold text-[#0a0a0a]">Shipping Methods</span>
+            </div>
+
+            {enabledShipping.length === 0 ? (
+              <div className="flex flex-col items-center rounded-xl border border-[#e5e5e5] bg-white py-8">
+                <Package size={28} weight="duotone" className="mb-2 text-[#c5c5c5]" />
+                <p className="text-[13px] text-[#a0a0a0]">No shipping methods found</p>
+              </div>
             ) : (
               <div className="space-y-2">
-                {shippingMethods.filter(m => m.enabled).map((method) => (
+                {enabledShipping.map((method) => (
                   <div
                     key={method.methodId}
-                    className="flex items-center justify-between rounded-lg border border-border/60 px-4 py-2.5"
+                    className="flex items-center justify-between rounded-xl border border-[#e5e5e5] bg-white px-4 py-3"
                   >
                     <div>
-                      <p className="text-sm font-medium">{method.title}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[14px] font-semibold text-[#0a0a0a]">{method.title}</p>
+                      <p className="text-[12px] text-[#a0a0a0]">
                         {method.zoneName} &middot; {method.methodType}
                       </p>
                     </div>
-                    <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    <span className="rounded-lg bg-[#f5f5f5] px-2.5 py-1 text-[11px] font-semibold text-[#8a8a8a]">
                       Map in Settings
                     </span>
                   </div>
                 ))}
               </div>
             )}
-            <p className="mt-2 text-xs text-muted-foreground">
+
+            <p className="mt-2.5 text-[12px] leading-relaxed text-[#a0a0a0]">
               Shipping method carrier mapping can be configured in Settings after connecting a shipping provider.
             </p>
           </div>
 
           {/* Order Status Mapping */}
           <div className="mb-8">
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-              <RefreshCw className="h-4 w-4 text-muted-foreground" />
-              Order Status Mapping
-            </h3>
-            <p className="mb-3 text-xs text-muted-foreground">
+            <div className="mb-3 flex items-center gap-2">
+              <ArrowsLeftRight size={16} weight="bold" className="text-[#6b6b6b]" />
+              <span className="text-[13px] font-semibold text-[#0a0a0a]">Order Status Mapping</span>
+            </div>
+            <p className="mb-3 text-[12px] leading-relaxed text-[#a0a0a0]">
               When the app updates an order status, which WooCommerce status should it push back?
             </p>
-            <div className="space-y-2">
-              {APP_STATUSES.map((appStatus) => (
+
+            <div className="rounded-xl border border-[#e5e5e5] bg-white">
+              {APP_STATUSES.map((appStatus, index) => (
                 <div
                   key={appStatus.value}
-                  className="flex items-center gap-3 rounded-lg border border-border/60 px-4 py-2.5"
+                  className={cn(
+                    'flex items-center gap-3 px-4 py-3',
+                    index < APP_STATUSES.length - 1 && 'border-b border-[#f0f0f0]'
+                  )}
                 >
-                  <span className="w-24 text-sm font-medium">{appStatus.label}</span>
-                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-                  <select
-                    value={statusMapping[appStatus.value] || ''}
-                    onChange={(e) =>
-                      setStatusMapping((prev) => {
-                        const next = { ...prev };
-                        if (e.target.value) {
-                          next[appStatus.value] = e.target.value;
-                        } else {
-                          delete next[appStatus.value];
-                        }
-                        return next;
-                      })
-                    }
-                    className="flex-1 rounded-md border border-border/60 bg-background px-3 py-1.5 text-sm"
-                  >
-                    <option value="">-- Don't push --</option>
-                    {orderStatuses.map((s) => (
-                      <option key={s.slug} value={s.slug}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
+                  <span className="w-24 text-[13px] font-semibold text-[#0a0a0a]">
+                    {appStatus.label}
+                  </span>
+                  <ArrowRight size={14} weight="bold" className="text-[#c5c5c5]" />
+                  <div className="relative flex-1">
+                    <select
+                      value={statusMapping[appStatus.value] || ''}
+                      onChange={(e) =>
+                        setStatusMapping((prev) => {
+                          const next = { ...prev };
+                          if (e.target.value) {
+                            next[appStatus.value] = e.target.value;
+                          } else {
+                            delete next[appStatus.value];
+                          }
+                          return next;
+                        })
+                      }
+                      className="w-full appearance-none rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2 pr-8 text-[13px] text-[#0a0a0a] transition-all focus:border-[#0a0a0a] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#0a0a0a]/5"
+                    >
+                      <option value="">-- Don't push --</option>
+                      {orderStatuses.map((s) => (
+                        <option key={s.slug} value={s.slug}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                    <CaretDown
+                      size={14}
+                      weight="bold"
+                      className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#a0a0a0]"
+                    />
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center justify-between">
+          {/* Save & Continue */}
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#0a0a0a] text-[15px] font-semibold text-white transition-all hover:bg-[#1a1a1a] disabled:opacity-50"
+          >
+            {saving ? (
+              <>
+                <CircleNotch size={18} className="animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <GearSix size={18} weight="bold" />
+                Save & Continue
+              </>
+            )}
+          </button>
+
+          {/* Skip */}
+          <div className="mt-8 text-center">
             <button
               onClick={handleSkip}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="text-[13px] text-[#a0a0a0] transition-colors hover:text-[#6b6b6b]"
             >
               I'll set this up later
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:opacity-50"
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              Save & Continue
             </button>
           </div>
         </div>

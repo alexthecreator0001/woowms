@@ -3,6 +3,12 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.28.2 / 2.26.1] - 2026-03-02
+
+### Changed
+- **Onboarding VerifyEmail page restyled** — rewrote to match the polished ConnectStore/WarehouseSetup design: grain texture bg, Logo nav with slash-separated step indicators, centered layout, Phosphor icons, styled code input card, matching success state
+- **Onboarding StoreConfig page restyled** — rewrote to match the same design system: grain texture bg, Logo nav, Phosphor icons, nicer payment toggle buttons with icons, card-based status mapping with custom select dropdowns, empty states for missing data, full-width dark CTA button with skip link
+
 ## [3.28.1 / 2.26.1] - 2026-03-02
 
 ### Fixed
