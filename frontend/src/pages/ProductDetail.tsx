@@ -351,8 +351,21 @@ export default function ProductDetail() {
   const handleRemoveBundleItem = async (itemId: number) => {
     if (!id) return;
     try {
-      await api.delete(`/inventory/${id}/bundle/${itemId}`);
-      setBundleItems((prev) => prev.filter((i) => i.id !== itemId));
+      const { data } = await api.delete(`/inventory/${id}/bundle/${itemId}`);
+      const updated = bundleItems.filter((i) => i.id !== itemId);
+      setBundleItems(updated);
+      if (updated.length === 0) {
+        setProduct((prev) => prev ? { ...prev, isBundle: false } : prev);
+      }
+    } catch { /* ignore */ }
+  };
+
+  const handleRemoveBundle = async () => {
+    if (!id || bundleItems.length === 0) return;
+    try {
+      await Promise.all(bundleItems.map((item) => api.delete(`/inventory/${id}/bundle/${item.id}`)));
+      setBundleItems([]);
+      setProduct((prev) => prev ? { ...prev, isBundle: false } : prev);
     } catch { /* ignore */ }
   };
 
@@ -1352,6 +1365,19 @@ export default function ProductDetail() {
                   <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">{bundleItems.length}</span>
                 )}
               </h3>
+              {bundleItems.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Remove all components and convert back to a regular product?')) {
+                      handleRemoveBundle();
+                    }
+                  }}
+                  className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  Remove Bundle
+                </button>
+              )}
             </div>
             <div className="p-4">
               {bundleItems.length > 0 && (

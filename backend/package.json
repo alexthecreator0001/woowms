@@ -1,6 +1,6 @@
 {
   "name": "picknpack-backend",
-  "version": "2.23.2",
+  "version": "2.23.3",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",

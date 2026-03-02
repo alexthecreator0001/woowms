@@ -910,7 +910,14 @@ router.delete('/:id/bundle/:itemId', authorize('ADMIN', 'MANAGER'), async (req: 
     }
 
     await prismaClient.bundleItem.delete({ where: { id: itemId } });
-    res.json({ data: { message: 'Bundle component removed' } });
+
+    // If no components left, automatically unmark as bundle
+    const remaining = await prismaClient.bundleItem.count({ where: { bundleProductId: productId } });
+    if (remaining === 0) {
+      await prismaClient.product.update({ where: { id: productId }, data: { isBundle: false } });
+    }
+
+    res.json({ data: { message: 'Bundle component removed', isBundle: remaining > 0 } });
   } catch (err) { next(err); }
 });
 

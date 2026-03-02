@@ -3,6 +3,12 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.25.4 / 2.23.3] - 2026-03-02
+
+### Fixed
+- **Can remove bundle status from product** — added "Remove Bundle" button in Bundle tab that deletes all components and converts back to a regular product
+- **Auto-unbundle when last component removed** — backend now automatically sets `isBundle = false` when the last bundle component is deleted, so products no longer get stuck as bundles
+
 ## [3.25.3] - 2026-03-02
 
 ### Fixed
