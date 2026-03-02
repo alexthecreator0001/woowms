@@ -3,7 +3,17 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [3.23.3] - 2026-03-02
+## [3.24.0] - 2026-03-02
+
+### Added
+- **Bundle product display overhaul** — bundle products now have a completely different UI treatment:
+  - Stat cards show "Can Build" (calculated from components), "Components" count, and "Reserved" instead of regular stock metrics
+  - Violet "Bundle" badge displayed next to product name
+  - Overview tab shows "Component Stock" breakdown with per-component availability, limiting factor highlighted in amber
+  - Components are clickable to navigate to the component product
+  - "Create PO" button hidden (can't PO a bundle)
+  - "Purchase Orders" and "Stock History" tabs hidden for bundles
+  - "Incoming Stock" section hidden for bundles
 
 ### Fixed
 - **Bundle search dropdown no longer cut off** — dropdown auto-detects viewport space and opens upward when near the bottom of the page, so results are always fully visible and clickable

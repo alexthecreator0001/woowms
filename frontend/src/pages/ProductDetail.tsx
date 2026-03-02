@@ -366,14 +366,30 @@ export default function ProductDetail() {
 
   const available = product.stockQty - product.reservedQty;
   const isLow = available <= product.lowStockThreshold;
+  const isBundle = product.isBundle && bundleItems.length > 0;
 
-  const stockCards = [
-    { label: 'In Stock', value: product.stockQty, icon: Package, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
-    { label: 'Reserved', value: product.reservedQty, icon: Lock, color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-    { label: 'Available', value: available, icon: CircleCheck, color: isLow ? 'text-red-500' : 'text-emerald-600', bg: isLow ? 'bg-red-500/10' : 'bg-emerald-500/10', border: isLow ? 'border-red-500/20' : 'border-emerald-500/20' },
-    { label: 'Incoming', value: incoming, icon: Truck, color: 'text-blue-600', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
-    { label: 'Low Threshold', value: product.lowStockThreshold, icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/20' },
-  ];
+  // Bundle: available bundles = min of (component available / required qty) across all components
+  const bundleAvailable = isBundle
+    ? Math.max(0, Math.min(...bundleItems.map((i) => {
+        const compAvail = (i.componentProduct?.stockQty || 0) - (i.componentProduct?.reservedQty || 0);
+        return Math.floor(compAvail / i.quantity);
+      })))
+    : 0;
+  const bundleComponentCount = bundleItems.length;
+
+  const stockCards = isBundle
+    ? [
+        { label: 'Can Build', value: bundleAvailable, icon: Boxes, color: bundleAvailable > 0 ? 'text-violet-600' : 'text-red-500', bg: bundleAvailable > 0 ? 'bg-violet-500/10' : 'bg-red-500/10', border: bundleAvailable > 0 ? 'border-violet-500/20' : 'border-red-500/20' },
+        { label: 'Components', value: bundleComponentCount, icon: Package, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
+        { label: 'Reserved', value: product.reservedQty, icon: Lock, color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+      ]
+    : [
+        { label: 'In Stock', value: product.stockQty, icon: Package, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
+        { label: 'Reserved', value: product.reservedQty, icon: Lock, color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+        { label: 'Available', value: available, icon: CircleCheck, color: isLow ? 'text-red-500' : 'text-emerald-600', bg: isLow ? 'bg-red-500/10' : 'bg-emerald-500/10', border: isLow ? 'border-red-500/20' : 'border-emerald-500/20' },
+        { label: 'Incoming', value: incoming, icon: Truck, color: 'text-blue-600', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+        { label: 'Low Threshold', value: product.lowStockThreshold, icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/20' },
+      ];
 
   return (
     <div className="space-y-6">
@@ -422,6 +438,12 @@ export default function ProductDetail() {
                     {product.store.name}
                   </span>
                 )}
+                {product.isBundle && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-violet-500/10 px-2 py-0.5 text-xs font-semibold text-violet-600">
+                    <Boxes className="h-3 w-3" />
+                    Bundle
+                  </span>
+                )}
                 {!product.isActive && (
                   <span className="rounded-md bg-red-500/10 px-2 py-0.5 text-xs font-semibold text-red-500">Inactive</span>
                 )}
@@ -440,13 +462,15 @@ export default function ProductDetail() {
                 Edit
               </button>
             )}
-            <button
-              onClick={() => navigate('/receiving/new')}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-2 text-xs font-medium shadow-sm transition-all hover:bg-muted/60"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Create PO
-            </button>
+            {!product.isBundle && (
+              <button
+                onClick={() => navigate('/receiving/new')}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-2 text-xs font-medium shadow-sm transition-all hover:bg-muted/60"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Create PO
+              </button>
+            )}
             <button
               onClick={handlePushStock}
               disabled={syncPushing}
@@ -471,7 +495,7 @@ export default function ProductDetail() {
       </div>
 
       {/* ─── Stock Cards ─────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className={cn('grid gap-3', isBundle ? 'grid-cols-3' : 'grid-cols-2 lg:grid-cols-5')}>
         {stockCards.map((card) => {
           const Icon = card.icon;
           return (
@@ -493,7 +517,12 @@ export default function ProductDetail() {
       {/* ─── Tab Bar ─────────────────────────────────────── */}
       <div className="border-b border-border/60">
         <div className="flex gap-0.5">
-          {TABS.map((tab) => {
+          {TABS.filter((tab) => {
+            if (!isBundle) return true;
+            // Hide PO, Stock History for bundles
+            if (tab.key === 'purchase-orders' || tab.key === 'stock-history') return false;
+            return true;
+          }).map((tab) => {
             const Icon = tab.icon;
             return (
               <button
@@ -671,57 +700,114 @@ export default function ProductDetail() {
             </div>
           </div>
 
-          {/* Warehouse Locations */}
-          <div className="rounded-xl border border-border/60 bg-card shadow-sm">
-            <div className="border-b border-border/50 px-6 py-3.5">
-              <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                Warehouse Locations
-                {product.stockLocations && product.stockLocations.length > 0 && (
-                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                    {product.stockLocations.length}
+          {/* Warehouse Locations (regular) / Component Breakdown (bundle) */}
+          {isBundle ? (
+            <div className="rounded-xl border border-violet-500/20 bg-card shadow-sm">
+              <div className="border-b border-violet-500/10 px-6 py-3.5">
+                <h3 className="flex items-center gap-2 text-sm font-semibold">
+                  <Boxes className="h-4 w-4 text-violet-600" />
+                  Component Stock
+                  <span className="rounded-full bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-violet-600">
+                    {bundleItems.length}
                   </span>
-                )}
-              </h3>
-            </div>
-            <div className="p-4">
-              {product.stockLocations && product.stockLocations.length > 0 ? (
+                </h3>
+              </div>
+              <div className="p-4">
                 <div className="space-y-2">
-                  {product.stockLocations.map((sl) => (
-                    <div
-                      key={sl.id}
-                      className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 px-4 py-2.5 transition-colors hover:bg-muted/40"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
-                          <MapPin className="h-3.5 w-3.5 text-primary" />
+                  {bundleItems.map((item) => {
+                    const cp = item.componentProduct;
+                    const compAvail = (cp?.stockQty || 0) - (cp?.reservedQty || 0);
+                    const canMake = Math.floor(compAvail / item.quantity);
+                    const isLimiting = canMake === bundleAvailable;
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => cp && navigate(`/inventory/${cp.id}`)}
+                        className={cn(
+                          'flex items-center justify-between rounded-lg border px-4 py-2.5 transition-colors cursor-pointer',
+                          isLimiting && compAvail > 0 ? 'border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10' :
+                          compAvail <= 0 ? 'border-red-500/30 bg-red-500/5 hover:bg-red-500/10' :
+                          'border-border/40 bg-muted/20 hover:bg-muted/40'
+                        )}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{cp?.name || `Product #${item.componentProductId}`}</p>
+                          <div className="mt-0.5 flex items-center gap-2">
+                            {cp?.sku && <code className="text-[10px] text-muted-foreground">{cp.sku}</code>}
+                            <span className="text-[10px] text-muted-foreground">×{item.quantity} per bundle</span>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold">{sl.bin?.label}</p>
-                          {sl.bin?.zone && (
-                            <p className="text-[11px] text-muted-foreground">{sl.bin.zone.name} · {sl.bin.zone.type}</p>
-                          )}
+                        <div className="flex-shrink-0 text-right ml-3">
+                          <p className={cn('text-lg font-bold', compAvail <= 0 ? 'text-red-500' : 'text-foreground')}>{compAvail}</p>
+                          <p className="text-[9px] uppercase tracking-wider text-muted-foreground">avail</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-primary">{sl.quantity}</p>
-                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground">units</p>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
-              ) : (
-                <div className="py-8 text-center">
-                  <MapPin className="mx-auto mb-2 h-7 w-7 text-muted-foreground/20" />
-                  <p className="text-sm text-muted-foreground">No locations assigned</p>
-                </div>
-              )}
+                {bundleItems.some((i) => {
+                  const a = (i.componentProduct?.stockQty || 0) - (i.componentProduct?.reservedQty || 0);
+                  return Math.floor(a / i.quantity) === bundleAvailable && bundleAvailable >= 0;
+                }) && (
+                  <p className="mt-3 text-center text-[11px] text-muted-foreground">
+                    <AlertTriangle className="mr-1 inline h-3 w-3 text-amber-500" />
+                    Highlighted component is the limiting factor
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="rounded-xl border border-border/60 bg-card shadow-sm">
+              <div className="border-b border-border/50 px-6 py-3.5">
+                <h3 className="flex items-center gap-2 text-sm font-semibold">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  Warehouse Locations
+                  {product.stockLocations && product.stockLocations.length > 0 && (
+                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                      {product.stockLocations.length}
+                    </span>
+                  )}
+                </h3>
+              </div>
+              <div className="p-4">
+                {product.stockLocations && product.stockLocations.length > 0 ? (
+                  <div className="space-y-2">
+                    {product.stockLocations.map((sl) => (
+                      <div
+                        key={sl.id}
+                        className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 px-4 py-2.5 transition-colors hover:bg-muted/40"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
+                            <MapPin className="h-3.5 w-3.5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold">{sl.bin?.label}</p>
+                            {sl.bin?.zone && (
+                              <p className="text-[11px] text-muted-foreground">{sl.bin.zone.name} · {sl.bin.zone.type}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-primary">{sl.quantity}</p>
+                          <p className="text-[9px] uppercase tracking-wider text-muted-foreground">units</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center">
+                    <MapPin className="mx-auto mb-2 h-7 w-7 text-muted-foreground/20" />
+                    <p className="text-sm text-muted-foreground">No locations assigned</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Incoming Stock */}
-        {incomingPOs.length > 0 && (
+        {/* Incoming Stock — hidden for bundles */}
+        {!isBundle && incomingPOs.length > 0 && (
           <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 shadow-sm">
             <div className="border-b border-blue-500/20 px-6 py-3.5">
               <h3 className="flex items-center gap-2 text-sm font-semibold text-blue-700">
