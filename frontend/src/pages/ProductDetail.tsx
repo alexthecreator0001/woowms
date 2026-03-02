@@ -39,6 +39,7 @@ import { getStatusStyle } from '../lib/statuses';
 import api from '../services/api';
 import Pagination from '../components/Pagination';
 import ProductSearchDropdown from '../components/ProductSearchDropdown';
+import FloorPlanMini from '../components/warehouse/FloorPlanMini';
 import type {
   ProductDetail as ProductDetailType,
   StockMovement,
@@ -945,6 +946,18 @@ export default function ProductDetail() {
                     <MapPin className="mx-auto mb-2 h-7 w-7 text-muted-foreground/20" />
                     <p className="text-sm text-muted-foreground">No locations assigned</p>
                   </div>
+                )}
+
+                {/* Mini floor plan showing product location */}
+                {product.stockLocations && product.stockLocations.length > 0 && (
+                  <FloorPlanMini
+                    highlightZoneIds={[...new Set(
+                      product.stockLocations
+                        .map((sl) => sl.bin?.zone?.id)
+                        .filter((id): id is number => id != null)
+                    )]}
+                    className="mt-3"
+                  />
                 )}
               </div>
             </div>

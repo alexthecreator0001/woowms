@@ -3,6 +3,14 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.30.0 / 2.26.2] - 2026-03-02
+
+### Added
+- **Floor plan location on product detail** — warehouse locations card now shows a mini floor plan with the product's zone(s) highlighted in orange. Auto-fetches the warehouse floor plan and scales it to fit. Other zones shown dimmed for context
+
+### Removed
+- **Packing station from main app** — removed `/packing-station` route and sidebar nav item. Packing station is now only accessible via the `pack.*` subdomain
+
 ## [3.29.1 / 2.26.2] - 2026-03-02
 
 ### Changed

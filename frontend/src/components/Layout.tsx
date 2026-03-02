@@ -50,7 +50,6 @@ const navSections: NavSection[] = [
       { path: '/inventory', label: 'Inventory', icon: Cube },
       { path: '/warehouse', label: 'Locations', icon: Buildings },
       { path: '/picking', label: 'Picking', icon: ListChecks },
-      { path: '/packing-station', label: 'Packing', icon: Package },
     ],
   },
   {

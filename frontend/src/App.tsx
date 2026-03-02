@@ -148,7 +148,6 @@ export default function App() {
                 <Route path="/warehouse/:warehouseId" element={<WarehouseDetail />} />
                 <Route path="/warehouse/:warehouseId/zones/:zoneId" element={<ZoneDetail />} />
                 <Route path="/picking" element={<Picking />} />
-                <Route path="/packing-station" element={<PackingStation />} />
                 <Route path="/shipping" element={<Shipping />} />
                 <Route path="/receiving" element={<Receiving />} />
                 <Route path="/receiving/new" element={<POCreate />} />
