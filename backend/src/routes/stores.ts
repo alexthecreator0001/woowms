@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { authorize } from '../middleware/auth.js';
 import { syncOrders, syncProducts } from '../woocommerce/sync.js';
 import { encrypt } from '../lib/crypto.js';
+import { fetchShippingMethods, fetchPaymentGateways, fetchOrderStatuses } from '../woocommerce/fetch.js';
 import type { Prisma } from '@prisma/client';
 
 const router = Router();
@@ -170,6 +171,29 @@ router.post('/:id/sync', authorize('ADMIN', 'MANAGER'), async (req: Request, res
     });
 
     res.json({ data: { message: 'Sync complete' } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/stores/:id/woo-config — fetch WooCommerce configuration
+router.get('/:id/woo-config', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const store = await req.prisma!.store.findUnique({
+      where: { id: parseInt(req.params.id) },
+    });
+
+    if (!store) {
+      return res.status(404).json({ error: true, message: 'Store not found', code: 'NOT_FOUND' });
+    }
+
+    const [shippingMethods, paymentGateways, orderStatuses] = await Promise.all([
+      fetchShippingMethods(store),
+      fetchPaymentGateways(store),
+      fetchOrderStatuses(store),
+    ]);
+
+    res.json({ data: { shippingMethods, paymentGateways, orderStatuses } });
   } catch (err) {
     next(err);
   }

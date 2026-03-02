@@ -30,6 +30,9 @@ interface WooOrder {
   currency: string;
   date_created: string;
   line_items: WooLineItem[];
+  payment_method?: string;
+  payment_method_title?: string;
+  shipping_lines?: Array<{ method_id: string; method_title: string; instance_id?: string }>;
 }
 
 interface WooProduct {
@@ -141,6 +144,10 @@ export async function syncOrders(store: Store): Promise<void> {
           billingAddress: order.billing,
           total: order.total,
           currency: order.currency,
+          paymentMethod: order.payment_method || null,
+          paymentMethodTitle: order.payment_method_title || null,
+          shippingMethod: order.shipping_lines?.[0] ? `${order.shipping_lines[0].method_id}:${order.shipping_lines[0].instance_id || '0'}` : null,
+          shippingMethodTitle: order.shipping_lines?.[0]?.method_title || null,
           updatedAt: new Date(),
         },
         create: {
@@ -155,6 +162,11 @@ export async function syncOrders(store: Store): Promise<void> {
           billingAddress: order.billing,
           total: order.total,
           currency: order.currency,
+          paymentMethod: order.payment_method || null,
+          paymentMethodTitle: order.payment_method_title || null,
+          isPaid: order.payment_method !== 'cod',
+          shippingMethod: order.shipping_lines?.[0] ? `${order.shipping_lines[0].method_id}:${order.shipping_lines[0].instance_id || '0'}` : null,
+          shippingMethodTitle: order.shipping_lines?.[0]?.method_title || null,
           wooCreatedAt: new Date(order.date_created),
         },
       });

@@ -118,6 +118,22 @@ export default function OrderDetail() {
                   <span className={cn('h-1.5 w-1.5 rounded-full', status.dot)} />
                   {status.label}
                 </span>
+                {order.isPaid === false && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-600">
+                    COD
+                  </span>
+                )}
+                {order.isPaid !== false && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
+                    Paid
+                  </span>
+                )}
+                {order.shippingMethodTitle && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-600">
+                    <Truck className="h-3 w-3" />
+                    {order.shippingMethodTitle}
+                  </span>
+                )}
               </div>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {order.store?.name && <>{order.store.name} &middot; </>}

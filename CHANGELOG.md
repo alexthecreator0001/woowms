@@ -3,6 +3,24 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.27.0 / 2.25.0] - 2026-03-02
+
+### Added
+- **Shipping provider adapter** — provider-agnostic shipping integration supporting Shippo (with ShipStation API and SendCloud ready to add). Tenants connect their own account and API key
+- **Shipping method mapping** — pair WooCommerce shipping methods with carrier services so the packer just presses "Print Label" and the right carrier label prints
+- **Shipping & Labels settings page** — connect shipping provider, test API key, fetch WooCommerce methods, and configure carrier mapping
+- **Store Configuration onboarding step** — new step 3 in onboarding that auto-fetches WooCommerce shipping methods, payment gateways, and order statuses. Users configure payment types (prepaid vs COD) and status mapping
+- **Payment tracking on orders** — orders now store `paymentMethod`, `paymentMethodTitle`, and `isPaid` fields synced from WooCommerce. COD/Paid badges shown on order detail
+- **Shipping method on orders** — orders now store `shippingMethod` and `shippingMethodTitle` from WooCommerce shipping lines, displayed as a badge on order detail
+- **WooCommerce status push-back** — when app changes order status (e.g., to SHIPPED), it pushes the mapped WooCommerce status back automatically (configurable in settings)
+- **WooCommerce config fetch API** — new endpoint to fetch shipping methods, payment gateways, and order statuses from a connected WooCommerce store
+- **Shipping label creation endpoint** — `POST /api/v1/shipping-config/label` creates a shipping label via the connected provider, auto-selecting carrier from the shipping method mapping
+
+### Changed
+- **Order URLs use order numbers** — order detail routes now accept WooCommerce order numbers (e.g., `/orders/1234`) in addition to numeric DB IDs. Frontend links now use `orderNumber`
+- **Onboarding is now 4 steps** — Verify Email → Connect Store → Store Configuration → Warehouse Setup
+- **Order sync extracts more data** — payment method, payment title, shipping method, and shipping title are now captured during WooCommerce order sync
+
 ## [3.26.3] - 2026-03-02
 
 ### Changed

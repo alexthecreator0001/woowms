@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { pushOrderStatus } from '../woocommerce/fetch.js';
 
 const router = Router();
 
@@ -48,10 +49,17 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const prisma = req.prisma!;
-    const order = await prisma.order.findUnique({
-      where: { id: parseInt(req.params.id) },
-      include: { items: { include: { product: true } }, shipments: true, pickLists: { include: { items: true } }, store: true },
-    });
+    // Try numeric ID first (internal), then orderNumber (user-facing URL)
+    const isNumeric = /^\d+$/.test(req.params.id);
+    const order = isNumeric
+      ? await prisma.order.findUnique({
+          where: { id: parseInt(req.params.id) },
+          include: { items: { include: { product: true } }, shipments: true, pickLists: { include: { items: true } }, store: true },
+        })
+      : await prisma.order.findFirst({
+          where: { orderNumber: req.params.id, store: { tenantId: req.tenantId } },
+          include: { items: { include: { product: true } }, shipments: true, pickLists: { include: { items: true } }, store: true },
+        });
 
     if (!order || order.store.tenantId !== req.tenantId) {
       return res.status(404).json({ error: true, message: 'Order not found', code: 'NOT_FOUND' });
@@ -70,18 +78,33 @@ router.patch('/:id/status', async (req: Request, res: Response, next: NextFuncti
     const { status } = req.body as { status: string };
 
     // Verify ownership
-    const existing = await prisma.order.findUnique({
-      where: { id: parseInt(req.params.id) },
-      include: { store: true },
-    });
+    const isNumeric = /^\d+$/.test(req.params.id);
+    const existing = isNumeric
+      ? await prisma.order.findUnique({ where: { id: parseInt(req.params.id) }, include: { store: true } })
+      : await prisma.order.findFirst({ where: { orderNumber: req.params.id, store: { tenantId: req.tenantId } }, include: { store: true } });
     if (!existing || existing.store.tenantId !== req.tenantId) {
       return res.status(404).json({ error: true, message: 'Order not found', code: 'NOT_FOUND' });
     }
 
     const order = await prisma.order.update({
-      where: { id: parseInt(req.params.id) },
+      where: { id: existing!.id },
       data: { status },
     });
+
+    // Push status back to WooCommerce if auto-push is enabled
+    try {
+      const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId } });
+      const settings = (tenant?.settings as Record<string, any>) || {};
+      if (settings.autoStatusPush && settings.statusMapping) {
+        const wooStatus = settings.statusMapping[status];
+        if (wooStatus && existing!.store) {
+          await pushOrderStatus(existing!.store as any, existing!.wooId, wooStatus);
+        }
+      }
+    } catch (pushErr) {
+      console.error(`[STATUS] Failed to push status to WooCommerce:`, (pushErr as Error).message);
+    }
+
     res.json({ data: order });
   } catch (err) {
     next(err);

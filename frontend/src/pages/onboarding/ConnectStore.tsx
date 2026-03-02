@@ -31,7 +31,7 @@ export default function ConnectStore() {
     try {
       await api.post('/stores', form);
       setSuccess(true);
-      setTimeout(() => navigate('/onboarding/warehouse-setup'), 2000);
+      setTimeout(() => navigate('/onboarding/store-config'), 2000);
     } catch (err) {
       setError((err as AxiosError<{ message: string }>).response?.data?.message || 'Failed to connect store');
     } finally {
@@ -68,6 +68,8 @@ export default function ConnectStore() {
           </span>
           <span className="text-[#d5d5d5]">/</span>
           <span className="font-semibold text-[#0a0a0a]">Connect store</span>
+          <span className="text-[#d5d5d5]">/</span>
+          <span className="text-[#c5c5c5]">Store config</span>
           <span className="text-[#d5d5d5]">/</span>
           <span className="text-[#c5c5c5]">Warehouse setup</span>
         </div>
@@ -217,7 +219,7 @@ export default function ConnectStore() {
           {/* Skip */}
           <div className="mt-8 text-center">
             <button
-              onClick={() => navigate('/onboarding/warehouse-setup')}
+              onClick={() => navigate('/onboarding/store-config')}
               className="text-[13px] text-[#a0a0a0] transition-colors hover:text-[#6b6b6b]"
             >
               I'll connect later

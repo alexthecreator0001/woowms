@@ -136,7 +136,7 @@ export default function Orders() {
               return (
                 <tr
                   key={order.id}
-                  onClick={() => navigate(`/orders/${order.id}`)}
+                  onClick={() => navigate(`/orders/${order.orderNumber}`)}
                   className="group cursor-pointer border-l-4 border-l-transparent transition-all hover:border-l-primary hover:bg-primary/[0.03]"
                 >
                   {isVisible('order') && <td className="px-5 py-3.5 text-sm font-semibold">#{order.orderNumber}</td>}

@@ -110,6 +110,11 @@ export interface Order {
   customerEmail: string;
   total: string;
   currency: string;
+  paymentMethod?: string;
+  paymentMethodTitle?: string;
+  isPaid?: boolean;
+  shippingMethod?: string;
+  shippingMethodTitle?: string;
   wooCreatedAt: string;
   items: OrderItem[];
   _count?: { shipments: number };

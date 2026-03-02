@@ -79,10 +79,13 @@ model Store {
   orderStatusFilter String[]  @default(["processing", "on-hold", "pending"]) @map("order_status_filter")
   syncDaysBack      Int       @default(30) @map("sync_days_back")
   syncSinceDate     DateTime? @map("sync_since_date")
+  shippingProvider    String?  @map("shipping_provider")
+  shippingApiKey      String?  @map("shipping_api_key")
   createdAt         DateTime  @default(now()) @map("created_at")
 
-  orders   Order[]
-  products Product[]
+  orders           Order[]
+  products         Product[]
+  shippingMappings ShippingMapping[]
 
   @@index([tenantId])
   @@map("stores")
@@ -109,6 +112,11 @@ model Order {
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
   wooCreatedAt    DateTime     @map("woo_created_at")
+  paymentMethod       String?  @map("payment_method")
+  paymentMethodTitle  String?  @map("payment_method_title")
+  isPaid              Boolean  @default(true) @map("is_paid")
+  shippingMethod      String?  @map("shipping_method")
+  shippingMethodTitle String?  @map("shipping_method_title")
 
   items       OrderItem[]
   shipments   Shipment[]
@@ -358,6 +366,21 @@ enum ShipmentStatus {
   IN_TRANSIT
   DELIVERED
   RETURNED
+}
+
+model ShippingMapping {
+  id               Int      @id @default(autoincrement())
+  storeId          Int      @map("store_id")
+  store            Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  wooMethodId      String   @map("woo_method_id")
+  wooMethodTitle   String   @map("woo_method_title")
+  providerCarrier  String?  @map("provider_carrier")
+  providerService  String?  @map("provider_service")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@unique([storeId, wooMethodId])
+  @@map("shipping_mappings")
 }
 
 // ─── Receiving / Purchase Orders ─────────────────────

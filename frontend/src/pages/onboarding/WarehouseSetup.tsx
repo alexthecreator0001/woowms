@@ -69,6 +69,11 @@ export default function WarehouseSetup() {
             Connect store
           </span>
           <span className="text-[#d5d5d5]">/</span>
+          <span className="flex items-center gap-1.5 text-[#a0a0a0]">
+            <CheckCircle size={16} weight="fill" className="text-emerald-500" />
+            Store config
+          </span>
+          <span className="text-[#d5d5d5]">/</span>
           <span className="font-semibold text-[#0a0a0a]">Warehouse setup</span>
         </div>
       </nav>
