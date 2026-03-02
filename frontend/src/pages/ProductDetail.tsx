@@ -351,12 +351,8 @@ export default function ProductDetail() {
   const handleRemoveBundleItem = async (itemId: number) => {
     if (!id) return;
     try {
-      const { data } = await api.delete(`/inventory/${id}/bundle/${itemId}`);
-      const updated = bundleItems.filter((i) => i.id !== itemId);
-      setBundleItems(updated);
-      if (updated.length === 0) {
-        setProduct((prev) => prev ? { ...prev, isBundle: false } : prev);
-      }
+      await api.delete(`/inventory/${id}/bundle/${itemId}`);
+      setBundleItems((prev) => prev.filter((i) => i.id !== itemId));
     } catch { /* ignore */ }
   };
 
@@ -365,7 +361,6 @@ export default function ProductDetail() {
     try {
       await Promise.all(bundleItems.map((item) => api.delete(`/inventory/${id}/bundle/${item.id}`)));
       setBundleItems([]);
-      setProduct((prev) => prev ? { ...prev, isBundle: false } : prev);
     } catch { /* ignore */ }
   };
 
@@ -1326,8 +1321,48 @@ export default function ProductDetail() {
       {/* Bundle Tab */}
       {activeTab === 'bundle' && (
         <div className="space-y-6">
-          {/* Available Bundles metric */}
-          {bundleItems.length > 0 && (
+          {/* Bundle on/off toggle */}
+          <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
+            <button
+              type="button"
+              onClick={async () => {
+                const newVal = !product.isBundle;
+                try {
+                  await api.patch(`/inventory/${id}`, { isBundle: newVal });
+                  setProduct((prev) => prev ? { ...prev, isBundle: newVal } : prev);
+                } catch { /* ignore */ }
+              }}
+              className="flex w-full items-center justify-between px-6 py-4 text-left transition-colors hover:bg-muted/40"
+            >
+              <div className="flex items-center gap-3">
+                <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', product.isBundle ? 'bg-violet-500/10' : 'bg-muted/50')}>
+                  <Boxes className={cn('h-4.5 w-4.5', product.isBundle ? 'text-violet-600' : 'text-muted-foreground')} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Bundle product</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {product.isBundle ? 'This product is a bundle of other products' : 'Turn on to add component products to this bundle'}
+                  </p>
+                </div>
+              </div>
+              <div
+                className={cn(
+                  'flex h-6 w-11 flex-shrink-0 items-center rounded-full px-0.5 transition-colors',
+                  product.isBundle ? 'bg-violet-500' : 'bg-border'
+                )}
+              >
+                <div
+                  className={cn(
+                    'h-5 w-5 rounded-full bg-white shadow-sm transition-transform',
+                    product.isBundle ? 'translate-x-5' : 'translate-x-0'
+                  )}
+                />
+              </div>
+            </button>
+          </div>
+
+          {/* Available metric */}
+          {product.isBundle && bundleItems.length > 0 && (
             <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
@@ -1346,36 +1381,6 @@ export default function ProductDetail() {
             </div>
           )}
 
-          {/* Bundle toggle */}
-          {!product.isBundle && bundleItems.length === 0 && (
-            <div className="rounded-xl border border-border/60 bg-card p-6 text-center shadow-sm">
-              <Boxes className="mx-auto mb-3 h-8 w-8 text-muted-foreground/30" />
-              <p className="mb-1 text-sm font-medium">This product is not a bundle</p>
-              <p className="mb-4 text-xs text-muted-foreground">Add components to automatically mark it as a bundle product.</p>
-            </div>
-          )}
-
-          {/* Stuck bundle — isBundle true but no components */}
-          {product.isBundle && bundleItems.length === 0 && (
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-6 text-center shadow-sm">
-              <Boxes className="mx-auto mb-3 h-8 w-8 text-amber-500/50" />
-              <p className="mb-1 text-sm font-medium">This product is marked as a bundle but has no components</p>
-              <p className="mb-4 text-xs text-muted-foreground">Convert it back to a regular product, or add components below.</p>
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await api.patch(`/inventory/${id}`, { isBundle: false });
-                    setProduct((prev) => prev ? { ...prev, isBundle: false } : prev);
-                  } catch { /* ignore */ }
-                }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-white px-4 py-2 text-sm font-medium text-amber-700 shadow-sm transition-colors hover:bg-amber-50"
-              >
-                Convert to regular product
-              </button>
-            </div>
-          )}
-
           {/* Components table */}
           <div className="rounded-xl border border-border/60 bg-card shadow-sm">
             <div className="flex items-center justify-between border-b border-border/50 px-6 py-3.5">
@@ -1390,13 +1395,13 @@ export default function ProductDetail() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (confirm('Remove all components and convert back to a regular product?')) {
+                    if (confirm('Remove all components from this bundle?')) {
                       handleRemoveBundle();
                     }
                   }}
                   className="text-xs text-muted-foreground hover:text-destructive transition-colors"
                 >
-                  Remove Bundle
+                  Remove all
                 </button>
               )}
             </div>

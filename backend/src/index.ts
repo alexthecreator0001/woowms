@@ -55,14 +55,14 @@ app.use('/api/v1/auth', authRoutes);
 // WooCommerce webhooks — per-store, no JWT (uses HMAC verification)
 app.post('/api/webhooks/woocommerce/:storeId', handleStoreWebhook);
 
+// Image proxy — public (used by <img> tags which can't send JWT), SSRF-protected
+app.use('/api/v1/images', imageRoutes);
+
 // Zapier webhook — uses API key auth, not JWT (must be before authenticate middleware)
 app.use('/api/v1/zapier/webhook', zapierWebhookRouter);
 
 // All other API routes require authentication + tenant context
 app.use('/api/v1', authenticate, injectTenant);
-
-// Image proxy — behind auth (moved from public)
-app.use('/api/v1/images', imageRoutes);
 
 app.use('/api/v1/account', accountRoutes);
 app.use('/api/v1/team', teamRoutes);

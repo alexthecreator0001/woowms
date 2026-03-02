@@ -3,6 +3,13 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.26.2 / 2.24.1] - 2026-03-02
+
+### Fixed
+- **Images not loading** — reverted image proxy to public (SSRF protection still active). `<img>` tags can't send JWT headers, so auth broke all proxied images
+- **Bundle toggle** — replaced auto-bundle behavior with a simple on/off toggle switch. Bundle status is now independent of component count — you can turn it on/off anytime
+- **Remove bundle cleanup** — "Remove all" button removes components without changing bundle status. Toggle controls bundle status separately
+
 ## [3.26.1] - 2026-03-02
 
 ### Fixed
