@@ -150,7 +150,9 @@ export default function ElementProperties({
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="mb-0.5 block text-[10px] text-muted-foreground">Shelves</label>
+                <label className="mb-0.5 block text-[10px] text-muted-foreground">
+                  {element.type === 'pallet_storage' ? 'Rows' : 'Shelves'}
+                </label>
                 <input
                   type="number"
                   min={1}
@@ -162,10 +164,14 @@ export default function ElementProperties({
                   }}
                   className={cn(inputClasses, 'text-center !py-1')}
                 />
-                <p className="mt-0.5 text-[9px] text-muted-foreground/70">Levels (floor→top)</p>
+                <p className="mt-0.5 text-[9px] text-muted-foreground/70">
+                  {element.type === 'pallet_storage' ? 'Rows (front→back)' : 'Levels (floor→top)'}
+                </p>
               </div>
               <div>
-                <label className="mb-0.5 block text-[10px] text-muted-foreground">Positions</label>
+                <label className="mb-0.5 block text-[10px] text-muted-foreground">
+                  {element.type === 'pallet_storage' ? 'Spots' : 'Positions'}
+                </label>
                 <input
                   type="number"
                   min={1}
@@ -177,7 +183,9 @@ export default function ElementProperties({
                   }}
                   className={cn(inputClasses, 'text-center !py-1')}
                 />
-                <p className="mt-0.5 text-[9px] text-muted-foreground/70">Slots (left→right)</p>
+                <p className="mt-0.5 text-[9px] text-muted-foreground/70">
+                  {element.type === 'pallet_storage' ? 'Pallet spots per row' : 'Slots (left→right)'}
+                </p>
               </div>
             </div>
             <p className="mt-1.5 text-[10px] text-muted-foreground text-center">

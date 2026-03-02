@@ -192,7 +192,7 @@ export default function ZoneModal({
                   <div>
                     <p className="text-sm font-medium">{tpl.label}</p>
                     <p className="text-[11px] text-muted-foreground">
-                      {shelves} shelves &times; {positions} positions = {shelves * positions} locations
+                      {shelves} {selectedType === 'pallet_storage' ? 'rows' : 'shelves'} &times; {positions} {selectedType === 'pallet_storage' ? 'spots' : 'positions'} = {shelves * positions} locations
                     </p>
                   </div>
                 </div>
@@ -235,7 +235,9 @@ export default function ZoneModal({
             {/* Shelves + Positions */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1.5 block text-sm font-medium">Shelves</label>
+                <label className="mb-1.5 block text-sm font-medium">
+                  {selectedType === 'pallet_storage' ? 'Rows' : 'Shelves'}
+                </label>
                 <input
                   type="number"
                   min={1}
@@ -244,10 +246,14 @@ export default function ZoneModal({
                   onChange={(e) => setShelves(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
                   className={inputClasses}
                 />
-                <p className="mt-1 text-[10px] text-muted-foreground">Vertical levels (floor → top)</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {selectedType === 'pallet_storage' ? 'Rows (front → back)' : 'Vertical levels (floor → top)'}
+                </p>
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium">Positions / shelf</label>
+                <label className="mb-1.5 block text-sm font-medium">
+                  {selectedType === 'pallet_storage' ? 'Spots / row' : 'Positions / shelf'}
+                </label>
                 <input
                   type="number"
                   min={1}
@@ -256,7 +262,9 @@ export default function ZoneModal({
                   onChange={(e) => setPositions(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
                   className={inputClasses}
                 />
-                <p className="mt-1 text-[10px] text-muted-foreground">Horizontal slots (left → right)</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {selectedType === 'pallet_storage' ? 'Pallet spots per row' : 'Horizontal slots (left → right)'}
+                </p>
               </div>
             </div>
 

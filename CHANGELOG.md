@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.25.3] - 2026-03-02
+
+### Fixed
+- **Pallet storage uses correct labels** — pallet storage elements now show "Rows" / "Spots" instead of "Shelves" / "Positions" in both the floor plan properties panel and the zone creation modal. Help text also updated (e.g. "Rows (front→back)", "Pallet spots per row")
+
 ## [3.25.2 / 2.23.2] - 2026-03-02
 
 ### Fixed
