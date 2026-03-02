@@ -60,7 +60,7 @@ export const ELEMENT_TEMPLATES: ElementTemplate[] = [
     bgClass: 'bg-orange-500/10',
     borderClass: 'border-orange-500/30',
     textClass: 'text-orange-600',
-    hasZone: true,
+    hasZone: false,
   },
   {
     type: 'receiving_area',
@@ -72,7 +72,7 @@ export const ELEMENT_TEMPLATES: ElementTemplate[] = [
     bgClass: 'bg-amber-500/10',
     borderClass: 'border-amber-500/30',
     textClass: 'text-amber-600',
-    hasZone: true,
+    hasZone: false,
   },
   {
     type: 'shipping_area',
@@ -84,7 +84,7 @@ export const ELEMENT_TEMPLATES: ElementTemplate[] = [
     bgClass: 'bg-emerald-500/10',
     borderClass: 'border-emerald-500/30',
     textClass: 'text-emerald-600',
-    hasZone: true,
+    hasZone: false,
   },
   {
     type: 'pallet_storage',
@@ -108,7 +108,7 @@ export const ELEMENT_TEMPLATES: ElementTemplate[] = [
     bgClass: 'bg-teal-500/10',
     borderClass: 'border-teal-500/30',
     textClass: 'text-teal-600',
-    hasZone: true,
+    hasZone: false,
   },
   {
     type: 'staging_area',
@@ -120,7 +120,7 @@ export const ELEMENT_TEMPLATES: ElementTemplate[] = [
     bgClass: 'bg-pink-500/10',
     borderClass: 'border-pink-500/30',
     textClass: 'text-pink-600',
-    hasZone: true,
+    hasZone: false,
   },
   {
     type: 'wall',

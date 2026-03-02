@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.23.2] - 2026-03-02
+
+### Fixed
+- **Non-storage elements no longer create zones** — Packing Table, Receiving Area, Shipping Area, Dock Door, and Staging Area are now map-only elements on the floor plan. Only actual storage elements (Shelving Rack, Pallet Rack, Pallet Storage) create zones with bin locations
+
 ## [3.23.1] - 2026-03-01
 
 ### Changed
