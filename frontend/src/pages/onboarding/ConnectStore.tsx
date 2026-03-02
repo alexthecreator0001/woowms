@@ -24,16 +24,6 @@ export default function ConnectStore() {
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const completeOnboarding = async () => {
-    try {
-      const { data } = await api.post('/auth/complete-onboarding');
-      if (data.data.token) {
-        localStorage.setItem('token', data.data.token);
-      }
-    } catch {}
-    navigate('/');
-  };
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
@@ -41,7 +31,7 @@ export default function ConnectStore() {
     try {
       await api.post('/stores', form);
       setSuccess(true);
-      setTimeout(() => completeOnboarding(), 2000);
+      setTimeout(() => navigate('/onboarding/warehouse-setup'), 2000);
     } catch (err) {
       setError((err as AxiosError<{ message: string }>).response?.data?.message || 'Failed to connect store');
     } finally {
@@ -56,7 +46,7 @@ export default function ConnectStore() {
         <div className="text-center">
           <CheckCircle size={48} weight="fill" className="mx-auto mb-4 text-emerald-500" />
           <h1 className="text-[22px] font-extrabold tracking-tight text-[#0a0a0a]">You're all set</h1>
-          <p className="mt-2 text-[15px] text-[#6b6b6b]">Your store is connected. Redirecting...</p>
+          <p className="mt-2 text-[15px] text-[#6b6b6b]">Your store is connected. Setting up warehouse...</p>
           <CircleNotch size={20} className="mx-auto mt-6 animate-spin text-[#a0a0a0]" />
         </div>
       </div>
@@ -78,6 +68,8 @@ export default function ConnectStore() {
           </span>
           <span className="text-[#d5d5d5]">/</span>
           <span className="font-semibold text-[#0a0a0a]">Connect store</span>
+          <span className="text-[#d5d5d5]">/</span>
+          <span className="text-[#c5c5c5]">Warehouse setup</span>
         </div>
       </nav>
 
@@ -225,7 +217,7 @@ export default function ConnectStore() {
           {/* Skip */}
           <div className="mt-8 text-center">
             <button
-              onClick={completeOnboarding}
+              onClick={() => navigate('/onboarding/warehouse-setup')}
               className="text-[13px] text-[#a0a0a0] transition-colors hover:text-[#6b6b6b]"
             >
               I'll connect later

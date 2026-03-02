@@ -3,6 +3,17 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.26.0] - 2026-03-02
+
+### Added
+- **Warehouse setup onboarding step** — new onboarding page between "Connect Store" and completion where users choose their unit system (metric/imperial) and pallet type (EUR/GMA)
+- **Units & measurements settings** — new settings section under Warehouse settings to change unit system and pallet type after onboarding
+- **Floor plan auto-defaults from settings** — floor plan setup now reads the tenant's unit system setting to default to meters or feet
+- **Dynamic pallet dimensions** — element palette adjusts pallet rack and pallet storage default dimensions based on tenant pallet type (EUR: 1x1, GMA: 2x3/2x2)
+
+### Changed
+- **Connect Store onboarding flow** — now navigates to warehouse setup instead of completing onboarding directly; step indicators updated to show 3-step flow
+
 ## [2.24.0] - 2026-03-02
 
 ### Added

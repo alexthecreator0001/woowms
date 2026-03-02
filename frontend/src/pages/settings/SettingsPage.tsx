@@ -11,6 +11,7 @@ import {
   BellSimple,
   ArrowsLeftRight,
   Package,
+  Ruler,
 } from '@phosphor-icons/react';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
@@ -24,6 +25,7 @@ import BrandingSection from './BrandingSection';
 import NotificationsSection from './NotificationsSection';
 import OrderWorkflowSection from './OrderWorkflowSection';
 import InventoryDefaultsSection from './InventoryDefaultsSection';
+import UnitsSection from './UnitsSection';
 
 function getTokenPayload(): TokenPayload | null {
   const token = localStorage.getItem('token');
@@ -35,7 +37,7 @@ function getTokenPayload(): TokenPayload | null {
   }
 }
 
-type Section = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger' | 'notifications' | 'orderWorkflow' | 'inventoryDefaults';
+type Section = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger' | 'notifications' | 'orderWorkflow' | 'inventoryDefaults' | 'units';
 
 interface SettingsCard {
   id: Section;
@@ -56,6 +58,7 @@ const cards: SettingsCard[] = [
   { id: 'danger', title: 'Danger zone', description: 'Delete account and all data.', icon: Warning, group: 'Account settings', adminOnly: true, danger: true },
   { id: 'orderWorkflow', title: 'Order workflow', description: 'Map WooCommerce statuses to WMS statuses.', icon: ArrowsLeftRight, group: 'Warehouse settings', adminOnly: true },
   { id: 'inventoryDefaults', title: 'Inventory defaults', description: 'Low stock threshold and stock sync.', icon: Package, group: 'Warehouse settings', adminOnly: true },
+  { id: 'units', title: 'Units & measurements', description: 'Unit system and pallet type defaults.', icon: Ruler, group: 'Warehouse settings', adminOnly: true },
   { id: 'woocommerce', title: 'WooCommerce', description: 'Store connections and sync settings.', icon: Storefront, group: 'Integrations' },
 ];
 
@@ -92,6 +95,7 @@ export default function SettingsPage() {
         {active === 'notifications' && <NotificationsSection />}
         {active === 'orderWorkflow' && isAdmin && <OrderWorkflowSection />}
         {active === 'inventoryDefaults' && isAdmin && <InventoryDefaultsSection />}
+        {active === 'units' && isAdmin && <UnitsSection />}
         {active === 'danger' && isAdmin && <DangerZoneSection />}
       </div>
     );

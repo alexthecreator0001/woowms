@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { GridFour, Ruler } from '@phosphor-icons/react';
 import { cn } from '../../../lib/utils';
+import api from '../../../services/api';
 
 interface FloorPlanSetupProps {
   onCreate: (width: number, height: number, unit: 'm' | 'ft') => void;
@@ -10,6 +11,16 @@ export default function FloorPlanSetup({ onCreate }: FloorPlanSetupProps) {
   const [width, setWidth] = useState(20);
   const [height, setHeight] = useState(15);
   const [unit, setUnit] = useState<'m' | 'ft'>('ft');
+
+  useEffect(() => {
+    api.get('/account/tenant-settings')
+      .then(({ data }) => {
+        const settings = data.data || {};
+        if (settings.unitSystem === 'metric') setUnit('m');
+        else if (settings.unitSystem === 'imperial') setUnit('ft');
+      })
+      .catch(() => {});
+  }, []);
 
   const inputClasses = cn(
     'w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm',

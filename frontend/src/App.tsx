@@ -5,6 +5,7 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import VerifyEmail from './pages/onboarding/VerifyEmail';
 import ConnectStore from './pages/onboarding/ConnectStore';
+import WarehouseSetup from './pages/onboarding/WarehouseSetup';
 import Dashboard from './pages/Dashboard';
 import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
@@ -86,6 +87,14 @@ export default function App() {
         element={
           <OnboardingRoute>
             <ConnectStore />
+          </OnboardingRoute>
+        }
+      />
+      <Route
+        path="/onboarding/warehouse-setup"
+        element={
+          <OnboardingRoute>
+            <WarehouseSetup />
           </OnboardingRoute>
         }
       />

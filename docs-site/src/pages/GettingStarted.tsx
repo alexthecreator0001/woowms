@@ -52,7 +52,19 @@ export default function GettingStarted() {
         </p>
       </div>
 
-      <h2>3. Initial Product Sync</h2>
+      <h2>3. Warehouse Setup</h2>
+      <p>
+        After connecting your store, you'll be prompted to configure your warehouse defaults.
+        Choose your <strong>unit system</strong> (Metric or Imperial) and <strong>pallet type</strong> (EUR or GMA).
+        These defaults are used across the app — in the floor plan editor, element dimensions, and
+        warehouse settings. You can change these later in <strong>Settings &rarr; Units &amp; measurements</strong>.
+      </p>
+      <ul>
+        <li><strong>Metric</strong> — meters, kilograms, centimeters. Auto-selects EUR pallet (800&times;1200mm).</li>
+        <li><strong>Imperial</strong> — feet, pounds, inches. Auto-selects GMA pallet (48&times;40in).</li>
+      </ul>
+
+      <h2>4. Initial Product Sync</h2>
       <p>
         Once connected, PickNPack automatically syncs your products. Simple products are imported
         directly. <strong>Variable products</strong> (e.g., a T-shirt with size/color options) are
@@ -63,14 +75,14 @@ export default function GettingStarted() {
         few minutes (configurable in Settings).
       </p>
 
-      <h2>4. Configure Your Warehouse</h2>
+      <h2>5. Configure Your Warehouse Layout</h2>
       <p>
         Head to the <strong>Warehouse</strong> page to set up your physical layout. Create zones
         (Storage, Picking, Receiving, etc.) and use the location generator to create bin locations
         following the <code>Aisle-Rack-Shelf-Position</code> naming convention.
       </p>
 
-      <h2>5. You're Ready</h2>
+      <h2>6. You're Ready</h2>
       <p>
         With your store connected and warehouse configured, orders will flow in automatically.
         Use the <strong>Orders</strong> page to manage fulfillment, <strong>Picking</strong> to

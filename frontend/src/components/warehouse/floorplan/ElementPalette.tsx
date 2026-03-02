@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
   Rows,
   Package,
@@ -10,6 +11,7 @@ import {
   Clock,
 } from '@phosphor-icons/react';
 import { cn } from '../../../lib/utils';
+import api from '../../../services/api';
 import type { FloorPlanElementType } from '../../../types';
 
 export interface ElementTemplate {
@@ -136,6 +138,19 @@ export const ELEMENT_TEMPLATES: ElementTemplate[] = [
   },
 ];
 
+/** Returns element templates with pallet dimensions adjusted for the given pallet type. */
+export function getTemplates(palletType: 'EUR' | 'GMA' | null): ElementTemplate[] {
+  if (palletType === 'EUR') {
+    return ELEMENT_TEMPLATES.map((tpl) => {
+      if (tpl.type === 'pallet_rack') return { ...tpl, defaultW: 1, defaultH: 1 };
+      if (tpl.type === 'pallet_storage') return { ...tpl, defaultW: 1, defaultH: 1 };
+      return tpl;
+    });
+  }
+  // GMA (default) — keep original dimensions
+  return ELEMENT_TEMPLATES;
+}
+
 export function getTemplate(type: FloorPlanElementType): ElementTemplate {
   return ELEMENT_TEMPLATES.find((t) => t.type === type) || ELEMENT_TEMPLATES[0];
 }
@@ -146,12 +161,25 @@ interface ElementPaletteProps {
 }
 
 export default function ElementPalette({ activeTool, onSelect }: ElementPaletteProps) {
+  const [palletType, setPalletType] = useState<'EUR' | 'GMA' | null>(null);
+
+  useEffect(() => {
+    api.get('/account/tenant-settings')
+      .then(({ data }) => {
+        const settings = data.data || {};
+        if (settings.palletType) setPalletType(settings.palletType);
+      })
+      .catch(() => {});
+  }, []);
+
+  const templates = getTemplates(palletType);
+
   return (
     <div className="space-y-1.5">
       <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
         Elements
       </p>
-      {ELEMENT_TEMPLATES.map((tpl) => {
+      {templates.map((tpl) => {
         const isActive = activeTool === tpl.type;
         return (
           <button
