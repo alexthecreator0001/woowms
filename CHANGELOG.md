@@ -3,6 +3,13 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.30.2 / 2.26.3] - 2026-03-02
+
+### Fixed
+- **Floor plan mini visualization** — all elements now render as neutral gray (#e0e0e0), highlighted product zones in emerald green (#10b981) with quantity badge displayed inside. Clean, minimal look replacing the previous colorful visualization
+- **Assign-to-bin stock validation** — backend now blocks assigning more pieces to bins than the product has in stock. Returns clear error message with remaining unassigned count
+- **Assign form max qty** — frontend assign form shows how many units are unassigned, caps the input at max available, and disables the button when all stock is already assigned
+
 ## [3.30.1 / 2.26.2] - 2026-03-02
 
 ### Added

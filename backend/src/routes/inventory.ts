@@ -955,10 +955,24 @@ router.post('/:id/assign-bin', authorize('ADMIN', 'MANAGER'), async (req: Reques
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      include: { store: true },
+      include: {
+        store: true,
+        stockLocations: { select: { quantity: true } },
+      },
     });
     if (!product || product.store.tenantId !== req.tenantId) {
       return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
+    }
+
+    // Validate: total assigned across all bins must not exceed stockQty
+    const totalAssigned = product.stockLocations.reduce((sum, sl) => sum + sl.quantity, 0);
+    const remaining = product.stockQty - totalAssigned;
+    if (quantity > remaining) {
+      return res.status(400).json({
+        error: true,
+        message: `Cannot assign ${quantity} — only ${remaining} unassigned (${product.stockQty} in stock, ${totalAssigned} already assigned)`,
+        code: 'EXCEEDS_STOCK',
+      });
     }
 
     const bin = await prisma.bin.findUnique({

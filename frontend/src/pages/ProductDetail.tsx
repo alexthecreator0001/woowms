@@ -963,50 +963,60 @@ export default function ProductDetail() {
                 </button>
               </div>
               {/* Assign bin form */}
-              {assignOpen && (
-                <div className="border-b border-border/40 bg-muted/20 px-6 py-3">
-                  <div className="flex items-end gap-2">
-                    <div className="flex-1">
-                      <label className="mb-1 block text-[11px] font-semibold text-muted-foreground">Bin</label>
-                      <select
-                        value={assignBinId}
-                        onChange={(e) => setAssignBinId(parseInt(e.target.value))}
-                        className="h-8 w-full rounded-md border border-border bg-background px-2 text-[12px] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
+              {assignOpen && (() => {
+                const totalAssigned = (product.stockLocations || []).reduce((s, sl) => s + sl.quantity, 0);
+                const maxAssignable = Math.max(0, product.stockQty - totalAssigned);
+                return (
+                  <div className="border-b border-border/40 bg-muted/20 px-6 py-3">
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <label className="mb-1 block text-[11px] font-semibold text-muted-foreground">Bin</label>
+                        <select
+                          value={assignBinId}
+                          onChange={(e) => setAssignBinId(parseInt(e.target.value))}
+                          className="h-8 w-full rounded-md border border-border bg-background px-2 text-[12px] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
+                        >
+                          {allBins.map((b) => (
+                            <option key={b.id} value={b.id}>{b.label} — {b.zoneName}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="w-20">
+                        <label className="mb-1 block text-[11px] font-semibold text-muted-foreground">Qty</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max={maxAssignable}
+                          value={assignQty}
+                          onChange={(e) => setAssignQty(e.target.value)}
+                          className="h-8 w-full rounded-md border border-border bg-background px-2 text-center text-[12px] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
+                        />
+                      </div>
+                      <button
+                        onClick={handleAssignBin}
+                        disabled={assigning || !assignBinId || maxAssignable <= 0}
+                        className="h-8 rounded-md bg-primary px-3 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                       >
-                        {allBins.map((b) => (
-                          <option key={b.id} value={b.id}>{b.label} — {b.zoneName}</option>
-                        ))}
-                      </select>
+                        {assigning ? '...' : 'Add'}
+                      </button>
+                      <button
+                        onClick={() => setAssignOpen(false)}
+                        className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted/40"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
                     </div>
-                    <div className="w-20">
-                      <label className="mb-1 block text-[11px] font-semibold text-muted-foreground">Qty</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={assignQty}
-                        onChange={(e) => setAssignQty(e.target.value)}
-                        className="h-8 w-full rounded-md border border-border bg-background px-2 text-center text-[12px] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
-                      />
-                    </div>
-                    <button
-                      onClick={handleAssignBin}
-                      disabled={assigning || !assignBinId}
-                      className="h-8 rounded-md bg-primary px-3 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-                    >
-                      {assigning ? '...' : 'Add'}
-                    </button>
-                    <button
-                      onClick={() => setAssignOpen(false)}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted/40"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
+                    {maxAssignable <= 0 ? (
+                      <p className="mt-2 text-[11px] text-amber-600">All {product.stockQty} units already assigned to bins.</p>
+                    ) : (
+                      <p className="mt-2 text-[11px] text-muted-foreground">{maxAssignable} of {product.stockQty} unassigned</p>
+                    )}
+                    {allBins.length === 0 && (
+                      <p className="mt-2 text-[11px] text-muted-foreground">No bins found. Create zones and bins in Warehouse first.</p>
+                    )}
                   </div>
-                  {allBins.length === 0 && (
-                    <p className="mt-2 text-[11px] text-muted-foreground">No bins found. Create zones and bins in Warehouse first.</p>
-                  )}
-                </div>
-              )}
+                );
+              })()}
 
               <div className="p-4">
                 {product.stockLocations && product.stockLocations.length > 0 ? (
@@ -1049,6 +1059,11 @@ export default function ProductDetail() {
                         .map((sl) => sl.bin?.zone?.id)
                         .filter((id): id is number => id != null)
                     )]}
+                    zoneQty={product.stockLocations.reduce((acc, sl) => {
+                      const zId = sl.bin?.zone?.id;
+                      if (zId != null) acc[zId] = (acc[zId] || 0) + sl.quantity;
+                      return acc;
+                    }, {} as Record<number, number>)}
                     className="mt-3"
                   />
                 )}
