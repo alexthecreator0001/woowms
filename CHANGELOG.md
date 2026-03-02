@@ -3,6 +3,12 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.23.3] - 2026-03-02
+
+### Fixed
+- **Bundle search dropdown no longer cut off** — dropdown auto-detects viewport space and opens upward when near the bottom of the page, so results are always fully visible and clickable
+- **Bundle search returns more results** — increased from 8 to 15 results for better discoverability
+
 ## [3.23.2] - 2026-03-02
 
 ### Fixed

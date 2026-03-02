@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Loader2, ImageIcon, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { proxyUrl } from '../lib/image';
@@ -26,8 +26,17 @@ export default function ProductSearchDropdown({ onSelect, excludeIds = [], place
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [dropUp, setDropUp] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-detect whether to open upward based on viewport space
+  const updateDropDirection = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    setDropUp(spaceBelow < 350);
+  }, []);
 
   // Debounced search
   useEffect(() => {
@@ -40,10 +49,11 @@ export default function ProductSearchDropdown({ onSelect, excludeIds = [], place
     const timer = setTimeout(async () => {
       try {
         setLoading(true);
-        const { data } = await api.get('/inventory', { params: { search: query, limit: 8 } });
+        const { data } = await api.get('/inventory', { params: { search: query, limit: 15 } });
         setResults(data.data as Product[]);
         setOpen(true);
         setActiveIndex(-1);
+        updateDropDirection();
       } catch {
         setResults([]);
       } finally {
@@ -104,7 +114,7 @@ export default function ProductSearchDropdown({ onSelect, excludeIds = [], place
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={() => filteredResults.length > 0 && setOpen(true)}
+          onFocus={() => { if (filteredResults.length > 0) { updateDropDirection(); setOpen(true); } }}
           placeholder={placeholder}
           autoFocus={autoFocus}
           className="h-9 w-full rounded-lg border border-border/60 bg-background pl-9 pr-9 text-sm shadow-sm placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -113,7 +123,10 @@ export default function ProductSearchDropdown({ onSelect, excludeIds = [], place
       </div>
 
       {open && filteredResults.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-[320px] overflow-y-auto rounded-lg border border-border/60 bg-card shadow-lg">
+        <div className={cn(
+          "absolute left-0 right-0 z-20 max-h-[320px] overflow-y-auto rounded-lg border border-border/60 bg-card shadow-lg",
+          dropUp ? 'bottom-full mb-1' : 'top-full mt-1'
+        )}>
           {filteredResults.map((product, index) => {
             const available = product.stockQty - product.reservedQty;
             return (
@@ -168,7 +181,10 @@ export default function ProductSearchDropdown({ onSelect, excludeIds = [], place
       )}
 
       {open && query.length >= 2 && !loading && filteredResults.length === 0 && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-lg border border-border/60 bg-card px-4 py-6 text-center shadow-lg">
+        <div className={cn(
+          "absolute left-0 right-0 z-20 rounded-lg border border-border/60 bg-card px-4 py-6 text-center shadow-lg",
+          dropUp ? 'bottom-full mb-1' : 'top-full mt-1'
+        )}>
           <p className="text-sm text-muted-foreground">No products found</p>
           <p className="mt-0.5 text-xs text-muted-foreground/50">Try a different search term</p>
         </div>
