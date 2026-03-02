@@ -16,7 +16,7 @@ router.get('/queue', async (req: Request, res: Response, next: NextFunction) => 
         store: { tenantId: req.tenantId },
       },
       include: {
-        items: { include: { product: true } },
+        items: { include: { product: { include: { stockLocations: { include: { bin: true }, take: 1 } } } } },
         pickLists: { include: { items: true } },
         shipments: true,
         store: true,
@@ -69,7 +69,7 @@ router.post('/start', async (req: Request, res: Response, next: NextFunction) =>
           : `Packing started by user ${req.user!.id} at ${new Date().toISOString()}`,
       },
       include: {
-        items: { include: { product: true } },
+        items: { include: { product: { include: { stockLocations: { include: { bin: true }, take: 1 } } } } },
         pickLists: { include: { items: true } },
         shipments: true,
         store: true,

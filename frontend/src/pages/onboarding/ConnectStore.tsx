@@ -216,15 +216,6 @@ export default function ConnectStore() {
             </div>
           </form>
 
-          {/* Skip */}
-          <div className="mt-8 text-center">
-            <button
-              onClick={() => navigate('/onboarding/store-config')}
-              className="text-[13px] text-[#a0a0a0] transition-colors hover:text-[#6b6b6b]"
-            >
-              I'll connect later
-            </button>
-          </div>
         </div>
       </div>
     </div>

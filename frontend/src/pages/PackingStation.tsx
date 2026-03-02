@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Package as PhPackage } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
+import { proxyUrl } from '../lib/image';
 import api from '../services/api';
 import type { Order, OrderItem } from '../types';
 
@@ -32,6 +33,7 @@ export default function PackingStation({ standalone = false }: PackingStationPro
   const [labelResult, setLabelResult] = useState<{ trackingNumber: string; labelUrl: string } | null>(null);
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
   const [skipLoading, setSkipLoading] = useState(false);
+  const [error, setError] = useState('');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const activeOrder = queue.find((o) => o.id === activeOrderId) || null;
@@ -82,6 +84,7 @@ export default function PackingStation({ standalone = false }: PackingStationPro
   const handleSelectOrder = async (orderId: number) => {
     setActiveOrderId(orderId);
     setLabelResult(null);
+    setError('');
     try {
       await api.post('/packing/start', { orderId });
     } catch (err) {
@@ -100,6 +103,7 @@ export default function PackingStation({ standalone = false }: PackingStationPro
     if (!activeOrderId) return;
     setPacking(true);
     setLabelResult(null);
+    setError('');
     try {
       const { data } = await api.post('/packing/complete', { orderId: activeOrderId });
       const label = data.data?.label;
@@ -112,8 +116,9 @@ export default function PackingStation({ standalone = false }: PackingStationPro
         setActiveOrderId(updated.length > 0 ? updated[0].id : null);
         return updated;
       });
-    } catch (err) {
-      console.error('Failed to complete packing:', err);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Failed to create label. Check Settings > Shipping.';
+      setError(msg);
     } finally {
       setPacking(false);
     }
@@ -326,6 +331,7 @@ export default function PackingStation({ standalone = false }: PackingStationPro
                 <thead>
                   <tr className="border-b border-border/40 bg-muted/20">
                     <th className="w-10 px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground" />
+                    <th className="w-14 px-2 py-2.5" />
                     <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Product</th>
                     <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">SKU</th>
                     <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Qty</th>
@@ -360,6 +366,21 @@ export default function PackingStation({ standalone = false }: PackingStationPro
                           >
                             {isChecked && <Check className="h-3 w-3" />}
                           </button>
+                        </td>
+                        <td className="px-2 py-3">
+                          <div className="h-10 w-10 overflow-hidden rounded-lg border border-border/40 bg-muted/30">
+                            {item.product?.imageUrl ? (
+                              <img
+                                src={proxyUrl(item.product.imageUrl, 80)!}
+                                alt=""
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center">
+                                <Package className="h-4 w-4 text-muted-foreground/30" />
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td className="px-5 py-3 text-sm font-medium">{item.name}</td>
                         <td className="px-5 py-3">
@@ -415,8 +436,16 @@ export default function PackingStation({ standalone = false }: PackingStationPro
                   Ship Without Label
                 </button>
 
+                {/* Error feedback */}
+                {error && (
+                  <div className="ml-auto flex items-center gap-2 rounded-lg bg-red-500/10 px-4 py-2">
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                    <span className="text-sm font-medium text-red-700">{error}</span>
+                  </div>
+                )}
+
                 {/* Label success feedback */}
-                {labelResult && (
+                {labelResult && !error && (
                   <div className="ml-auto flex items-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-2">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                     <span className="text-sm font-medium text-emerald-700">

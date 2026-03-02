@@ -3,6 +3,16 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.28.3 / 2.26.2] - 2026-03-02
+
+### Fixed
+- **Packing station shows product images** — items table now displays product thumbnail in each row using the image proxy
+- **Packing station error feedback** — "Print Label & Ship" failures now show a red error banner with the actual API error message instead of silently logging to console
+- **Packing station bin locations** — backend query now includes stock location / bin data so the Bin column populates correctly
+
+### Removed
+- **Onboarding skip buttons** — removed "I'll connect later" and "I'll set this up later" skip links from ConnectStore, StoreConfig, and WarehouseSetup onboarding pages
+
 ## [3.28.2 / 2.26.1] - 2026-03-02
 
 ### Changed
