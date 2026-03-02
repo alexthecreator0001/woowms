@@ -3,6 +3,16 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.25.0] - 2026-03-02
+
+### Added
+- **Product search in PO creation** — added ProductSearchDropdown to PO create page so you can search for products by name/SKU instead of typing manually
+- **Prefill PO from product page** — clicking "Create PO" on a product detail page now prefills the first line item with that product's SKU and name
+- **Supplier SKU management from product detail** — can now add and delete supplier SKU mappings directly from the product detail page (Overview tab, Supplier SKUs card)
+
+### Changed
+- **Bundle stat cards show own stock** — bundle products now show 4 cards: "Can Build" (from components), "In Stock" (own assembled stock), "Reserved", "Components". Previously hid the product's own stock which made it look like stock disappeared
+
 ## [3.24.0] - 2026-03-02
 
 ### Added

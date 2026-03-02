@@ -154,6 +154,12 @@ export default function ProductDetail() {
   const [bundleItems, setBundleItems] = useState<BundleItem[]>([]);
   const [bundleAdding, setBundleAdding] = useState(false);
 
+  // Supplier SKU add form
+  const [suppliersList, setSuppliersList] = useState<Array<{ id: number; name: string }>>([]);
+  const [spAddOpen, setSpAddOpen] = useState(false);
+  const [spForm, setSpForm] = useState({ supplierId: 0, supplierSku: '', supplierPrice: '', leadTimeDays: '' });
+  const [spAdding, setSpAdding] = useState(false);
+
   // ─── Data loading ─────────────────────────────────────
 
   useEffect(() => {
@@ -199,6 +205,13 @@ export default function ProductDetail() {
       })
       .catch(() => {});
   }, [id]);
+
+  // Load suppliers list (for supplier SKU add form)
+  useEffect(() => {
+    api.get('/suppliers', { params: { limit: 200 } })
+      .then(({ data }) => setSuppliersList((data.data || []).map((s: { id: number; name: string }) => ({ id: s.id, name: s.name }))))
+      .catch(() => {});
+  }, []);
 
   const loadOrders = useCallback((page: number) => {
     if (!id) return;
@@ -351,6 +364,33 @@ export default function ProductDetail() {
     } catch { /* ignore */ }
   };
 
+  // Supplier SKU handlers
+  const handleAddSupplierSku = async () => {
+    if (!spForm.supplierId || !spForm.supplierSku.trim()) return;
+    setSpAdding(true);
+    try {
+      await api.post(`/suppliers/${spForm.supplierId}/products`, {
+        productId: parseInt(id || '0'),
+        supplierSku: spForm.supplierSku.trim(),
+        supplierPrice: spForm.supplierPrice ? parseFloat(spForm.supplierPrice) : undefined,
+        leadTimeDays: spForm.leadTimeDays ? parseInt(spForm.leadTimeDays) : undefined,
+      });
+      // Reload product to refresh supplierProducts
+      const { data } = await api.get(`/inventory/${id}`);
+      setProduct(data.data);
+      setSpForm({ supplierId: 0, supplierSku: '', supplierPrice: '', leadTimeDays: '' });
+      setSpAddOpen(false);
+    } catch { /* ignore */ }
+    finally { setSpAdding(false); }
+  };
+
+  const handleDeleteSupplierSku = async (supplierId: number, productId: number) => {
+    try {
+      await api.delete(`/suppliers/${supplierId}/products/${productId}`);
+      setProduct((prev) => prev ? { ...prev, supplierProducts: prev.supplierProducts?.filter((sp) => !(sp.supplierId === supplierId && sp.productId === productId)) } : prev);
+    } catch { /* ignore */ }
+  };
+
 
   // ─── Render ───────────────────────────────────────────
 
@@ -380,8 +420,9 @@ export default function ProductDetail() {
   const stockCards = isBundle
     ? [
         { label: 'Can Build', value: bundleAvailable, icon: Boxes, color: bundleAvailable > 0 ? 'text-violet-600' : 'text-red-500', bg: bundleAvailable > 0 ? 'bg-violet-500/10' : 'bg-red-500/10', border: bundleAvailable > 0 ? 'border-violet-500/20' : 'border-red-500/20' },
-        { label: 'Components', value: bundleComponentCount, icon: Package, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
+        { label: 'In Stock', value: product.stockQty, icon: Package, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
         { label: 'Reserved', value: product.reservedQty, icon: Lock, color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+        { label: 'Components', value: bundleComponentCount, icon: AlertTriangle, color: 'text-muted-foreground', bg: 'bg-muted/50', border: 'border-border/60' },
       ]
     : [
         { label: 'In Stock', value: product.stockQty, icon: Package, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
@@ -464,7 +505,7 @@ export default function ProductDetail() {
             )}
             {!product.isBundle && (
               <button
-                onClick={() => navigate('/receiving/new')}
+                onClick={() => navigate('/receiving/new', { state: { sku: product.sku, productName: product.name } })}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-2 text-xs font-medium shadow-sm transition-all hover:bg-muted/60"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -495,7 +536,7 @@ export default function ProductDetail() {
       </div>
 
       {/* ─── Stock Cards ─────────────────────────────────── */}
-      <div className={cn('grid gap-3', isBundle ? 'grid-cols-3' : 'grid-cols-2 lg:grid-cols-5')}>
+      <div className={cn('grid gap-3', isBundle ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2 lg:grid-cols-5')}>
         {stockCards.map((card) => {
           const Icon = card.icon;
           return (
@@ -922,7 +963,7 @@ export default function ProductDetail() {
 
           {/* Supplier SKUs */}
           <div className="rounded-xl border border-border/60 bg-card shadow-sm">
-            <div className="border-b border-border/50 px-6 py-3.5">
+            <div className="flex items-center justify-between border-b border-border/50 px-6 py-3.5">
               <h3 className="flex items-center gap-2 text-sm font-semibold">
                 <Link2 className="h-4 w-4 text-muted-foreground" />
                 Supplier SKUs
@@ -930,8 +971,76 @@ export default function ProductDetail() {
                   <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">{product.supplierProducts.length}</span>
                 )}
               </h3>
+              {!spAddOpen && (
+                <button onClick={() => setSpAddOpen(true)} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground">
+                  <Plus className="h-3 w-3" /> Add
+                </button>
+              )}
             </div>
             <div className="p-4">
+              {/* Add form */}
+              {spAddOpen && (
+                <div className="mb-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-0.5 block text-[10px] font-medium text-muted-foreground">Supplier</label>
+                      <select
+                        value={spForm.supplierId}
+                        onChange={(e) => setSpForm({ ...spForm, supplierId: parseInt(e.target.value) || 0 })}
+                        className="h-8 w-full rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      >
+                        <option value={0}>Select supplier...</option>
+                        {suppliersList.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-0.5 block text-[10px] font-medium text-muted-foreground">Supplier SKU</label>
+                      <input
+                        type="text"
+                        value={spForm.supplierSku}
+                        onChange={(e) => setSpForm({ ...spForm, supplierSku: e.target.value })}
+                        placeholder="e.g. SUP-12345"
+                        className="h-8 w-full rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-0.5 block text-[10px] font-medium text-muted-foreground">Price</label>
+                      <input
+                        type="number"
+                        step={0.01}
+                        min={0}
+                        value={spForm.supplierPrice}
+                        onChange={(e) => setSpForm({ ...spForm, supplierPrice: e.target.value })}
+                        placeholder="0.00"
+                        className="h-8 w-full rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-0.5 block text-[10px] font-medium text-muted-foreground">Lead Time (days)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={spForm.leadTimeDays}
+                        onChange={(e) => setSpForm({ ...spForm, leadTimeDays: e.target.value })}
+                        placeholder="e.g. 14"
+                        className="h-8 w-full rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-2.5 flex items-center justify-end gap-2">
+                    <button onClick={() => { setSpAddOpen(false); setSpForm({ supplierId: 0, supplierSku: '', supplierPrice: '', leadTimeDays: '' }); }} className="rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/60">Cancel</button>
+                    <button
+                      onClick={handleAddSupplierSku}
+                      disabled={spAdding || !spForm.supplierId || !spForm.supplierSku.trim()}
+                      className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      {spAdding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                      Add
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {product.supplierProducts && product.supplierProducts.length > 0 ? (
                 <div className="space-y-2">
                   {product.supplierProducts.map((sp: SupplierProduct) => (
@@ -945,19 +1054,28 @@ export default function ProductDetail() {
                         </button>
                         <p className="text-[11px] text-muted-foreground">SKU: {sp.supplierSku}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium">{sp.supplierPrice ? `$${parseFloat(sp.supplierPrice).toFixed(2)}` : '—'}</p>
-                        {sp.leadTimeDays && <p className="text-[10px] text-muted-foreground">{sp.leadTimeDays}d lead</p>}
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="text-sm font-medium">{sp.supplierPrice ? `$${parseFloat(sp.supplierPrice).toFixed(2)}` : '—'}</p>
+                          {sp.leadTimeDays && <p className="text-[10px] text-muted-foreground">{sp.leadTimeDays}d lead</p>}
+                        </div>
+                        <button
+                          onClick={() => handleDeleteSupplierSku(sp.supplierId, sp.productId)}
+                          className="p-1 text-muted-foreground/40 hover:text-red-500 transition-colors"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     </div>
                   ))}
                 </div>
-              ) : (
+              ) : !spAddOpen ? (
                 <div className="py-6 text-center">
                   <Link2 className="mx-auto mb-2 h-6 w-6 text-muted-foreground/20" />
                   <p className="text-xs text-muted-foreground">No supplier mappings</p>
+                  <button onClick={() => setSpAddOpen(true)} className="mt-2 text-xs font-medium text-primary hover:underline">Add supplier SKU</button>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -1041,7 +1159,7 @@ export default function ProductDetail() {
               Purchase Orders for {product.sku || 'this product'}
             </h3>
             <button
-              onClick={() => navigate('/receiving/new')}
+              onClick={() => navigate('/receiving/new', { state: { sku: product.sku, productName: product.name } })}
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
             >
               <Plus className="h-3.5 w-3.5" />

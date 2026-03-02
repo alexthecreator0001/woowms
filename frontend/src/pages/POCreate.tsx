@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
   PackageOpen,
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
+import ProductSearchDropdown from '../components/ProductSearchDropdown';
 import type { Supplier } from '../types';
 
 interface POItemForm {
@@ -33,15 +34,19 @@ function generatePONumber(): string {
 
 export default function POCreate() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Prefill from navigation state (e.g., from product detail "Create PO")
+  const prefill = (location.state as { sku?: string; productName?: string } | null) || {};
 
   const [poNumber, setPoNumber] = useState(generatePONumber);
   const [supplier, setSupplier] = useState('');
   const [expectedDate, setExpectedDate] = useState('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<POItemForm[]>([
-    { key: itemKeyCounter++, sku: '', productName: '', orderedQty: 1, unitCost: '' },
+    { key: itemKeyCounter++, sku: prefill.sku || '', productName: prefill.productName || '', orderedQty: 1, unitCost: '' },
   ]);
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -299,8 +304,33 @@ export default function POCreate() {
                 className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border/60 px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted/40"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Add Item
+                Add Row
               </button>
+            </div>
+            {/* Product Search */}
+            <div className="border-b border-border/40 px-6 py-3">
+              <ProductSearchDropdown
+                onSelect={(product) => {
+                  // Check if there's an empty first row to fill
+                  const emptyIdx = items.findIndex((i) => !i.sku && !i.productName);
+                  if (emptyIdx >= 0) {
+                    setItems((prev) =>
+                      prev.map((i, idx) =>
+                        idx === emptyIdx
+                          ? { ...i, sku: product.sku || '', productName: product.name, orderedQty: 1 }
+                          : i
+                      )
+                    );
+                  } else {
+                    setItems((prev) => [
+                      ...prev,
+                      { key: itemKeyCounter++, sku: product.sku || '', productName: product.name, orderedQty: 1, unitCost: '' },
+                    ]);
+                  }
+                }}
+                excludeIds={[]}
+                placeholder="Search product to add..."
+              />
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
