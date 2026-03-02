@@ -91,7 +91,7 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
-  const resultItemsRef = useRef<Array<{ type: string; id: number }>>([]);
+  const resultItemsRef = useRef<Array<{ type: string; slug: string }>>([]);
 
   useEffect(() => {
     if (open) {
