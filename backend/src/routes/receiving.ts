@@ -161,6 +161,12 @@ router.get('/:id/pdf', async (req: Request, res: Response, next: NextFunction) =
     const template = (['modern', 'classic', 'minimal'].includes(settings.poTemplate as string) ? settings.poTemplate : 'modern') as PoTemplate;
     const companyName = tenant?.name || '';
     const logoUrl = (settings.logoUrl as string) || null;
+    const stampUrl = (settings.stampUrl as string) || null;
+    const companyAddress = (settings.companyAddress as string) || null;
+    const companyEmail = (settings.companyEmail as string) || null;
+    const companyPhone = (settings.companyPhone as string) || null;
+    const companyVatId = (settings.companyVatId as string) || null;
+    const companyWebsite = (settings.companyWebsite as string) || null;
 
     // Decode logo data URL to PNG buffer (PDFKit doesn't support WebP)
     let logoBuffer: Buffer | null = null;
@@ -170,6 +176,17 @@ router.get('/:id/pdf', async (req: Request, res: Response, next: NextFunction) =
         try {
           logoBuffer = await sharp(Buffer.from(match[1], 'base64')).png().toBuffer();
         } catch { /* skip broken logo */ }
+      }
+    }
+
+    // Decode stamp data URL to PNG buffer
+    let stampBuffer: Buffer | null = null;
+    if (stampUrl && stampUrl.startsWith('data:')) {
+      const match = stampUrl.match(/^data:[^;]+;base64,(.+)$/);
+      if (match) {
+        try {
+          stampBuffer = await sharp(Buffer.from(match[1], 'base64')).png().toBuffer();
+        } catch { /* skip broken stamp */ }
       }
     }
 
@@ -242,7 +259,18 @@ router.get('/:id/pdf', async (req: Request, res: Response, next: NextFunction) =
       }),
     };
 
-    const pdfDoc = await generatePoPdf(poData, { template, companyName, logoBuffer, brandColor });
+    const pdfDoc = await generatePoPdf(poData, {
+      template,
+      companyName,
+      logoBuffer,
+      stampBuffer,
+      brandColor,
+      companyAddress,
+      companyEmail,
+      companyPhone,
+      companyVatId,
+      companyWebsite,
+    });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${po.poNumber}.pdf"`);

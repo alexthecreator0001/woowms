@@ -113,8 +113,32 @@ export default function Receiving() {
       <h2>PDF Export</h2>
       <p>
         Click <strong>Download PDF</strong> on any PO to generate a professional purchase order
-        document with header, supplier info, items table, totals, and notes. Useful for sending
-        to suppliers or archiving.
+        document. Useful for sending to suppliers or archiving.
+      </p>
+      <p>
+        Three distinct PDF templates are available, configurable in <strong>Settings &gt; Branding</strong>:
+      </p>
+      <ul>
+        <li>
+          <strong>Modern</strong> — Color accent bar, logo + &quot;PURCHASE ORDER&quot; header, barcode,
+          three colored info boxes (Supplier, Deliver To, From), table with alternating row
+          tints, accent-colored total box, and stamp/signature support.
+        </li>
+        <li>
+          <strong>Classic</strong> — Traditional bordered layout with company info and PO details
+          in a header box, bordered supplier/delivery boxes, full-grid table with gray header,
+          right-aligned subtotal/total text, and stamp/signature support.
+        </li>
+        <li>
+          <strong>Minimal</strong> — Ultra-clean design with large PO number, inline metadata,
+          simple labeled text blocks (no boxes), light table with bottom borders only (Product
+          column first), and minimal footer showing only page numbers.
+        </li>
+      </ul>
+      <p>
+        All templates include your company details (address, email, phone, VAT ID, website) when
+        configured in Branding settings. If a company stamp image is uploaded, it appears above
+        the signature line on the PDF.
       </p>
 
       <h2>Search & Filters</h2>

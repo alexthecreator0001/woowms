@@ -3,6 +3,13 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.53.0] - 2026-03-03
+
+### Added
+- **3 distinct PO PDF templates** — Modern, Classic, and Minimal templates now render with truly different layouts instead of sharing one design. Modern has accent bars, colored info boxes, and branded total box. Classic uses bordered header, grid-style table, and traditional right-aligned totals. Minimal features large PO number, no boxes, thin separators, and Product-first column order.
+- **Company details on PO PDF** — All templates show company address, email, phone, VAT ID, and website. Modern in a "From" info box, Classic in the header area, Minimal as small text below PO number.
+- **Stamp/signature on PO PDF** — When a company stamp image is uploaded in Branding settings, it renders at ~80x80pt above the "Authorized Signature" line on all templates.
+
 ## [3.52.0] - 2026-03-03
 
 ### Added
