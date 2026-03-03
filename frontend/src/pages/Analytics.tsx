@@ -249,7 +249,7 @@ function SalesChart({ data, currency }: { data: { date: string; total: number; o
 /* ─── World Map ──────────────────────────────────────── */
 
 function WorldMap({ ordersByCountry }: { ordersByCountry: { country: string; count: number; total: number }[] }) {
-  const countryMap = new Map(ordersByCountry.map((c) => [c.code || c.country, c]));
+  const countryMap = new Map(ordersByCountry.map((c) => [c.country, c]));
   const maxCount = Math.max(...ordersByCountry.map((c) => c.count), 1);
 
   return (
