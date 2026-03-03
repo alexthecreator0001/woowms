@@ -3,7 +3,7 @@ export interface TokenPayload {
   id: number;
   tenantId: number;
   email: string;
-  role: 'ADMIN' | 'MANAGER' | 'STAFF' | 'PICKER';
+  role: 'ADMIN' | 'MANAGER' | 'STAFF' | 'PICKER' | 'PACKER';
   name: string;
   emailVerified: boolean;
   onboardingCompleted: boolean;
@@ -311,6 +311,7 @@ export interface InventoryStats {
 export interface UserPreferences {
   orderColumns?: string[];
   inventoryColumns?: string[];
+  supplierColumns?: string[];
 }
 
 export interface TableColumnDef {
@@ -327,6 +328,7 @@ export interface Supplier {
   email: string | null;
   phone: string | null;
   address: string | null;
+  website: string | null;
   notes: string | null;
   isActive: boolean;
   createdAt: string;
@@ -391,6 +393,7 @@ export interface PurchaseOrderItem {
   orderedQty: number;
   receivedQty: number;
   unitCost: string | null;
+  imageUrl?: string | null;
 }
 
 export interface PurchaseOrder {

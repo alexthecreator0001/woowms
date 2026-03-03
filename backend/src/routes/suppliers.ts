@@ -53,8 +53,11 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     const supplier = await req.prisma!.supplier.findFirst({
       where: { id: supplierId },
       include: {
-        supplierProducts: { include: { product: true } },
-        purchaseOrders: { orderBy: { createdAt: 'desc' }, take: 10 },
+        supplierProducts: {
+          include: { product: { select: { id: true, name: true, sku: true, imageUrl: true, stockQty: true, price: true } } },
+          orderBy: { createdAt: 'desc' },
+        },
+        purchaseOrders: { orderBy: { createdAt: 'desc' } },
       },
     });
 
@@ -71,11 +74,12 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 // POST /api/v1/suppliers — create supplier (ADMIN/MANAGER)
 router.post('/', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { name, email, phone, address, notes } = req.body as {
+    const { name, email, phone, address, website, notes } = req.body as {
       name: string;
       email?: string;
       phone?: string;
       address?: string;
+      website?: string;
       notes?: string;
     };
 
@@ -90,6 +94,7 @@ router.post('/', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Respon
         email: email || null,
         phone: phone || null,
         address: address || null,
+        website: website || null,
         notes: notes || null,
       },
       include: {
@@ -116,11 +121,12 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
       return res.status(404).json({ error: true, message: 'Supplier not found', code: 'NOT_FOUND' });
     }
 
-    const { name, email, phone, address, notes, isActive } = req.body as {
+    const { name, email, phone, address, website, notes, isActive } = req.body as {
       name?: string;
       email?: string | null;
       phone?: string | null;
       address?: string | null;
+      website?: string | null;
       notes?: string | null;
       isActive?: boolean;
     };
@@ -132,6 +138,7 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
         ...(email !== undefined && { email }),
         ...(phone !== undefined && { phone }),
         ...(address !== undefined && { address }),
+        ...(website !== undefined && { website }),
         ...(notes !== undefined && { notes }),
         ...(isActive !== undefined && { isActive }),
       },

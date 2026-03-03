@@ -29,6 +29,16 @@ const inventoryColumnDefs: TableColumnDef[] = [
   { id: 'threshold', label: 'Low Threshold', defaultVisible: false },
 ];
 
+const supplierColumnDefs: TableColumnDef[] = [
+  { id: 'supplier', label: 'Supplier' },
+  { id: 'contact', label: 'Contact' },
+  { id: 'products', label: 'Products' },
+  { id: 'pos', label: 'POs' },
+  { id: 'status', label: 'Status' },
+  { id: 'website', label: 'Website', defaultVisible: false },
+  { id: 'address', label: 'Address', defaultVisible: false },
+];
+
 function ColumnList({
   title,
   columns,
@@ -84,6 +94,7 @@ function ColumnList({
 export default function TableConfigSection() {
   const orders = useTableConfig('orderColumns', orderColumnDefs);
   const inventory = useTableConfig('inventoryColumns', inventoryColumnDefs);
+  const suppliers = useTableConfig('supplierColumns', supplierColumnDefs);
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -98,6 +109,12 @@ export default function TableConfigSection() {
         columns={inventoryColumnDefs}
         visibleIds={inventory.visibleIds}
         onToggle={inventory.toggleColumn}
+      />
+      <ColumnList
+        title="Suppliers Table"
+        columns={supplierColumnDefs}
+        visibleIds={suppliers.visibleIds}
+        onToggle={suppliers.toggleColumn}
       />
     </div>
   );

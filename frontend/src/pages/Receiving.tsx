@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  PackageOpen,
-  Calendar,
+  Package,
+  CalendarBlank,
   Plus,
-  Search,
-  ChevronDown,
-  ChevronRight,
-} from 'lucide-react';
+  MagnifyingGlass,
+  CaretDown,
+  CaretRight,
+  Cube,
+} from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
+import { proxyUrl } from '../lib/image';
 import Pagination from '../components/Pagination';
 import type { PurchaseOrder, PaginationMeta } from '../types';
 
@@ -29,6 +31,8 @@ const filterOptions = [
   { value: 'RECEIVED', label: 'Received' },
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
+
+const MAX_THUMBS = 3;
 
 export default function Receiving() {
   const navigate = useNavigate();
@@ -64,17 +68,17 @@ export default function Receiving() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10">
-            <PackageOpen className="h-5.5 w-5.5 text-amber-600" />
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
+            <Package size={20} weight="duotone" className="text-amber-600" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Receiving</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Track inbound shipments and purchase orders.
+            <h2 className="text-xl font-bold tracking-tight">Receiving</h2>
+            <p className="text-[13px] text-muted-foreground">
+              {meta ? `${meta.total} purchase order${meta.total !== 1 ? 's' : ''}` : 'Track inbound shipments and purchase orders.'}
             </p>
           </div>
         </div>
@@ -82,7 +86,7 @@ export default function Receiving() {
           onClick={() => navigate('/receiving/new')}
           className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus size={14} weight="bold" />
           Create Purchase Order
         </button>
       </div>
@@ -99,20 +103,20 @@ export default function Receiving() {
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
-          <ChevronDown className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <CaretDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         </div>
         <div className="relative max-w-xs flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
           <input
             type="text"
             placeholder="Search PO# or supplier..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-9 w-full rounded-lg border border-border/60 bg-card pl-9 pr-4 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="h-9 w-full rounded-lg border border-border/60 bg-card pl-9 pr-4 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
         {meta && meta.total > 0 && (
-          <span className="text-sm text-muted-foreground">
+          <span className="ml-auto text-sm text-muted-foreground">
             {meta.total} PO{meta.total !== 1 ? 's' : ''}
           </span>
         )}
@@ -122,26 +126,27 @@ export default function Receiving() {
       <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-border/50 bg-muted/30">
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">PO #</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Supplier</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Items</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Cost</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Expected</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Created</th>
+            <tr className="border-b border-border/50 bg-muted/40">
+              <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">PO #</th>
+              <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Supplier</th>
+              <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Status</th>
+              <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Items</th>
+              <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Total Cost</th>
+              <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Expected</th>
+              <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Created</th>
               <th className="w-10 px-5 py-3" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-border/40">
+          <tbody className="divide-y divide-border/30">
             {purchaseOrders.map((po) => {
               const status = poStatusConfig[po.status] || poStatusConfig.DRAFT;
-              const totalItems = po.items?.length || 0;
-              const receivedItems = po.items?.filter((i) => i.receivedQty >= i.orderedQty).length || 0;
-              const totalCost = po.items?.reduce((sum, i) => {
+              const items = po.items || [];
+              const totalItems = items.length;
+              const receivedItems = items.filter((i) => i.receivedQty >= i.orderedQty).length;
+              const totalCost = items.reduce((sum, i) => {
                 if (!i.unitCost) return sum;
                 return sum + parseFloat(i.unitCost) * i.orderedQty;
-              }, 0) || 0;
+              }, 0);
 
               return (
                 <tr
@@ -157,27 +162,54 @@ export default function Receiving() {
                       {status.label}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 text-sm text-muted-foreground">
-                    {receivedItems}/{totalItems}
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2">
+                      {/* Thumbnails */}
+                      <div className="flex items-center -space-x-1.5">
+                        {items.slice(0, MAX_THUMBS).map((item, idx) => {
+                          const src = proxyUrl(item.imageUrl, 64);
+                          return src ? (
+                            <img
+                              key={idx}
+                              src={src}
+                              alt=""
+                              className="h-7 w-7 rounded-md border-2 border-card object-cover"
+                            />
+                          ) : (
+                            <div key={idx} className="flex h-7 w-7 items-center justify-center rounded-md border-2 border-card bg-muted/50">
+                              <Cube size={12} className="text-muted-foreground/30" />
+                            </div>
+                          );
+                        })}
+                        {totalItems > MAX_THUMBS && (
+                          <div className="flex h-7 w-7 items-center justify-center rounded-md border-2 border-card bg-muted text-[10px] font-bold text-muted-foreground">
+                            +{totalItems - MAX_THUMBS}
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {receivedItems}/{totalItems}
+                      </span>
+                    </div>
                   </td>
-                  <td className="px-5 py-3.5 text-sm font-medium">
-                    {totalCost > 0 ? `$${totalCost.toFixed(2)}` : '—'}
+                  <td className="px-5 py-3.5 text-sm font-medium tabular-nums">
+                    {totalCost > 0 ? `$${totalCost.toFixed(2)}` : <span className="text-muted-foreground/40">&mdash;</span>}
                   </td>
                   <td className="px-5 py-3.5">
                     {po.expectedDate ? (
                       <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <Calendar className="h-3.5 w-3.5" />
+                        <CalendarBlank size={14} />
                         {new Date(po.expectedDate).toLocaleDateString()}
                       </span>
                     ) : (
-                      <span className="text-sm text-muted-foreground">—</span>
+                      <span className="text-sm text-muted-foreground/40">&mdash;</span>
                     )}
                   </td>
                   <td className="px-5 py-3.5 text-sm text-muted-foreground">
                     {new Date(po.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-5 py-3.5">
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/30 transition-colors group-hover:text-foreground" />
+                    <CaretRight size={14} className="text-muted-foreground/20 transition-colors group-hover:text-foreground" />
                   </td>
                 </tr>
               );
@@ -185,9 +217,8 @@ export default function Receiving() {
             {purchaseOrders.length === 0 && !loading && (
               <tr>
                 <td colSpan={8} className="px-5 py-16 text-center">
-                  <div className="relative mx-auto mb-4 flex h-16 w-16 items-center justify-center">
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 blur-xl" />
-                    <PackageOpen className="relative h-8 w-8 text-muted-foreground/30" />
+                  <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/50">
+                    <Package size={24} weight="duotone" className="text-muted-foreground/30" />
                   </div>
                   <p className="text-sm font-medium text-muted-foreground">No purchase orders yet</p>
                   <p className="mt-1 text-xs text-muted-foreground/60">Create your first purchase order to start tracking inbound inventory.</p>

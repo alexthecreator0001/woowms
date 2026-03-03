@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api';
 import type { TableColumnDef } from '../types';
 
-type TableKey = 'orderColumns' | 'inventoryColumns';
+type TableKey = 'orderColumns' | 'inventoryColumns' | 'supplierColumns';
 
 export function useTableConfig(tableKey: TableKey, allColumns: TableColumnDef[]) {
   const allIds = allColumns.map((c) => c.id);

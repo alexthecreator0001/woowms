@@ -68,6 +68,23 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       req.prisma!.purchaseOrder.count({ where }),
     ]);
 
+    // Enrich items with product images
+    const allSkus = [...new Set(purchaseOrders.flatMap((po: any) => po.items?.map((i: any) => i.sku) || []))];
+    if (allSkus.length > 0) {
+      const products = await req.prisma!.product.findMany({
+        where: { sku: { in: allSkus }, store: { tenantId: req.tenantId } },
+        select: { sku: true, imageUrl: true },
+      });
+      const skuImageMap = new Map(products.map((p) => [p.sku, p.imageUrl]));
+      for (const po of purchaseOrders as any[]) {
+        if (po.items) {
+          for (const item of po.items) {
+            item.imageUrl = skuImageMap.get(item.sku) || null;
+          }
+        }
+      }
+    }
+
     res.json({
       data: purchaseOrders,
       meta: { page, limit, total, pages: Math.ceil(total / limit) },

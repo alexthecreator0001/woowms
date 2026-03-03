@@ -3,6 +3,21 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.40.0 / 2.32.0] - 2026-03-03
+
+### Added
+- **Suppliers column builder** — Suppliers list now has a Columns toggle button to show/hide columns (Website, Address). Preferences saved per user.
+- **Supplier website URL field** — New `website` field on suppliers. Shown in detail page info card and as a clickable link in the table. Editable and available in the create modal.
+- **Supplier detail product images** — Products table on supplier detail now shows product thumbnail images alongside names.
+- **Supplier detail pagination** — Products and Purchase Orders tables on supplier detail page are now paginated (5 per page).
+- **PACKER role** — New team member role "Packer" available alongside Picker, Staff, and Manager. Orange badge in team settings.
+- **Receiving items preview** — Receiving (PO) list now shows up to 3 product thumbnail images per PO with +N overflow badge, matching the Orders page style.
+
+### Changed
+- **Receiving page icons** — Switched from lucide-react to Phosphor icons for consistency with the rest of the app.
+- **Supplier detail product images** — Backend now returns product image URLs in supplier detail endpoint for richer product display.
+- **Settings table config** — Table Configuration section now includes Suppliers table alongside Orders and Inventory.
+
 ## [3.39.0] - 2026-03-03
 
 ### Added

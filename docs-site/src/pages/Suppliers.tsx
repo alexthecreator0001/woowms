@@ -27,10 +27,18 @@ export default function Suppliers() {
         between <strong>All</strong>, <strong>Active</strong>, and <strong>Inactive</strong> suppliers.
       </p>
 
+      <h3>Column Customization</h3>
+      <p>
+        Click the <strong>Columns</strong> button to toggle which columns appear in the table.
+        Optional columns include <strong>Website</strong> and <strong>Address</strong>.
+        Your preferences are saved automatically. You can also manage column visibility from
+        Settings &rarr; Table Configuration.
+      </p>
+
       <h2>Adding a Supplier</h2>
       <p>
-        Click <strong>Add Supplier</strong> to open the creation modal. Only the name is required;
-        email, phone, address, and notes are optional. After creation you'll be taken to the
+        Click <strong>Add Supplier</strong> to open the creation modal. Required: name. Optional:
+        email, phone, website URL, address, and notes. After creation you'll be taken to the
         supplier's detail page.
       </p>
 
@@ -40,12 +48,13 @@ export default function Suppliers() {
       </p>
       <ul>
         <li>
-          <strong>Left column:</strong> Products table (linked products with supplier SKU, price,
-          and lead time) and Purchase Orders table (all POs for this supplier with status badges)
+          <strong>Left column:</strong> Products table (linked products with thumbnail image, supplier
+          SKU, price, and lead time with pagination) and Purchase Orders table (all POs with status
+          badges and pagination)
         </li>
         <li>
           <strong>Right column:</strong> Supplier info card with editable fields (name, email,
-          phone, address, notes)
+          phone, website, address, notes)
         </li>
       </ul>
       <p>
@@ -78,6 +87,10 @@ export default function Suppliers() {
           </tr>
         </tbody>
       </table>
+      <p>
+        Products are displayed with their thumbnail image, internal SKU, and the supplier-specific
+        data. The table is paginated when there are more than 5 products.
+      </p>
 
       <div className="doc-callout">
         <p>
@@ -90,8 +103,8 @@ export default function Suppliers() {
       <h2>Editing Supplier Info</h2>
       <p>
         Click the <strong>Edit</strong> button in the header to switch the info card into edit mode.
-        All fields (name, email, phone, address, notes) become editable inline. Click <strong>Save</strong>
-        to persist or <strong>Cancel</strong> to discard changes.
+        All fields (name, email, phone, website, address, notes) become editable inline. Click{' '}
+        <strong>Save</strong> to persist or <strong>Cancel</strong> to discard changes.
       </p>
 
       <h2>Creating Purchase Orders</h2>

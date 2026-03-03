@@ -12,11 +12,24 @@ import {
   CheckCircle,
   Envelope,
   Phone,
+  GlobeSimple,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
 import Pagination from '../components/Pagination';
-import type { Supplier, PaginationMeta } from '../types';
+import TableConfigDropdown from '../components/TableConfigDropdown';
+import { useTableConfig } from '../hooks/useTableConfig';
+import type { Supplier, PaginationMeta, TableColumnDef } from '../types';
+
+const supplierColumnDefs: TableColumnDef[] = [
+  { id: 'supplier', label: 'Supplier' },
+  { id: 'contact', label: 'Contact' },
+  { id: 'products', label: 'Products' },
+  { id: 'pos', label: 'POs' },
+  { id: 'status', label: 'Status' },
+  { id: 'website', label: 'Website', defaultVisible: false },
+  { id: 'address', label: 'Address', defaultVisible: false },
+];
 
 export default function Suppliers() {
   const navigate = useNavigate();
@@ -26,6 +39,7 @@ export default function Suppliers() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const { visibleIds, toggleColumn, isVisible } = useTableConfig('supplierColumns', supplierColumnDefs);
 
   // Stats
   const [stats, setStats] = useState<{ total: number; active: number; totalProducts: number; totalPOs: number } | null>(null);
@@ -34,7 +48,7 @@ export default function Suppliers() {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState('');
-  const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', notes: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', website: '', notes: '' });
 
   const loadStats = useCallback(async () => {
     try {
@@ -81,10 +95,11 @@ export default function Suppliers() {
         email: form.email.trim() || undefined,
         phone: form.phone.trim() || undefined,
         address: form.address.trim() || undefined,
+        website: form.website.trim() || undefined,
         notes: form.notes.trim() || undefined,
       });
       setShowModal(false);
-      setForm({ name: '', email: '', phone: '', address: '', notes: '' });
+      setForm({ name: '', email: '', phone: '', address: '', website: '', notes: '' });
       navigate(`/suppliers/${data.data.id}`);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -170,6 +185,7 @@ export default function Suppliers() {
             </button>
           ))}
         </div>
+        <TableConfigDropdown columns={supplierColumnDefs} visibleIds={visibleIds} onToggle={toggleColumn} />
         {meta && meta.total > 0 && (
           <span className="ml-auto text-sm text-muted-foreground">
             {meta.total} result{meta.total !== 1 ? 's' : ''}
@@ -182,25 +198,27 @@ export default function Suppliers() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border/50 bg-muted/40">
-              <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Supplier</th>
-              <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Contact</th>
-              <th className="px-5 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Products</th>
-              <th className="px-5 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">POs</th>
-              <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Status</th>
+              {isVisible('supplier') && <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Supplier</th>}
+              {isVisible('contact') && <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Contact</th>}
+              {isVisible('products') && <th className="px-5 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Products</th>}
+              {isVisible('pos') && <th className="px-5 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">POs</th>}
+              {isVisible('status') && <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Status</th>}
+              {isVisible('website') && <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Website</th>}
+              {isVisible('address') && <th className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Address</th>}
               <th className="w-10 px-5 py-3" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border/30">
             {loading && suppliers.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-20 text-center">
+                <td colSpan={visibleIds.length + 1} className="py-20 text-center">
                   <CircleNotch size={24} className="mx-auto animate-spin text-muted-foreground/30" />
                   <p className="mt-3 text-sm text-muted-foreground/50">Loading suppliers...</p>
                 </td>
               </tr>
             ) : suppliers.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-20 text-center">
+                <td colSpan={visibleIds.length + 1} className="py-20 text-center">
                   <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/50">
                     <UsersThree size={24} weight="duotone" className="text-muted-foreground/30" />
                   </div>
@@ -215,63 +233,97 @@ export default function Suppliers() {
                   onClick={() => navigate(`/suppliers/${s.id}`)}
                   className="group cursor-pointer transition-colors hover:bg-muted/30"
                 >
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10 text-sm font-bold text-violet-600">
-                        {s.name.charAt(0).toUpperCase()}
+                  {isVisible('supplier') && (
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10 text-sm font-bold text-violet-600">
+                          {s.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{s.name}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{s.name}</p>
-                        {s.address && (
-                          <p className="text-[11px] text-muted-foreground/60 truncate max-w-[200px]">{s.address}</p>
+                    </td>
+                  )}
+                  {isVisible('contact') && (
+                    <td className="px-5 py-3.5">
+                      <div className="space-y-0.5">
+                        {s.email && (
+                          <div className="flex items-center gap-1.5">
+                            <Envelope size={11} className="text-muted-foreground/40" />
+                            <span className="text-xs text-muted-foreground">{s.email}</span>
+                          </div>
+                        )}
+                        {s.phone && (
+                          <div className="flex items-center gap-1.5">
+                            <Phone size={11} className="text-muted-foreground/40" />
+                            <span className="text-xs text-muted-foreground">{s.phone}</span>
+                          </div>
+                        )}
+                        {!s.email && !s.phone && (
+                          <span className="text-xs text-muted-foreground/30">&mdash;</span>
                         )}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <div className="space-y-0.5">
-                      {s.email && (
-                        <div className="flex items-center gap-1.5">
-                          <Envelope size={11} className="text-muted-foreground/40" />
-                          <span className="text-xs text-muted-foreground">{s.email}</span>
-                        </div>
-                      )}
-                      {s.phone && (
-                        <div className="flex items-center gap-1.5">
-                          <Phone size={11} className="text-muted-foreground/40" />
-                          <span className="text-xs text-muted-foreground">{s.phone}</span>
-                        </div>
-                      )}
-                      {!s.email && !s.phone && (
+                    </td>
+                  )}
+                  {isVisible('products') && (
+                    <td className="px-5 py-3.5 text-center">
+                      <span className={cn(
+                        'text-sm font-semibold tabular-nums',
+                        (s._count?.supplierProducts ?? 0) > 0 ? 'text-foreground' : 'text-muted-foreground/40'
+                      )}>
+                        {s._count?.supplierProducts ?? 0}
+                      </span>
+                    </td>
+                  )}
+                  {isVisible('pos') && (
+                    <td className="px-5 py-3.5 text-center">
+                      <span className={cn(
+                        'text-sm font-semibold tabular-nums',
+                        (s._count?.purchaseOrders ?? 0) > 0 ? 'text-foreground' : 'text-muted-foreground/40'
+                      )}>
+                        {s._count?.purchaseOrders ?? 0}
+                      </span>
+                    </td>
+                  )}
+                  {isVisible('status') && (
+                    <td className="px-5 py-3.5">
+                      <span className={cn(
+                        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide',
+                        s.isActive ? 'bg-emerald-500/10 text-emerald-600' : 'bg-gray-500/10 text-gray-500'
+                      )}>
+                        <span className={cn('h-1.5 w-1.5 rounded-full', s.isActive ? 'bg-emerald-500' : 'bg-gray-400')} />
+                        {s.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                  )}
+                  {isVisible('website') && (
+                    <td className="px-5 py-3.5">
+                      {s.website ? (
+                        <a
+                          href={s.website.startsWith('http') ? s.website : `https://${s.website}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          <GlobeSimple size={11} />
+                          {s.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                        </a>
+                      ) : (
                         <span className="text-xs text-muted-foreground/30">&mdash;</span>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-5 py-3.5 text-center">
-                    <span className={cn(
-                      'text-sm font-semibold tabular-nums',
-                      (s._count?.supplierProducts ?? 0) > 0 ? 'text-foreground' : 'text-muted-foreground/40'
-                    )}>
-                      {s._count?.supplierProducts ?? 0}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-center">
-                    <span className={cn(
-                      'text-sm font-semibold tabular-nums',
-                      (s._count?.purchaseOrders ?? 0) > 0 ? 'text-foreground' : 'text-muted-foreground/40'
-                    )}>
-                      {s._count?.purchaseOrders ?? 0}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <span className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide',
-                      s.isActive ? 'bg-emerald-500/10 text-emerald-600' : 'bg-gray-500/10 text-gray-500'
-                    )}>
-                      <span className={cn('h-1.5 w-1.5 rounded-full', s.isActive ? 'bg-emerald-500' : 'bg-gray-400')} />
-                      {s.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
+                    </td>
+                  )}
+                  {isVisible('address') && (
+                    <td className="px-5 py-3.5">
+                      {s.address ? (
+                        <span className="text-xs text-muted-foreground truncate max-w-[180px] block">{s.address}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/30">&mdash;</span>
+                      )}
+                    </td>
+                  )}
                   <td className="px-5 py-3.5">
                     <CaretRight size={14} className="text-muted-foreground/20 transition-colors group-hover:text-foreground" />
                   </td>
@@ -336,6 +388,16 @@ export default function Suppliers() {
                     className="h-9 w-full rounded-lg border border-border/60 bg-background px-3 text-sm shadow-sm placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Website</label>
+                <input
+                  type="url"
+                  value={form.website}
+                  onChange={(e) => setForm({ ...form, website: e.target.value })}
+                  placeholder="https://supplier.com"
+                  className="h-9 w-full rounded-lg border border-border/60 bg-background px-3 text-sm shadow-sm placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Address</label>

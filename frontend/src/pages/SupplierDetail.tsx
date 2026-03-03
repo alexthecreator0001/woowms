@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -6,6 +6,7 @@ import {
   Envelope,
   Phone,
   MapPin,
+  GlobeSimple,
   PencilSimple,
   X,
   Check,
@@ -15,9 +16,13 @@ import {
   Trash,
   ClipboardText,
   NoteBlank,
+  CaretLeft,
+  CaretRight,
+  Cube,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
+import { proxyUrl } from '../lib/image';
 import ProductSearchDropdown from '../components/ProductSearchDropdown';
 import type { Supplier, SupplierProduct, PurchaseOrder } from '../types';
 
@@ -29,6 +34,9 @@ const poStatusStyles: Record<string, { label: string; bg: string; text: string; 
   CANCELLED: { label: 'Cancelled', bg: 'bg-red-500/10', text: 'text-red-600', dot: 'bg-red-500' },
 };
 
+const PRODUCTS_PER_PAGE = 5;
+const POS_PER_PAGE = 5;
+
 export default function SupplierDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -37,7 +45,7 @@ export default function SupplierDetail() {
 
   // Edit state
   const [editing, setEditing] = useState(false);
-  const [editFields, setEditFields] = useState({ name: '', email: '', phone: '', address: '', notes: '' });
+  const [editFields, setEditFields] = useState({ name: '', email: '', phone: '', address: '', website: '', notes: '' });
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
 
@@ -45,6 +53,10 @@ export default function SupplierDetail() {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [addForm, setAddForm] = useState({ productId: 0, productName: '', supplierSku: '', supplierPrice: '', leadTimeDays: '' });
   const [addSaving, setAddSaving] = useState(false);
+
+  // Pagination
+  const [productsPage, setProductsPage] = useState(1);
+  const [posPage, setPosPage] = useState(1);
 
   const loadSupplier = useCallback(() => {
     if (!id) return;
@@ -57,6 +69,7 @@ export default function SupplierDetail() {
           email: s.email || '',
           phone: s.phone || '',
           address: s.address || '',
+          website: s.website || '',
           notes: s.notes || '',
         });
       })
@@ -76,6 +89,7 @@ export default function SupplierDetail() {
         email: editFields.email.trim() || null,
         phone: editFields.phone.trim() || null,
         address: editFields.address.trim() || null,
+        website: editFields.website.trim() || null,
         notes: editFields.notes.trim() || null,
       });
       setSupplier((prev) => prev ? { ...prev, ...data.data } : prev);
@@ -114,6 +128,23 @@ export default function SupplierDetail() {
     } catch { /* ignore */ }
   };
 
+  const products = supplier?.supplierProducts || [];
+  const purchaseOrders = supplier?.purchaseOrders || [];
+
+  // Paginated products
+  const totalProductPages = Math.max(1, Math.ceil(products.length / PRODUCTS_PER_PAGE));
+  const paginatedProducts = useMemo(
+    () => products.slice((productsPage - 1) * PRODUCTS_PER_PAGE, productsPage * PRODUCTS_PER_PAGE),
+    [products, productsPage]
+  );
+
+  // Paginated POs
+  const totalPOPages = Math.max(1, Math.ceil(purchaseOrders.length / POS_PER_PAGE));
+  const paginatedPOs = useMemo(
+    () => purchaseOrders.slice((posPage - 1) * POS_PER_PAGE, posPage * POS_PER_PAGE),
+    [purchaseOrders, posPage]
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
@@ -123,9 +154,6 @@ export default function SupplierDetail() {
   }
 
   if (!supplier) return null;
-
-  const products = supplier.supplierProducts || [];
-  const purchaseOrders = supplier.purchaseOrders || [];
 
   return (
     <div className="space-y-5">
@@ -215,53 +243,97 @@ export default function SupplierDetail() {
               </button>
             </div>
             {products.length > 0 ? (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border/40 bg-muted/30">
-                    <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Product</th>
-                    <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Supplier SKU</th>
-                    <th className="px-5 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Price</th>
-                    <th className="px-5 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Lead Time</th>
-                    <th className="w-10 px-5 py-2.5" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/30">
-                  {products.map((sp) => (
-                    <tr key={sp.id} className="group transition-colors hover:bg-muted/30">
-                      <td className="px-5 py-3">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); sp.product && navigate(`/inventory/${sp.product.sku || sp.product.id}`); }}
-                          className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-                        >
-                          {sp.product?.name || `Product #${sp.productId}`}
-                        </button>
-                        {sp.product?.sku && (
-                          <p className="mt-0.5">
-                            <code className="rounded bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{sp.product.sku}</code>
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-5 py-3">
-                        <code className="rounded bg-violet-500/8 px-1.5 py-0.5 text-[11px] font-medium text-violet-600">{sp.supplierSku}</code>
-                      </td>
-                      <td className="px-5 py-3 text-right text-sm font-medium tabular-nums">
-                        {sp.supplierPrice ? `$${parseFloat(sp.supplierPrice).toFixed(2)}` : <span className="text-muted-foreground/40">&mdash;</span>}
-                      </td>
-                      <td className="px-5 py-3 text-right text-sm text-muted-foreground tabular-nums">
-                        {sp.leadTimeDays ? `${sp.leadTimeDays}d` : <span className="text-muted-foreground/40">&mdash;</span>}
-                      </td>
-                      <td className="px-5 py-3">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleRemoveProduct(sp.productId); }}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/40 opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-500"
-                        >
-                          <Trash size={14} />
-                        </button>
-                      </td>
+              <>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border/40 bg-muted/30">
+                      <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Product</th>
+                      <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Supplier SKU</th>
+                      <th className="px-5 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Price</th>
+                      <th className="px-5 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Lead Time</th>
+                      <th className="w-10 px-5 py-2.5" />
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-border/30">
+                    {paginatedProducts.map((sp) => {
+                      const imgSrc = proxyUrl(sp.product?.imageUrl, 64);
+                      return (
+                        <tr key={sp.id} className="group transition-colors hover:bg-muted/30">
+                          <td className="px-5 py-3">
+                            <div className="flex items-center gap-3">
+                              {imgSrc ? (
+                                <img
+                                  src={imgSrc}
+                                  alt=""
+                                  className="h-9 w-9 rounded-lg border border-border/40 object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/40 bg-muted/30">
+                                  <Cube size={16} className="text-muted-foreground/30" />
+                                </div>
+                              )}
+                              <div>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); sp.product && navigate(`/inventory/${sp.product.sku || sp.product.id}`); }}
+                                  className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+                                >
+                                  {sp.product?.name || `Product #${sp.productId}`}
+                                </button>
+                                {sp.product?.sku && (
+                                  <p className="mt-0.5">
+                                    <code className="rounded bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{sp.product.sku}</code>
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3">
+                            <code className="rounded bg-violet-500/8 px-1.5 py-0.5 text-[11px] font-medium text-violet-600">{sp.supplierSku}</code>
+                          </td>
+                          <td className="px-5 py-3 text-right text-sm font-medium tabular-nums">
+                            {sp.supplierPrice ? `$${parseFloat(sp.supplierPrice).toFixed(2)}` : <span className="text-muted-foreground/40">&mdash;</span>}
+                          </td>
+                          <td className="px-5 py-3 text-right text-sm text-muted-foreground tabular-nums">
+                            {sp.leadTimeDays ? `${sp.leadTimeDays}d` : <span className="text-muted-foreground/40">&mdash;</span>}
+                          </td>
+                          <td className="px-5 py-3">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleRemoveProduct(sp.productId); }}
+                              className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/40 opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-500"
+                            >
+                              <Trash size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {totalProductPages > 1 && (
+                  <div className="flex items-center justify-between border-t border-border/40 px-5 py-2.5">
+                    <span className="text-xs text-muted-foreground">
+                      {(productsPage - 1) * PRODUCTS_PER_PAGE + 1}&ndash;{Math.min(productsPage * PRODUCTS_PER_PAGE, products.length)} of {products.length}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setProductsPage((p) => Math.max(1, p - 1))}
+                        disabled={productsPage <= 1}
+                        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 disabled:opacity-30"
+                      >
+                        <CaretLeft size={14} />
+                      </button>
+                      <span className="px-2 text-xs font-medium tabular-nums">{productsPage}/{totalProductPages}</span>
+                      <button
+                        onClick={() => setProductsPage((p) => Math.min(totalProductPages, p + 1))}
+                        disabled={productsPage >= totalProductPages}
+                        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 disabled:opacity-30"
+                      >
+                        <CaretRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="py-12 text-center">
                 <Package size={28} weight="duotone" className="mx-auto mb-2 text-muted-foreground/20" />
@@ -283,42 +355,68 @@ export default function SupplierDetail() {
               </h3>
             </div>
             {purchaseOrders.length > 0 ? (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border/40 bg-muted/30">
-                    <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">PO Number</th>
-                    <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Status</th>
-                    <th className="px-5 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Expected</th>
-                    <th className="px-5 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Created</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/30">
-                  {purchaseOrders.map((po) => {
-                    const pst = poStatusStyles[po.status] || poStatusStyles.DRAFT;
-                    return (
-                      <tr
-                        key={po.id}
-                        onClick={() => navigate(`/receiving/${po.poNumber}`)}
-                        className="group cursor-pointer transition-colors hover:bg-muted/30"
+              <>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border/40 bg-muted/30">
+                      <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">PO Number</th>
+                      <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Status</th>
+                      <th className="px-5 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Expected</th>
+                      <th className="px-5 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Created</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/30">
+                    {paginatedPOs.map((po) => {
+                      const pst = poStatusStyles[po.status] || poStatusStyles.DRAFT;
+                      return (
+                        <tr
+                          key={po.id}
+                          onClick={() => navigate(`/receiving/${po.poNumber}`)}
+                          className="group cursor-pointer transition-colors hover:bg-muted/30"
+                        >
+                          <td className="px-5 py-3 text-sm font-semibold group-hover:text-primary transition-colors">{po.poNumber}</td>
+                          <td className="px-5 py-3">
+                            <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold', pst.bg, pst.text)}>
+                              <span className={cn('h-1.5 w-1.5 rounded-full', pst.dot)} />
+                              {pst.label}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3 text-right text-sm text-muted-foreground">
+                            {po.expectedDate ? new Date(po.expectedDate).toLocaleDateString() : <span className="text-muted-foreground/40">&mdash;</span>}
+                          </td>
+                          <td className="px-5 py-3 text-right text-sm text-muted-foreground">
+                            {new Date(po.createdAt).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {totalPOPages > 1 && (
+                  <div className="flex items-center justify-between border-t border-border/40 px-5 py-2.5">
+                    <span className="text-xs text-muted-foreground">
+                      {(posPage - 1) * POS_PER_PAGE + 1}&ndash;{Math.min(posPage * POS_PER_PAGE, purchaseOrders.length)} of {purchaseOrders.length}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setPosPage((p) => Math.max(1, p - 1))}
+                        disabled={posPage <= 1}
+                        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 disabled:opacity-30"
                       >
-                        <td className="px-5 py-3 text-sm font-semibold group-hover:text-primary transition-colors">{po.poNumber}</td>
-                        <td className="px-5 py-3">
-                          <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold', pst.bg, pst.text)}>
-                            <span className={cn('h-1.5 w-1.5 rounded-full', pst.dot)} />
-                            {pst.label}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3 text-right text-sm text-muted-foreground">
-                          {po.expectedDate ? new Date(po.expectedDate).toLocaleDateString() : <span className="text-muted-foreground/40">&mdash;</span>}
-                        </td>
-                        <td className="px-5 py-3 text-right text-sm text-muted-foreground">
-                          {new Date(po.createdAt).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        <CaretLeft size={14} />
+                      </button>
+                      <span className="px-2 text-xs font-medium tabular-nums">{posPage}/{totalPOPages}</span>
+                      <button
+                        onClick={() => setPosPage((p) => Math.min(totalPOPages, p + 1))}
+                        disabled={posPage >= totalPOPages}
+                        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 disabled:opacity-30"
+                      >
+                        <CaretRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="py-12 text-center">
                 <ClipboardText size={28} weight="duotone" className="mx-auto mb-2 text-muted-foreground/20" />
@@ -404,6 +502,34 @@ export default function SupplierDetail() {
                   />
                 ) : (
                   <span className="text-sm font-medium">{supplier.phone || <span className="text-muted-foreground/40">&mdash;</span>}</span>
+                )}
+              </div>
+
+              {/* Website */}
+              <div className="flex items-center justify-between py-3.5">
+                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <GlobeSimple size={14} className="text-muted-foreground/50" />
+                  Website
+                </span>
+                {editing ? (
+                  <input
+                    type="url"
+                    value={editFields.website}
+                    onChange={(e) => setEditFields({ ...editFields, website: e.target.value })}
+                    placeholder="https://"
+                    className="h-8 w-40 rounded-lg border border-border/60 bg-background px-2 text-right text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                ) : supplier.website ? (
+                  <a
+                    href={supplier.website.startsWith('http') ? supplier.website : `https://${supplier.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                  >
+                    {supplier.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                  </a>
+                ) : (
+                  <span className="text-sm font-medium text-muted-foreground/40">&mdash;</span>
                 )}
               </div>
 

@@ -25,13 +25,14 @@ function getTokenPayload(): TokenPayload | null {
   }
 }
 
-const ROLE_OPTIONS = ['MANAGER', 'STAFF', 'PICKER'] as const;
+const ROLE_OPTIONS = ['MANAGER', 'STAFF', 'PICKER', 'PACKER'] as const;
 
 const roleBadgeColors: Record<string, string> = {
   ADMIN: 'bg-violet-500/10 text-violet-600',
   MANAGER: 'bg-blue-500/10 text-blue-600',
   STAFF: 'bg-emerald-500/10 text-emerald-600',
   PICKER: 'bg-amber-500/10 text-amber-600',
+  PACKER: 'bg-orange-500/10 text-orange-600',
 };
 
 export default function TeamSection() {

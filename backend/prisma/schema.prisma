@@ -56,6 +56,7 @@ enum Role {
   MANAGER
   STAFF
   PICKER
+  PACKER
 }
 
 // ─── WooCommerce Store ───────────────────────────────
@@ -440,6 +441,7 @@ model Supplier {
   email     String?
   phone     String?
   address   String?
+  website   String?
   notes     String?
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")

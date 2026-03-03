@@ -32,8 +32,8 @@ router.post('/', authorize('ADMIN'), async (req: Request, res: Response, next: N
       return res.status(400).json({ error: true, message: 'Cannot create a user with ADMIN role', code: 'VALIDATION_ERROR' });
     }
 
-    if (!['MANAGER', 'STAFF', 'PICKER'].includes(role)) {
-      return res.status(400).json({ error: true, message: 'Invalid role. Must be MANAGER, STAFF, or PICKER', code: 'VALIDATION_ERROR' });
+    if (!['MANAGER', 'STAFF', 'PICKER', 'PACKER'].includes(role)) {
+      return res.status(400).json({ error: true, message: 'Invalid role. Must be MANAGER, STAFF, PICKER, or PACKER', code: 'VALIDATION_ERROR' });
     }
 
     if (password.length < 8) {
@@ -79,7 +79,7 @@ router.patch('/:id', authorize('ADMIN'), async (req: Request, res: Response, nex
       return res.status(400).json({ error: true, message: 'Cannot set ADMIN role', code: 'VALIDATION_ERROR' });
     }
 
-    if (role && !['MANAGER', 'STAFF', 'PICKER'].includes(role)) {
+    if (role && !['MANAGER', 'STAFF', 'PICKER', 'PACKER'].includes(role)) {
       return res.status(400).json({ error: true, message: 'Invalid role', code: 'VALIDATION_ERROR' });
     }
 
