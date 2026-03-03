@@ -45,120 +45,187 @@ interface PdfOptions {
   logoBuffer: Buffer | null;
 }
 
-// ─── Color palettes ───────────────────────────────────
+// ─── Colors ───────────────────────────────────────────
 
 const PALETTES = {
   modern: {
     primary: '#0f172a', accent: '#6366f1', muted: '#64748b',
-    headerBg: '#0f172a', headerText: '#ffffff', lightBg: '#f8fafc', border: '#e2e8f0',
-    sectionBg: '#f1f5f9',
+    headerBg: '#0f172a', headerText: '#ffffff', altRow: '#f8fafc', border: '#e2e8f0',
+    boxBg: '#f1f5f9',
   },
   classic: {
-    primary: '#1e1e1e', accent: '#374151', muted: '#6b7280',
-    headerBg: '#374151', headerText: '#ffffff', lightBg: '#f9fafb', border: '#d1d5db',
-    sectionBg: '#f3f4f6',
+    primary: '#1f2937', accent: '#374151', muted: '#6b7280',
+    headerBg: '#374151', headerText: '#ffffff', altRow: '#f9fafb', border: '#d1d5db',
+    boxBg: '#f3f4f6',
   },
   minimal: {
-    primary: '#171717', accent: '#171717', muted: '#737373',
-    headerBg: '#f5f5f5', headerText: '#171717', lightBg: '#fafafa', border: '#e5e5e5',
-    sectionBg: '#fafafa',
+    primary: '#171717', accent: '#404040', muted: '#737373',
+    headerBg: '#f5f5f5', headerText: '#171717', altRow: '#fafafa', border: '#e5e5e5',
+    boxBg: '#fafafa',
   },
 } as const;
 
 type Palette = typeof PALETTES.modern;
 
 function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
 function fmtMoney(v: number) {
-  return v > 0 ? `$${v.toFixed(2)}` : '-';
+  return `$${v.toFixed(2)}`;
 }
 
 function fmtStatus(s: string) {
-  return s.replace(/_/g, ' ');
+  return s.replace(/_/g, ' ').toUpperCase();
 }
 
-// ─── Font registration ────────────────────────────────
+// ─── Main ─────────────────────────────────────────────
 
-function registerFonts(doc: PDFKit.PDFDocument) {
+export function generatePoPdf(po: PoData, opts: PdfOptions): PDFKit.PDFDocument {
+  const doc = new PDFDocument({ size: 'A4', margin: 50 });
+
   doc.registerFont('Regular', FONT_REGULAR);
   doc.registerFont('Bold', FONT_BOLD);
   doc.registerFont('Italic', FONT_ITALIC);
-}
-
-// ─── Main generator ────────────────────────────────────
-
-export function generatePoPdf(po: PoData, opts: PdfOptions): PDFKit.PDFDocument {
-  const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
-  registerFonts(doc);
 
   const p = PALETTES[opts.template];
-  const m = 40;
+  const m = 50;
   const pageW = 595.28;
-  const pageH = 841.89;
   const contentW = pageW - m * 2;
 
   const items = po.items || [];
-  const totalCost = items.reduce((sum, item) => {
-    if (!item.unitCost) return sum;
-    return sum + parseFloat(item.unitCost) * item.orderedQty;
+  const totalCost = items.reduce((sum, it) => {
+    if (!it.unitCost) return sum;
+    return sum + parseFloat(it.unitCost) * it.orderedQty;
   }, 0);
 
-  if (opts.template === 'modern') drawModern(doc, po, items, totalCost, p, opts, m, contentW, pageW, pageH);
-  else if (opts.template === 'classic') drawClassic(doc, po, items, totalCost, p, opts, m, contentW, pageW, pageH);
-  else drawMinimal(doc, po, items, totalCost, p, opts, m, contentW, pageW, pageH);
+  // ─── Header ──────────────────────────────────────
 
-  doc.end();
-  return doc;
-}
-
-// ─── Shared drawing helpers ───────────────────────────
-
-function drawInfoBox(
-  doc: PDFKit.PDFDocument, x: number, y: number, w: number, h: number,
-  title: string, lines: string[], p: Palette
-) {
-  doc.save().rect(x, y, w, h).fill(p.sectionBg).restore();
-  doc.save().strokeColor(p.border).lineWidth(0.3).rect(x, y, w, h).stroke().restore();
-  doc.font('Bold').fontSize(6.5).fillColor(p.muted).text(title, x + 8, y + 6);
-  doc.font('Regular').fontSize(8).fillColor(p.primary);
-  let ly = y + 16;
-  for (const line of lines) {
-    if (!line) continue;
-    doc.text(line, x + 8, ly, { width: w - 16 });
-    ly += 10;
+  if (opts.template === 'modern') {
+    // Accent bar across top
+    doc.save().rect(0, 0, pageW, 6).fill(p.accent).restore();
   }
-}
 
-interface ColDef {
-  label: string;
-  width: number;
-  align: 'left' | 'center' | 'right';
-}
+  let y = opts.template === 'modern' ? 24 : 30;
 
-function drawTable(
-  doc: PDFKit.PDFDocument,
-  y: number,
-  rows: string[][],
-  cols: ColDef[],
-  p: Palette,
-  m: number,
-  gridLines: boolean = false
-): number {
-  const rowH = 20;
-  const headerH = 22;
-  const fontSize = 7.5;
-  const headerFontSize = 7;
+  // Logo + Company name (left)
+  if (opts.logoBuffer) {
+    try {
+      doc.image(opts.logoBuffer, m, y, { height: 36 });
+    } catch { /* skip broken logo */ }
+  }
+
+  const companyX = opts.logoBuffer ? m + 44 : m;
+  if (opts.companyName) {
+    doc.font('Bold').fontSize(14).fillColor(p.primary);
+    doc.text(opts.companyName, companyX, y + 4);
+  }
+
+  // PO title (right)
+  doc.font('Bold').fontSize(24).fillColor(p.accent);
+  doc.text('PURCHASE ORDER', m, y, { width: contentW, align: 'right' });
+
+  y += 30;
+  doc.font('Regular').fontSize(11).fillColor(p.muted);
+  doc.text(po.poNumber, m, y, { width: contentW, align: 'right' });
+
+  y += 20;
+
+  // Divider
+  doc.save().strokeColor(p.border).lineWidth(0.5).moveTo(m, y).lineTo(m + contentW, y).stroke().restore();
+  y += 16;
+
+  // ─── Info boxes ──────────────────────────────────
+
+  const boxPad = 10;
+  const gap = 10;
+  const boxW = (contentW - gap * 2) / 3;
+
+  // Supplier box
+  const supplierLines: string[] = [po.supplier.name];
+  if (po.supplier.address) supplierLines.push(po.supplier.address);
+  if (po.supplier.email) supplierLines.push(po.supplier.email);
+  if (po.supplier.phone) supplierLines.push(po.supplier.phone);
+
+  // Delivery box
+  const deliveryLines: string[] = po.deliveryAddress ? [po.deliveryAddress] : ['Not specified'];
+
+  // Details box
+  const detailLines: string[] = [
+    `Status: ${fmtStatus(po.status)}`,
+    `Date: ${fmtDate(po.createdAt)}`,
+  ];
+  if (po.expectedDate) detailLines.push(`Expected: ${fmtDate(po.expectedDate)}`);
+
+  // Calculate box heights — all same height based on tallest
+  const lineH = 13;
+  const boxHeaderH = 18;
+  const boxContentH = Math.max(supplierLines.length, deliveryLines.length, detailLines.length) * lineH;
+  const boxH = boxHeaderH + boxContentH + boxPad * 2;
+
+  // Draw the 3 boxes
+  const boxes = [
+    { x: m, title: 'SUPPLIER', lines: supplierLines },
+    { x: m + boxW + gap, title: 'DELIVER TO', lines: deliveryLines },
+    { x: m + (boxW + gap) * 2, title: 'ORDER DETAILS', lines: detailLines },
+  ];
+
+  for (const box of boxes) {
+    // Background
+    doc.save().rect(box.x, y, boxW, boxH).fill(p.boxBg).restore();
+    // Border
+    doc.save().strokeColor(p.border).lineWidth(0.5).rect(box.x, y, boxW, boxH).stroke().restore();
+    // Title
+    doc.font('Bold').fontSize(8).fillColor(p.muted);
+    doc.text(box.title, box.x + boxPad, y + boxPad);
+    // Lines
+    doc.font('Regular').fontSize(10).fillColor(p.primary);
+    let ly = y + boxPad + boxHeaderH;
+    for (const line of box.lines) {
+      doc.text(line, box.x + boxPad, ly, { width: boxW - boxPad * 2 });
+      ly += lineH;
+    }
+  }
+
+  y += boxH + 18;
+
+  // ─── Items table ─────────────────────────────────
+
+  const hasSupplierSku = items.some(i => i.supplierSku);
+  const hasEan = items.some(i => i.ean);
+
+  // Build columns dynamically
+  interface Col { label: string; width: number; align: 'left' | 'center' | 'right'; }
+  const cols: Col[] = [];
+
+  const qtyW = 40;
+  const costW = 60;
+  const totalW = 65;
+  const skuW = 68;
+  const supSkuW = hasSupplierSku ? 68 : 0;
+  const eanW = hasEan ? 80 : 0;
+  const productW = contentW - skuW - supSkuW - eanW - qtyW - costW - totalW;
+
+  cols.push({ label: 'SKU', width: skuW, align: 'left' });
+  if (hasSupplierSku) cols.push({ label: 'Supplier SKU', width: supSkuW, align: 'left' });
+  cols.push({ label: 'Product', width: productW, align: 'left' });
+  if (hasEan) cols.push({ label: 'EAN', width: eanW, align: 'left' });
+  cols.push({ label: 'Qty', width: qtyW, align: 'center' });
+  cols.push({ label: 'Unit Cost', width: costW, align: 'right' });
+  cols.push({ label: 'Total', width: totalW, align: 'right' });
+
+  const headerH = 28;
+  const rowH = 26;
+  const tableFontSize = 9;
+  const headerFontSize = 8.5;
+  const pad = 6;
   const tableW = cols.reduce((s, c) => s + c.width, 0);
 
-  // Header
-  doc.save();
-  doc.rect(m, y, tableW, headerH).fill(p.headerBg);
+  // Header row
+  doc.save().rect(m, y, tableW, headerH).fill(p.headerBg).restore();
   let x = m;
-  doc.fontSize(headerFontSize).font('Bold').fillColor(p.headerText);
+  doc.font('Bold').fontSize(headerFontSize).fillColor(p.headerText);
   for (const col of cols) {
-    const pad = 5;
     if (col.align === 'center') {
       doc.text(col.label, x, y + (headerH - headerFontSize) / 2, { width: col.width, align: 'center' });
     } else if (col.align === 'right') {
@@ -168,365 +235,89 @@ function drawTable(
     }
     x += col.width;
   }
-  doc.restore();
   y += headerH;
 
   // Data rows
-  for (let r = 0; r < rows.length; r++) {
-    const row = rows[r];
-    if (r % 2 === 1) {
-      doc.save().rect(m, y, tableW, rowH).fill(p.lightBg).restore();
-    }
-    if (gridLines) {
-      doc.save().strokeColor(p.border).lineWidth(0.3)
-        .moveTo(m, y + rowH).lineTo(m + tableW, y + rowH).stroke().restore();
+  for (let r = 0; r < items.length; r++) {
+    const it = items[r];
+
+    // Check if we need a new page
+    if (y + rowH > 780) {
+      doc.addPage();
+      y = 50;
     }
 
+    // Alternating row bg
+    if (r % 2 === 1) {
+      doc.save().rect(m, y, tableW, rowH).fill(p.altRow).restore();
+    }
+
+    // Bottom border
+    doc.save().strokeColor(p.border).lineWidth(0.3)
+      .moveTo(m, y + rowH).lineTo(m + tableW, y + rowH).stroke().restore();
+
+    // Cell values
+    const cells: string[] = [];
+    cells.push(it.sku || '-');
+    if (hasSupplierSku) cells.push(it.supplierSku || '-');
+    cells.push(it.productName);
+    if (hasEan) cells.push(it.ean || '-');
+    cells.push(String(it.orderedQty));
+    cells.push(it.unitCost ? `$${parseFloat(it.unitCost).toFixed(2)}` : '-');
+    cells.push(it.unitCost ? `$${(parseFloat(it.unitCost) * it.orderedQty).toFixed(2)}` : '-');
+
     x = m;
-    const pad = 5;
-    doc.fontSize(fontSize).font('Regular').fillColor(p.primary);
+    doc.font('Regular').fontSize(tableFontSize).fillColor(p.primary);
     for (let c = 0; c < cols.length; c++) {
       const col = cols[c];
-      const val = row[c] || '';
+      const val = cells[c] || '';
+      const textY = y + (rowH - tableFontSize) / 2;
       if (col.align === 'center') {
-        doc.text(val, x, y + (rowH - fontSize) / 2, { width: col.width, align: 'center' });
+        doc.text(val, x, textY, { width: col.width, align: 'center' });
       } else if (col.align === 'right') {
-        doc.text(val, x, y + (rowH - fontSize) / 2, { width: col.width - pad, align: 'right' });
+        doc.text(val, x, textY, { width: col.width - pad, align: 'right' });
       } else {
-        doc.text(val, x + pad, y + (rowH - fontSize) / 2, { width: col.width - pad * 2, ellipsis: true });
+        doc.text(val, x + pad, textY, { width: col.width - pad * 2, ellipsis: true });
       }
       x += col.width;
     }
     y += rowH;
   }
 
-  return y;
-}
+  // ─── Total ───────────────────────────────────────
 
-function drawFooter(doc: PDFKit.PDFDocument, companyName: string, p: Palette, m: number, contentW: number) {
-  doc.save().strokeColor(p.border).lineWidth(0.3).moveTo(m, 800).lineTo(m + contentW, 800).stroke().restore();
-  doc.font('Regular').fontSize(6.5).fillColor('#aaaaaa');
-  doc.text(companyName || '', m, 805);
-  doc.text(`Generated ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}`, m, 805, { width: contentW, align: 'right' });
-}
-
-// ─── MODERN ────────────────────────────────────────────
-
-function drawModern(
-  doc: PDFKit.PDFDocument, po: PoData, items: PoItem[], totalCost: number,
-  p: Palette, opts: PdfOptions, m: number, contentW: number, pageW: number, pageH: number
-) {
-  // Top accent bar
-  doc.save().rect(0, 0, pageW, 4).fill(p.accent).restore();
-
-  let y = 20;
-
-  // Header row: logo + company left, PO title right
-  if (opts.logoBuffer) {
-    try { doc.image(opts.logoBuffer, m, y, { height: 28 }); } catch {}
-  }
-
-  const nameX = opts.logoBuffer ? m + 34 : m;
-  if (opts.companyName) {
-    doc.font('Bold').fontSize(13).fillColor(p.primary).text(opts.companyName, nameX, y + 2);
-  }
-
-  doc.font('Bold').fontSize(20).fillColor(p.accent);
-  doc.text('PURCHASE ORDER', m, y, { width: contentW, align: 'right' });
-  doc.font('Regular').fontSize(10).fillColor(p.muted);
-  doc.text(po.poNumber, m, y + 22, { width: contentW, align: 'right' });
-
-  y = 56;
-  doc.save().strokeColor(p.border).lineWidth(0.5).moveTo(m, y).lineTo(pageW - m, y).stroke().restore();
-  y += 10;
-
-  // Info boxes row
-  const boxW = (contentW - 12) / 3;
-  const boxH = 52;
-
-  // Supplier box
-  const supplierLines = [po.supplier.name];
-  if (po.supplier.address) supplierLines.push(po.supplier.address);
-  if (po.supplier.email) supplierLines.push(po.supplier.email);
-  if (po.supplier.phone) supplierLines.push(po.supplier.phone);
-  drawInfoBox(doc, m, y, boxW, boxH, 'SUPPLIER', supplierLines, p);
-
-  // Delivery address box
-  const deliveryLines = po.deliveryAddress ? [po.deliveryAddress] : ['Not specified'];
-  drawInfoBox(doc, m + boxW + 6, y, boxW, boxH, 'DELIVER TO', deliveryLines, p);
-
-  // Order details box
-  const detailLines = [
-    `Status: ${fmtStatus(po.status)}`,
-    `Date: ${fmtDate(po.createdAt)}`,
-  ];
-  if (po.expectedDate) detailLines.push(`Expected: ${fmtDate(po.expectedDate)}`);
-  drawInfoBox(doc, m + (boxW + 6) * 2, y, boxW, boxH, 'ORDER DETAILS', detailLines, p);
-
-  y += boxH + 12;
-
-  // Table
-  const hasSupplierSku = items.some(i => i.supplierSku);
-  const hasEan = items.some(i => i.ean);
-
-  const cols: ColDef[] = [];
-  let remainW = contentW;
-
-  // Fixed-width columns
-  const qtyW = 36;
-  const costW = 54;
-  const totalW = 58;
-  const skuW = 62;
-  const supplierSkuW = hasSupplierSku ? 62 : 0;
-  const eanW = hasEan ? 72 : 0;
-
-  remainW -= (qtyW + costW + totalW + skuW + supplierSkuW + eanW);
-
-  cols.push({ label: 'SKU', width: skuW, align: 'left' });
-  if (hasSupplierSku) cols.push({ label: 'Supplier SKU', width: supplierSkuW, align: 'left' });
-  cols.push({ label: 'Product', width: remainW, align: 'left' });
-  if (hasEan) cols.push({ label: 'EAN', width: eanW, align: 'left' });
-  cols.push({ label: 'Qty', width: qtyW, align: 'center' });
-  cols.push({ label: 'Unit Cost', width: costW, align: 'right' });
-  cols.push({ label: 'Total', width: totalW, align: 'right' });
-
-  const rows = items.map(i => {
-    const row: string[] = [];
-    row.push(i.sku || '-');
-    if (hasSupplierSku) row.push(i.supplierSku || '-');
-    row.push(i.productName);
-    if (hasEan) row.push(i.ean || '-');
-    row.push(String(i.orderedQty));
-    row.push(i.unitCost ? `$${parseFloat(i.unitCost).toFixed(2)}` : '-');
-    row.push(i.unitCost ? `$${(parseFloat(i.unitCost) * i.orderedQty).toFixed(2)}` : '-');
-    return row;
-  });
-
-  const tableEnd = drawTable(doc, y, rows, cols, p, m);
-
-  // Totals summary
-  if (totalCost > 0) {
-    const ty = tableEnd + 6;
-    const summaryW = 140;
-    const sx = pageW - m - summaryW;
-    doc.save().rect(sx, ty, summaryW, 22).fill(p.sectionBg).restore();
-    doc.save().strokeColor(p.border).lineWidth(0.3).rect(sx, ty, summaryW, 22).stroke().restore();
-    doc.font('Bold').fontSize(9).fillColor(p.primary);
-    doc.text('TOTAL', sx + 8, ty + 6);
-    doc.text(fmtMoney(totalCost), sx + 8, ty + 6, { width: summaryW - 16, align: 'right' });
-  }
-
-  // Notes
-  if (po.notes) {
-    const ny = tableEnd + 36;
-    doc.font('Bold').fontSize(7).fillColor(p.muted).text('NOTES', m, ny);
-    doc.font('Regular').fontSize(8).fillColor(p.primary).text(po.notes, m, ny + 10, { width: contentW });
-  }
-
-  drawFooter(doc, opts.companyName, p, m, contentW);
-}
-
-// ─── CLASSIC ───────────────────────────────────────────
-
-function drawClassic(
-  doc: PDFKit.PDFDocument, po: PoData, items: PoItem[], totalCost: number,
-  p: Palette, opts: PdfOptions, m: number, contentW: number, pageW: number, pageH: number
-) {
-  let y = 22;
-
-  // Header box
-  doc.save().strokeColor(p.border).lineWidth(0.5).rect(m, y - 4, contentW, 40).stroke().restore();
-
-  if (opts.logoBuffer) {
-    try { doc.image(opts.logoBuffer, m + 8, y + 2, { height: 22 }); } catch {}
-  }
-
-  const nameX = opts.logoBuffer ? m + 36 : m + 8;
-  doc.font('Bold').fontSize(15).fillColor(p.primary).text('Purchase Order', nameX, y);
-  if (opts.companyName) {
-    doc.font('Regular').fontSize(8).fillColor(p.muted).text(opts.companyName, nameX, y + 16);
-  }
-
-  doc.font('Bold').fontSize(11).fillColor(p.primary);
-  doc.text(po.poNumber, m + 8, y, { width: contentW - 16, align: 'right' });
-  doc.font('Regular').fontSize(7.5).fillColor(p.muted);
-  doc.text(fmtDate(po.createdAt), m + 8, y + 14, { width: contentW - 16, align: 'right' });
-
-  y += 46;
-
-  // Three info boxes
-  const boxW = (contentW - 12) / 3;
-  const boxH = 50;
-
-  const supplierLines = [po.supplier.name];
-  if (po.supplier.address) supplierLines.push(po.supplier.address);
-  if (po.supplier.email) supplierLines.push(po.supplier.email);
-  if (po.supplier.phone) supplierLines.push(po.supplier.phone);
-  drawInfoBox(doc, m, y, boxW, boxH, 'SUPPLIER', supplierLines, p);
-
-  const deliveryLines = po.deliveryAddress ? [po.deliveryAddress] : ['Not specified'];
-  drawInfoBox(doc, m + boxW + 6, y, boxW, boxH, 'DELIVER TO', deliveryLines, p);
-
-  const detailLines = [`Status: ${fmtStatus(po.status)}`, `Date: ${fmtDate(po.createdAt)}`];
-  if (po.expectedDate) detailLines.push(`Expected: ${fmtDate(po.expectedDate)}`);
-  drawInfoBox(doc, m + (boxW + 6) * 2, y, boxW, boxH, 'ORDER DETAILS', detailLines, p);
-
-  y += boxH + 10;
-
-  // Table
-  const hasSupplierSku = items.some(i => i.supplierSku);
-  const hasEan = items.some(i => i.ean);
-
-  const cols: ColDef[] = [];
-  let remainW = contentW;
-  const qtyW = 34;
-  const costW = 52;
-  const totalW = 56;
-  const skuW = 58;
-  const supplierSkuW = hasSupplierSku ? 58 : 0;
-  const eanW = hasEan ? 68 : 0;
-  remainW -= (qtyW + costW + totalW + skuW + supplierSkuW + eanW);
-
-  cols.push({ label: 'SKU', width: skuW, align: 'left' });
-  if (hasSupplierSku) cols.push({ label: 'Supp. SKU', width: supplierSkuW, align: 'left' });
-  cols.push({ label: 'Product', width: remainW, align: 'left' });
-  if (hasEan) cols.push({ label: 'EAN', width: eanW, align: 'left' });
-  cols.push({ label: 'Qty', width: qtyW, align: 'center' });
-  cols.push({ label: 'Unit Cost', width: costW, align: 'right' });
-  cols.push({ label: 'Line Total', width: totalW, align: 'right' });
-
-  const rows = items.map(i => {
-    const row: string[] = [];
-    row.push(i.sku || '-');
-    if (hasSupplierSku) row.push(i.supplierSku || '-');
-    row.push(i.productName);
-    if (hasEan) row.push(i.ean || '-');
-    row.push(String(i.orderedQty));
-    row.push(i.unitCost ? `$${parseFloat(i.unitCost).toFixed(2)}` : '-');
-    row.push(i.unitCost ? `$${(parseFloat(i.unitCost) * i.orderedQty).toFixed(2)}` : '-');
-    return row;
-  });
-
-  const tableEnd = drawTable(doc, y, rows, cols, p, m, true);
-
-  // Total
-  if (totalCost > 0) {
-    const ty = tableEnd + 4;
-    doc.save().strokeColor(p.border).moveTo(pageW - m - 120, ty).lineTo(pageW - m, ty).stroke().restore();
-    doc.font('Bold').fontSize(9).fillColor(p.primary);
-    doc.text('Total:', pageW - m - 120, ty + 6);
-    doc.text(fmtMoney(totalCost), pageW - m - 120, ty + 6, { width: 114, align: 'right' });
-  }
-
-  // Notes
-  if (po.notes) {
-    const ny = tableEnd + 24;
-    doc.font('Italic').fontSize(7.5).fillColor(p.muted).text('Notes:', m, ny);
-    doc.font('Regular').text(po.notes, m, ny + 10, { width: contentW });
-  }
-
-  drawFooter(doc, opts.companyName, p, m, contentW);
-}
-
-// ─── MINIMAL ───────────────────────────────────────────
-
-function drawMinimal(
-  doc: PDFKit.PDFDocument, po: PoData, items: PoItem[], totalCost: number,
-  p: Palette, opts: PdfOptions, m: number, contentW: number, pageW: number, pageH: number
-) {
-  let y = 22;
-
-  // Logo + company
-  if (opts.logoBuffer) {
-    try { doc.image(opts.logoBuffer, m, y, { height: 18 }); } catch {}
-  }
-  if (opts.companyName) {
-    const nameX = opts.logoBuffer ? m + 24 : m;
-    doc.font('Regular').fontSize(9).fillColor(p.muted).text(opts.companyName, nameX, y + 3);
-  }
-
-  y += 26;
-
-  // Big PO number
-  doc.font('Bold').fontSize(18).fillColor(p.primary).text(po.poNumber, m, y);
-  y += 20;
-
-  // Meta line
-  const meta = [fmtDate(po.createdAt), fmtStatus(po.status)];
-  if (po.expectedDate) meta.push(`Expected ${fmtDate(po.expectedDate)}`);
-  doc.font('Regular').fontSize(8).fillColor(p.muted).text(meta.join('  \u00B7  '), m, y);
-  y += 14;
-
-  doc.save().strokeColor(p.border).lineWidth(0.3).moveTo(m, y).lineTo(pageW - m, y).stroke().restore();
-  y += 10;
-
-  // Info: supplier + delivery side by side
-  const halfW = (contentW - 10) / 2;
-
-  // Supplier
-  doc.font('Bold').fontSize(6.5).fillColor(p.muted).text('SUPPLIER', m, y);
-  doc.font('Regular').fontSize(8.5).fillColor(p.primary).text(po.supplier.name, m, y + 9);
-  let sy = y + 19;
-  if (po.supplier.address) { doc.font('Regular').fontSize(7.5).fillColor(p.muted).text(po.supplier.address, m, sy); sy += 9; }
-  if (po.supplier.email) { doc.text(po.supplier.email, m, sy); sy += 9; }
-  if (po.supplier.phone) { doc.text(po.supplier.phone, m, sy); sy += 9; }
-
-  // Delivery
-  const dx = m + halfW + 10;
-  doc.font('Bold').fontSize(6.5).fillColor(p.muted).text('DELIVER TO', dx, y);
-  doc.font('Regular').fontSize(8.5).fillColor(p.primary).text(po.deliveryAddress || 'Not specified', dx, y + 9);
-
-  y = Math.max(sy, y + 30) + 8;
-  doc.save().strokeColor(p.border).lineWidth(0.3).moveTo(m, y).lineTo(pageW - m, y).stroke().restore();
   y += 8;
-
-  // Table
-  const hasSupplierSku = items.some(i => i.supplierSku);
-  const hasEan = items.some(i => i.ean);
-
-  const cols: ColDef[] = [];
-  let remainW = contentW;
-  const qtyW = 34;
-  const costW = 50;
-  const totalW = 54;
-  const skuW = 55;
-  const supplierSkuW = hasSupplierSku ? 55 : 0;
-  const eanW = hasEan ? 68 : 0;
-  remainW -= (qtyW + costW + totalW + skuW + supplierSkuW + eanW);
-
-  cols.push({ label: 'Product', width: remainW, align: 'left' });
-  cols.push({ label: 'SKU', width: skuW, align: 'left' });
-  if (hasSupplierSku) cols.push({ label: 'Supp. SKU', width: supplierSkuW, align: 'left' });
-  if (hasEan) cols.push({ label: 'EAN', width: eanW, align: 'left' });
-  cols.push({ label: 'Qty', width: qtyW, align: 'center' });
-  cols.push({ label: 'Cost', width: costW, align: 'right' });
-  cols.push({ label: 'Total', width: totalW, align: 'right' });
-
-  const rows = items.map(i => {
-    const row: string[] = [];
-    row.push(i.productName);
-    row.push(i.sku || '');
-    if (hasSupplierSku) row.push(i.supplierSku || '');
-    if (hasEan) row.push(i.ean || '');
-    row.push(String(i.orderedQty));
-    row.push(i.unitCost ? `$${parseFloat(i.unitCost).toFixed(2)}` : '');
-    row.push(i.unitCost ? `$${(parseFloat(i.unitCost) * i.orderedQty).toFixed(2)}` : '');
-    return row;
-  });
-
-  const tableEnd = drawTable(doc, y, rows, cols, p, m);
-
-  // Total
   if (totalCost > 0) {
-    doc.font('Bold').fontSize(9.5).fillColor(p.primary);
-    doc.text(`Total  ${fmtMoney(totalCost)}`, m, tableEnd + 8, { width: contentW, align: 'right' });
+    const totalBoxW = 160;
+    const totalBoxH = 30;
+    const tx = m + contentW - totalBoxW;
+    doc.save().rect(tx, y, totalBoxW, totalBoxH).fill(p.boxBg).restore();
+    doc.save().strokeColor(p.border).lineWidth(0.5).rect(tx, y, totalBoxW, totalBoxH).stroke().restore();
+    doc.font('Bold').fontSize(12).fillColor(p.primary);
+    doc.text('TOTAL', tx + 12, y + 8);
+    doc.text(fmtMoney(totalCost), tx + 12, y + 8, { width: totalBoxW - 24, align: 'right' });
+    y += totalBoxH + 12;
   }
 
-  // Notes
+  // ─── Notes ───────────────────────────────────────
+
   if (po.notes) {
-    const ny = tableEnd + 26;
-    doc.font('Regular').fontSize(8).fillColor(p.muted).text(po.notes, m, ny, { width: contentW });
+    if (y + 50 > 780) { doc.addPage(); y = 50; }
+    doc.font('Bold').fontSize(9).fillColor(p.muted).text('NOTES', m, y);
+    y += 14;
+    doc.font('Regular').fontSize(10).fillColor(p.primary).text(po.notes, m, y, { width: contentW });
+    y += doc.heightOfString(po.notes, { width: contentW, fontSize: 10 }) + 8;
   }
 
-  drawFooter(doc, opts.companyName, p, m, contentW);
+  // ─── Footer ──────────────────────────────────────
+
+  // Always at bottom of last page
+  const footerY = 810;
+  doc.save().strokeColor(p.border).lineWidth(0.3).moveTo(m, footerY).lineTo(m + contentW, footerY).stroke().restore();
+  doc.font('Regular').fontSize(7.5).fillColor('#aaaaaa');
+  doc.text(opts.companyName || '', m, footerY + 5);
+  doc.text(`Generated ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, m, footerY + 5, { width: contentW, align: 'right' });
+
+  doc.end();
+  return doc;
 }
