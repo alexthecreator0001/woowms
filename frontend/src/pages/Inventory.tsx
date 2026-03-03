@@ -442,6 +442,8 @@ export default function Inventory() {
                       <td className="px-4 py-2.5">
                         {product.isBundle ? (
                           <span className="inline-flex items-center rounded-full bg-violet-500/10 px-2 py-0.5 text-[11px] font-semibold text-violet-600">Bundle</span>
+                        ) : product.isDigital ? (
+                          <span className="inline-flex items-center rounded-full bg-cyan-500/10 px-2 py-0.5 text-[11px] font-semibold text-cyan-600">Digital</span>
                         ) : (
                           <span className="inline-flex items-center rounded-full bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">Simple</span>
                         )}

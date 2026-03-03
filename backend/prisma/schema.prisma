@@ -177,6 +177,7 @@ model Product {
 
   packageQty       Int?     @map("package_qty")
   isBundle         Boolean  @default(false) @map("is_bundle")
+  isDigital        Boolean  @default(false) @map("is_digital")
   sizeCategory     ProductSize? @map("size_category")
 
   orderItems       OrderItem[]

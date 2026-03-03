@@ -161,6 +161,10 @@ export default function ProductDetail() {
   const [spForm, setSpForm] = useState({ supplierId: 0, supplierSku: '', supplierPrice: '', leadTimeDays: '' });
   const [spAdding, setSpAdding] = useState(false);
 
+  // Unit system
+  const [weightUnit, setWeightUnit] = useState('kg');
+  const [dimUnit, setDimUnit] = useState('cm');
+
   // Assign bin
   const [assignOpen, setAssignOpen] = useState(false);
   const [allBins, setAllBins] = useState<Array<{ id: number; label: string; zoneName: string }>>([]);
@@ -220,6 +224,19 @@ export default function ProductDetail() {
   useEffect(() => {
     api.get('/suppliers', { params: { limit: 200 } })
       .then(({ data }) => setSuppliersList((data.data || []).map((s: { id: number; name: string }) => ({ id: s.id, name: s.name }))))
+      .catch(() => {});
+  }, []);
+
+  // Load tenant unit system
+  useEffect(() => {
+    api.get('/account/tenant-settings')
+      .then(({ data }) => {
+        const s = data.data || {};
+        if (s.unitSystem === 'imperial') {
+          setWeightUnit('lb');
+          setDimUnit('in');
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -642,6 +659,12 @@ export default function ProductDetail() {
                     Bundle
                   </span>
                 )}
+                {product.isDigital && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-600">
+                    <CloudUpload className="h-2.5 w-2.5" />
+                    Digital
+                  </span>
+                )}
                 {!product.isActive && (
                   <span className="rounded-md bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-red-500">Inactive</span>
                 )}
@@ -787,13 +810,13 @@ export default function ProductDetail() {
                 </span>
                 <div className="flex items-center gap-1">
                   <input type="text" placeholder="—" value={editFields.weight} onChange={(e) => setEditFields({ ...editFields, weight: e.target.value })} onBlur={handleSaveProduct} className="h-7 w-14 rounded-md border border-transparent bg-transparent px-1.5 text-center text-xs font-medium transition-colors hover:border-border/40 focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
-                  <span className="text-[10px] text-muted-foreground/60">kg</span>
+                  <span className="text-[10px] text-muted-foreground/60">{weightUnit}</span>
                   <input type="text" placeholder="L" value={editFields.length} onChange={(e) => setEditFields({ ...editFields, length: e.target.value })} onBlur={handleSaveProduct} className="h-7 w-11 rounded-md border border-transparent bg-transparent px-1 text-center text-xs font-medium transition-colors hover:border-border/40 focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
                   <span className="text-[10px] text-muted-foreground/40">×</span>
                   <input type="text" placeholder="W" value={editFields.width} onChange={(e) => setEditFields({ ...editFields, width: e.target.value })} onBlur={handleSaveProduct} className="h-7 w-11 rounded-md border border-transparent bg-transparent px-1 text-center text-xs font-medium transition-colors hover:border-border/40 focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
                   <span className="text-[10px] text-muted-foreground/40">×</span>
                   <input type="text" placeholder="H" value={editFields.height} onChange={(e) => setEditFields({ ...editFields, height: e.target.value })} onBlur={handleSaveProduct} className="h-7 w-11 rounded-md border border-transparent bg-transparent px-1 text-center text-xs font-medium transition-colors hover:border-border/40 focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
-                  <span className="text-[10px] text-muted-foreground/60">cm</span>
+                  <span className="text-[10px] text-muted-foreground/60">{dimUnit}</span>
                 </div>
               </div>
 
@@ -828,6 +851,37 @@ export default function ProductDetail() {
                   placeholder="—"
                   className="h-7 w-16 rounded-md border border-transparent bg-transparent px-2 text-right text-sm font-medium transition-colors placeholder:text-muted-foreground hover:border-border/40 focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
+              </div>
+
+              {/* Digital product toggle */}
+              <div className="flex items-center justify-between py-3.5">
+                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <CloudUpload className="h-3.5 w-3.5" />
+                  Digital Product
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const newVal = !product.isDigital;
+                    try {
+                      const { data } = await api.patch(`/inventory/${id}`, { isDigital: newVal });
+                      setProduct(data.data);
+                      setBarcodes(data.data.barcodes || []);
+                      setBundleItems(data.data.bundleComponents || []);
+                    } catch {
+                      console.error('Failed to toggle digital');
+                    }
+                  }}
+                  className={cn(
+                    'relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
+                    product.isDigital ? 'bg-primary' : 'bg-muted-foreground/20'
+                  )}
+                >
+                  <span className={cn(
+                    'inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform',
+                    product.isDigital ? 'translate-x-4.5' : 'translate-x-0.5'
+                  )} />
+                </button>
               </div>
 
               {/* Last updated */}
@@ -1583,13 +1637,23 @@ export default function ProductDetail() {
                   {bundleItems.map((item) => {
                     const cp = item.componentProduct;
                     const available = (cp?.stockQty || 0) - (cp?.reservedQty || 0);
+                    const thumbSrc = cp?.imageUrl ? proxyUrl(cp.imageUrl, 64) : null;
                     return (
                       <div key={item.id} className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 px-4 py-2.5">
                         <div className="flex items-center gap-3">
-                          <button onClick={() => cp && navigate(`/inventory/${cp.sku || cp.id}`)} className="text-sm font-medium text-primary hover:underline">
-                            {cp?.name || `Product #${item.componentProductId}`}
-                          </button>
-                          {cp?.sku && <code className="text-[11px] text-muted-foreground">{cp.sku}</code>}
+                          {thumbSrc ? (
+                            <img src={thumbSrc} alt="" className="h-8 w-8 rounded-md border border-border/60 object-cover" />
+                          ) : (
+                            <div className="flex h-8 w-8 items-center justify-center rounded-md border border-border/60 bg-muted/50">
+                              <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/30" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <button onClick={() => cp && navigate(`/inventory/${cp.sku || cp.id}`)} className="text-sm font-medium text-primary hover:underline">
+                              {cp?.name || `Product #${item.componentProductId}`}
+                            </button>
+                            {cp?.sku && <p className="text-[11px] text-muted-foreground">{cp.sku}</p>}
+                          </div>
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-xs text-muted-foreground">{available} avail</span>

@@ -518,7 +518,7 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
       return res.status(404).json({ error: true, message: 'Product not found', code: 'NOT_FOUND' });
     }
 
-    const { description, price, weight, length, width, height, lowStockThreshold, packageQty, isBundle, sizeCategory } = req.body as {
+    const { description, price, weight, length, width, height, lowStockThreshold, packageQty, isBundle, isDigital, sizeCategory } = req.body as {
       description?: string;
       price?: string;
       weight?: string | null;
@@ -528,6 +528,7 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
       lowStockThreshold?: number;
       packageQty?: number | null;
       isBundle?: boolean;
+      isDigital?: boolean;
       sizeCategory?: string | null;
     };
 
@@ -541,6 +542,7 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
     if (lowStockThreshold !== undefined) data.lowStockThreshold = lowStockThreshold;
     if (packageQty !== undefined) data.packageQty = packageQty;
     if (isBundle !== undefined) data.isBundle = isBundle;
+    if (isDigital !== undefined) data.isDigital = isDigital;
 
     // Handle sizeCategory: explicit value or auto-calc from dimensions
     if (sizeCategory !== undefined) {

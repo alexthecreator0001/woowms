@@ -117,7 +117,7 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-/* ─── Tag Colors & Popover ────────────────────────────── */
+/* ─── Tag Colors & Picker ────────────────────────────── */
 
 const TAG_COLORS = [
   { name: 'blue', bg: 'bg-blue-500/10', text: 'text-blue-600', dot: 'bg-blue-500' },
@@ -133,6 +133,65 @@ const TAG_COLORS = [
 const TAG_COLOR_MAP: Record<string, { bg: string; text: string }> = Object.fromEntries(
   TAG_COLORS.map((c) => [c.name, { bg: c.bg, text: c.text }])
 );
+
+function TagPickerPopover({ onAdd, onClose, existing }: { onAdd: (tag: { label: string; color: string }) => void; onClose: () => void; existing: { label: string; color: string }[] }) {
+  const [availableTags, setAvailableTags] = useState<{ label: string; color: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    api.get('/account/tags')
+      .then(({ data }) => {
+        const tags: { label: string; color: string }[] = Array.isArray(data.data) ? data.data : [];
+        // Filter out tags already applied
+        const existingLabels = new Set(existing.map((t) => t.label.toLowerCase()));
+        setAvailableTags(tags.filter((t) => !existingLabels.has(t.label.toLowerCase())));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [existing]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  return (
+    <div ref={ref} className="absolute top-full left-0 mt-1 z-50 w-56 rounded-xl border border-border/60 bg-card p-2 shadow-lg">
+      {loading ? (
+        <div className="flex items-center justify-center py-3">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        </div>
+      ) : availableTags.length === 0 ? (
+        <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+          {existing.length > 0 ? 'All tags applied' : 'No tags defined yet. Create tags in Settings.'}
+        </p>
+      ) : (
+        <div className="max-h-48 space-y-0.5 overflow-y-auto">
+          {availableTags.map((tag, idx) => {
+            const cs = TAG_COLOR_MAP[tag.color] || TAG_COLOR_MAP.blue;
+            return (
+              <button
+                key={idx}
+                onClick={() => { onAdd(tag); onClose(); }}
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors hover:bg-muted/60',
+                  cs.text
+                )}
+              >
+                <span className={cn('h-2 w-2 rounded-full', TAG_COLORS.find((c) => c.name === tag.color)?.dot || 'bg-blue-500')} />
+                {tag.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function TagPopover({ onAdd, onClose }: { onAdd: (tag: { label: string; color: string }) => void; onClose: () => void }) {
   const [label, setLabel] = useState('');
@@ -379,7 +438,7 @@ export default function OrderDetail() {
                     <Plus className="h-3 w-3" />
                   </button>
                   {tagPopover === 'order' && (
-                    <TagPopover onAdd={addOrderTag} onClose={() => setTagPopover(null)} />
+                    <TagPickerPopover onAdd={addOrderTag} onClose={() => setTagPopover(null)} existing={orderTags} />
                   )}
                 </div>
               </div>

@@ -155,6 +155,15 @@ router.patch('/preferences', async (req: Request, res: Response, next: NextFunct
   }
 });
 
+const DEFAULT_ORDER_TAGS = [
+  { label: 'VIP', color: 'violet' },
+  { label: 'Rush', color: 'rose' },
+  { label: 'Fragile', color: 'amber' },
+  { label: 'Gift', color: 'fuchsia' },
+  { label: 'Wholesale', color: 'blue' },
+  { label: 'Return', color: 'orange' },
+];
+
 // GET /api/v1/account/tenant-settings — get tenant settings (admin only)
 router.get('/tenant-settings', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -162,7 +171,31 @@ router.get('/tenant-settings', authorize('ADMIN'), async (req: Request, res: Res
       where: { id: req.user!.tenantId },
       select: { settings: true },
     });
-    res.json({ data: tenant?.settings || {} });
+    const settings = (tenant?.settings as Record<string, unknown>) || {};
+    // Seed default order tags if not yet set
+    if (!settings.orderTags) {
+      settings.orderTags = DEFAULT_ORDER_TAGS;
+      await prisma.tenant.update({
+        where: { id: req.user!.tenantId },
+        data: { settings: settings },
+      });
+    }
+    res.json({ data: settings });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/account/tags — get order tags (all authenticated users)
+router.get('/tags', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: req.user!.tenantId },
+      select: { settings: true },
+    });
+    const settings = (tenant?.settings as Record<string, unknown>) || {};
+    const tags = Array.isArray(settings.orderTags) ? settings.orderTags : DEFAULT_ORDER_TAGS;
+    res.json({ data: tags });
   } catch (err) {
     next(err);
   }

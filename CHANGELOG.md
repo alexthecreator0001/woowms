@@ -3,6 +3,15 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.47.0 / 2.36.0] - 2026-03-03
+
+### Added
+- **Tags management in Settings** — Create and manage order tags in Settings > Tags. Define tag name and color. Tags are shared across team. Default tags (VIP, Rush, Fragile, Gift, Wholesale, Return) auto-seeded for new tenants.
+- **Tag picker on orders** — Order tags now picked from pre-defined tags (Settings) instead of inline creation. Non-admin users can pick tags via `/account/tags` endpoint.
+- **Digital product toggle** — Mark products as digital (e.g. gift cards) with toggle in Product Information. Digital products show "Digital" badge in sidebar and inventory list. New `is_digital` column with migration.
+- **Bundle component images** — Bundle component rows now show product thumbnail images.
+- **Dynamic weight/dims units** — Weight and dimension labels respect tenant unit system setting (kg/cm for metric, lb/in for imperial) instead of being hardcoded.
+
 ## [3.46.0 / 2.35.0] - 2026-03-03
 
 ### Added

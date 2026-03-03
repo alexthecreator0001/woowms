@@ -133,6 +133,7 @@ export interface Product {
   imageUrl: string | null;
   isActive: boolean;
   isBundle: boolean;
+  isDigital: boolean;
   sizeCategory?: ProductSize | null;
   stockLocations?: StockLocation[];
   _canBuild?: number;
