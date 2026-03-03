@@ -294,7 +294,52 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
       return res.status(404).json({ error: true, message: 'Purchase order not found', code: 'NOT_FOUND' });
     }
 
-    res.json({ data: po });
+    // Enrich items with product images, supplier SKU, and EAN
+    const allSkus = po.items.map((i: any) => i.sku).filter(Boolean);
+    const products = allSkus.length > 0
+      ? await req.prisma!.product.findMany({
+          where: { sku: { in: allSkus }, store: { tenantId: req.tenantId } },
+          select: { id: true, sku: true, imageUrl: true },
+        })
+      : [];
+    const productMap = new Map(products.map(p => [p.sku, p]));
+    const productIds = products.map(p => p.id);
+
+    // Get supplier SKUs from SupplierProduct
+    const supplierProducts = (po.supplierId && productIds.length > 0)
+      ? await req.prisma!.supplierProduct.findMany({
+          where: { supplierId: po.supplierId, productId: { in: productIds } },
+          select: { productId: true, supplierSku: true },
+        })
+      : [];
+    const supplierSkuMap = new Map(supplierProducts.map(sp => [sp.productId, sp.supplierSku]));
+
+    // Get barcodes (primary or first) for products
+    const barcodes = productIds.length > 0
+      ? await req.prisma!.productBarcode.findMany({
+          where: { productId: { in: productIds } },
+          select: { productId: true, barcode: true, isPrimary: true },
+          orderBy: { isPrimary: 'desc' },
+        })
+      : [];
+    const barcodeMap = new Map<number, string>();
+    for (const bc of barcodes) {
+      if (!barcodeMap.has(bc.productId)) barcodeMap.set(bc.productId, bc.barcode);
+    }
+
+    // Attach enriched fields to each item
+    const enrichedItems = po.items.map((i: any) => {
+      const prod = productMap.get(i.sku);
+      const prodId = prod?.id;
+      return {
+        ...i,
+        imageUrl: prod?.imageUrl || null,
+        supplierSku: prodId ? (supplierSkuMap.get(prodId) || null) : null,
+        ean: prodId ? (barcodeMap.get(prodId) || null) : null,
+      };
+    });
+
+    res.json({ data: { ...po, items: enrichedItems } });
   } catch (err) {
     next(err);
   }
@@ -367,14 +412,18 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
       supplierId?: number | null;
     };
 
-    // Split: tracking fields can be edited for DRAFT and ORDERED, other fields only in DRAFT
+    // Split: tracking/expectedDate/notes can be edited for DRAFT and ORDERED,
+    // supplier/items/supplierId only in DRAFT
     const isDraft = existing.status === 'DRAFT';
-    const canEditTracking = ['DRAFT', 'ORDERED'].includes(existing.status);
+    const canEditDraftOrOrdered = ['DRAFT', 'ORDERED'].includes(existing.status);
 
-    if (!isDraft && (supplier !== undefined || items !== undefined || expectedDate !== undefined || notes !== undefined || supplierId !== undefined)) {
-      return res.status(400).json({ error: true, message: 'Only DRAFT purchase orders can be fully edited', code: 'INVALID_STATUS' });
+    if (!isDraft && (supplier !== undefined || items !== undefined || supplierId !== undefined)) {
+      return res.status(400).json({ error: true, message: 'Supplier and items can only be edited for DRAFT purchase orders', code: 'INVALID_STATUS' });
     }
-    if (!canEditTracking && (trackingNumber !== undefined || trackingUrl !== undefined)) {
+    if (!canEditDraftOrOrdered && (expectedDate !== undefined || notes !== undefined)) {
+      return res.status(400).json({ error: true, message: 'Expected date and notes can only be edited for DRAFT or ORDERED POs', code: 'INVALID_STATUS' });
+    }
+    if (!canEditDraftOrOrdered && (trackingNumber !== undefined || trackingUrl !== undefined)) {
       return res.status(400).json({ error: true, message: 'Tracking can only be edited for DRAFT or ORDERED POs', code: 'INVALID_STATUS' });
     }
 

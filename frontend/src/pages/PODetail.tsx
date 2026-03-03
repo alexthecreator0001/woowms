@@ -450,17 +450,35 @@ export default function PODetail() {
                   />
                 </div>
               </div>
-              {po.expectedDate && (
-                <div className="flex items-center justify-between py-3.5">
-                  <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Calendar className="h-3.5 w-3.5" />
-                    Expected
-                  </span>
+              <div className="flex items-center justify-between py-3.5">
+                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Expected
+                </span>
+                {['DRAFT', 'ORDERED'].includes(po.status) ? (
+                  <input
+                    type="date"
+                    defaultValue={po.expectedDate ? new Date(po.expectedDate).toISOString().split('T')[0] : ''}
+                    onBlur={async (e) => {
+                      const val = e.target.value;
+                      const current = po.expectedDate ? new Date(po.expectedDate).toISOString().split('T')[0] : '';
+                      if (val !== current) {
+                        try {
+                          const { data } = await api.patch(`/receiving/${po.id}`, { expectedDate: val || null });
+                          setPo(data.data);
+                        } catch { /* ignore */ }
+                      }
+                    }}
+                    className="h-8 w-36 rounded-lg border border-border/60 bg-background px-2 text-sm font-medium shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                ) : (
                   <span className="text-sm font-medium">
-                    {new Date(po.expectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {po.expectedDate
+                      ? new Date(po.expectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : <span className="text-muted-foreground/50">Not set</span>}
                   </span>
-                </div>
-              )}
+                )}
+              </div>
               {po.receivedDate && (
                 <div className="flex items-center justify-between py-3.5">
                   <span className="flex items-center gap-1.5 text-sm text-muted-foreground">

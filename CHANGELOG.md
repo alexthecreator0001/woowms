@@ -3,6 +3,15 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.53.1] - 2026-03-03
+
+### Fixed
+- **PO detail page images not loading** — The GET /receiving/:id endpoint now enriches PO items with product images, supplier SKU, and EAN (matching the PDF endpoint enrichment).
+- **Expected Date not always shown on PO detail** — Expected Date now always displays in the PO Info card. Shows "Not set" when empty; editable via inline date picker for DRAFT and ORDERED POs.
+- **Cannot edit expectedDate/notes for ORDERED POs** — The PATCH /receiving/:id endpoint now allows editing expectedDate and notes for both DRAFT and ORDERED status POs (supplier/items remain DRAFT-only).
+- **Digital products not detected during WooCommerce sync** — Added `virtual` and `downloadable` fields to WooProduct interface; product and variation sync now sets `isDigital` flag based on these fields.
+- **Missing border on receiving list thumbnails** — Product thumbnail images in the PO list now have a subtle ring border for better visibility.
+
 ## [3.53.0] - 2026-03-03
 
 ### Added

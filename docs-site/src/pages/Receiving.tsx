@@ -90,8 +90,9 @@ export default function Receiving() {
         </li>
         <li>
           <strong>Right column:</strong> Status transitions, supplier info, visual receiving
-          progress bar (color-coded: amber for partial, green for complete), tracking details,
-          PDF export, and delete (draft only)
+          progress bar (color-coded: amber for partial, green for complete), expected date
+          (editable inline for Draft and Ordered POs), tracking details, PDF export, and
+          delete (draft only)
         </li>
       </ul>
 
@@ -139,6 +140,14 @@ export default function Receiving() {
         All templates include your company details (address, email, phone, VAT ID, website) when
         configured in Branding settings. If a company stamp image is uploaded, it appears above
         the signature line on the PDF.
+      </p>
+
+      <h3>Editing Ordered POs</h3>
+      <p>
+        While only Draft POs allow full editing (supplier, items), POs in Ordered status
+        also support editing the <strong>expected date</strong>, <strong>notes</strong>,
+        <strong>tracking number</strong>, and <strong>tracking URL</strong>. These fields
+        can be updated inline from the PO detail page.
       </p>
 
       <h2>Search & Filters</h2>

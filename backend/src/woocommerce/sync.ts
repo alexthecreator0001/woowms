@@ -51,6 +51,8 @@ interface WooProduct {
   images: { src: string }[];
   status: string;
   type: string;
+  virtual: boolean;
+  downloadable: boolean;
 }
 
 interface WooVariation {
@@ -350,6 +352,7 @@ export async function syncProducts(store: Store, options?: SyncOptions): Promise
               wooParentId: product.id,
               variantAttributes,
               sizeCategory: calculateProductSize(vLength, vWidth, vHeight),
+              isDigital: product.virtual === true || product.downloadable === true,
             };
 
             if (importStock) {
@@ -413,6 +416,7 @@ export async function syncProducts(store: Store, options?: SyncOptions): Promise
         isActive: product.status === 'publish',
         productType: 'simple',
         sizeCategory: calculateProductSize(pLength, pWidth, pHeight),
+        isDigital: product.virtual === true || product.downloadable === true,
       };
 
       if (importStock) {

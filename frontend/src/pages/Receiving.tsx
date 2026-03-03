@@ -173,7 +173,7 @@ export default function Receiving() {
                               key={idx}
                               src={src}
                               alt=""
-                              className="h-7 w-7 rounded-md border-2 border-card object-cover"
+                              className="h-7 w-7 rounded-md border-2 border-card ring-1 ring-border/40 object-cover"
                             />
                           ) : (
                             <div key={idx} className="flex h-7 w-7 items-center justify-center rounded-md border-2 border-card bg-muted/50">
