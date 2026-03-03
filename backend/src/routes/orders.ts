@@ -77,14 +77,19 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
       const orderCount = agg._count.id;
       const totalRevenue = agg._sum.total?.toNumber() || 0;
 
-      // Compute labels from tenant customer rules
+      // Compute labels from tenant order rules (backward compat: fall back to customerRules)
       const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId }, select: { settings: true } });
-      const rules = ((tenant?.settings as any)?.customerRules || []) as { condition: string; threshold: number; label: string; color: string }[];
+      const allRules = ((tenant?.settings as any)?.orderRules || (tenant?.settings as any)?.customerRules || []) as { type?: string; condition: string; threshold: number; label?: string; color?: string }[];
+      // Filter to customer_tag rules only (or legacy rules without a type)
+      const tagRules = allRules.filter((r) => !r.type || r.type === 'customer_tag');
       const labels: { label: string; color: string }[] = [];
-      for (const rule of rules) {
+      for (const rule of tagRules) {
+        if (!rule.label || !rule.color) continue;
         if (rule.condition === 'revenue_gt' && totalRevenue > rule.threshold) {
           labels.push({ label: rule.label, color: rule.color });
         } else if (rule.condition === 'orders_gt' && orderCount > rule.threshold) {
+          labels.push({ label: rule.label, color: rule.color });
+        } else if (rule.condition === 'order_total_gt' && order.total && order.total.toNumber() > rule.threshold) {
           labels.push({ label: rule.label, color: rule.color });
         }
       }

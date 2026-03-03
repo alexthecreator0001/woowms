@@ -13,7 +13,7 @@ import {
   Package,
   Ruler,
   TruckTrailer,
-  Tag,
+  Lightning,
 } from '@phosphor-icons/react';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
@@ -29,7 +29,7 @@ import OrderWorkflowSection from './OrderWorkflowSection';
 import InventoryDefaultsSection from './InventoryDefaultsSection';
 import UnitsSection from './UnitsSection';
 import ShippingSection from './ShippingSection';
-import CustomerRulesSection from './CustomerRulesSection';
+import RulesSection from './RulesSection';
 
 function getTokenPayload(): TokenPayload | null {
   const token = localStorage.getItem('token');
@@ -63,7 +63,7 @@ const cards: SettingsCard[] = [
   { id: 'orderWorkflow', title: 'Order workflow', description: 'Map WooCommerce statuses to WMS statuses.', icon: ArrowsLeftRight, group: 'Warehouse settings', adminOnly: true },
   { id: 'inventoryDefaults', title: 'Inventory defaults', description: 'Low stock threshold and stock sync.', icon: Package, group: 'Warehouse settings', adminOnly: true },
   { id: 'units', title: 'Units & measurements', description: 'Unit system and pallet type defaults.', icon: Ruler, group: 'Warehouse settings', adminOnly: true },
-  { id: 'customerRules', title: 'Customer tags', description: 'Auto-label customers based on revenue and order count.', icon: Tag, group: 'Warehouse settings', adminOnly: true },
+  { id: 'customerRules', title: 'Rules', description: 'Automate order actions, customer tags, and free gifts.', icon: Lightning, group: 'Warehouse settings', adminOnly: true },
   { id: 'shipping', title: 'Shipping & Labels', description: 'Shipping provider, carrier mapping, and label printing.', icon: TruckTrailer, group: 'Integrations', adminOnly: true },
   { id: 'woocommerce', title: 'WooCommerce', description: 'Store connections and sync settings.', icon: Storefront, group: 'Integrations' },
 ];
@@ -103,7 +103,7 @@ export default function SettingsPage() {
         {active === 'inventoryDefaults' && isAdmin && <InventoryDefaultsSection />}
         {active === 'units' && isAdmin && <UnitsSection />}
         {active === 'shipping' && isAdmin && <ShippingSection />}
-        {active === 'customerRules' && isAdmin && <CustomerRulesSection />}
+        {active === 'customerRules' && isAdmin && <RulesSection />}
         {active === 'danger' && isAdmin && <DangerZoneSection />}
       </div>
     );

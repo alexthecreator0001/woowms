@@ -132,6 +132,11 @@ export async function syncOrders(store: Store): Promise<void> {
     }
 
     for (const order of orders) {
+      // Check if order already exists (for new-order rule detection)
+      const existingOrder = await prisma.order.findUnique({
+        where: { wooId_storeId: { wooId: order.id, storeId: store.id } },
+      });
+
       await prisma.order.upsert({
         where: {
           wooId_storeId: { wooId: order.id, storeId: store.id },
@@ -192,6 +197,16 @@ export async function syncOrders(store: Store): Promise<void> {
             price: item.price,
           },
         });
+      }
+
+      // Apply order rules for NEW orders only
+      if (!existingOrder) {
+        const dbOrder = await prisma.order.findUnique({
+          where: { wooId_storeId: { wooId: order.id, storeId: store.id } },
+        });
+        if (dbOrder) {
+          await applyOrderRules(dbOrder.id, store.tenantId);
+        }
       }
     }
 
@@ -574,6 +589,118 @@ export async function pushProductToWoo(store: Store, productId: number): Promise
     await woo.put(`products/${product.wooId}`, payload);
   }
   console.log(`[SYNC] Pushed product details for ${product.sku} to WooCommerce`);
+}
+
+// ─── Order Rules Engine ──────────────────────────────
+
+interface OrderRule {
+  type?: string;
+  condition: string;
+  threshold: number;
+  label?: string;
+  color?: string;
+  sku?: string;
+  giftName?: string;
+  priority?: number;
+  note?: string;
+}
+
+function evaluateRuleCondition(
+  rule: OrderRule,
+  orderTotal: number,
+  itemCount: number,
+  paymentMethod: string | null
+): boolean {
+  switch (rule.condition) {
+    case 'order_total_gt':
+      return orderTotal > rule.threshold;
+    case 'item_count_gt':
+      return itemCount > rule.threshold;
+    case 'is_cod':
+      return paymentMethod === 'cod';
+    default:
+      return false;
+  }
+}
+
+async function applyOrderRules(orderId: number, tenantId: number): Promise<void> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { settings: true },
+  });
+  const settings = (tenant?.settings as Record<string, unknown>) || {};
+  const rules = (settings.orderRules || settings.customerRules || []) as OrderRule[];
+
+  // Only process sync-time rules (not customer_tag — those are read-time)
+  const syncRules = rules.filter((r) => r.type && r.type !== 'customer_tag');
+  if (syncRules.length === 0) return;
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { items: true },
+  });
+  if (!order) return;
+
+  const orderTotal = order.total?.toNumber() || 0;
+  const itemCount = order.items.reduce((sum, i) => sum + i.quantity, 0);
+  const paymentMethod = order.paymentMethod;
+
+  let highestPriority: number | null = null;
+  const notes: string[] = [];
+
+  for (const rule of syncRules) {
+    if (!evaluateRuleCondition(rule, orderTotal, itemCount, paymentMethod)) continue;
+
+    switch (rule.type) {
+      case 'free_gift': {
+        if (!rule.sku) break;
+        // Dedup: check if gift item already exists
+        const existing = await prisma.orderItem.findFirst({
+          where: { orderId: order.id, sku: rule.sku },
+        });
+        if (!existing) {
+          await prisma.orderItem.create({
+            data: {
+              orderId: order.id,
+              wooProductId: 0,
+              sku: rule.sku,
+              name: rule.giftName || `Free Gift (${rule.sku})`,
+              quantity: 1,
+              price: '0',
+            },
+          });
+          console.log(`[RULES] Added free gift ${rule.sku} to order ${order.orderNumber}`);
+        }
+        break;
+      }
+      case 'auto_priority': {
+        const p = rule.priority || 1;
+        if (highestPriority === null || p > highestPriority) {
+          highestPriority = p;
+        }
+        break;
+      }
+      case 'auto_note': {
+        if (rule.note) notes.push(rule.note);
+        break;
+      }
+    }
+  }
+
+  // Apply priority + notes in a single update
+  const updateData: Record<string, unknown> = {};
+  if (highestPriority !== null) {
+    updateData.priority = highestPriority;
+    console.log(`[RULES] Set priority ${highestPriority} on order ${order.orderNumber}`);
+  }
+  if (notes.length > 0) {
+    const existing = order.notes || '';
+    updateData.notes = existing ? `${existing}\n${notes.join('\n')}` : notes.join('\n');
+    console.log(`[RULES] Added ${notes.length} auto-note(s) to order ${order.orderNumber}`);
+  }
+  if (Object.keys(updateData).length > 0) {
+    await prisma.order.update({ where: { id: order.id }, data: updateData });
+  }
 }
 
 function mapWooStatus(wooStatus: string, tenantSettings?: Record<string, unknown>): string {
