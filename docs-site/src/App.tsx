@@ -16,6 +16,7 @@ import Receiving from './pages/Receiving';
 import Suppliers from './pages/Suppliers';
 import Plugins from './pages/Plugins';
 import Search from './pages/Search';
+import MobileApp from './pages/MobileApp';
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/suppliers" element={<Suppliers />} />
         <Route path="/plugins" element={<Plugins />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/mobile-app" element={<MobileApp />} />
       </Route>
     </Routes>
   );

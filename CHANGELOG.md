@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.54.2] - 2026-03-03
+
+### Added
+- **Mobile App documentation page** — New docs page at /mobile-app covering the Android picking app: features, screens, API endpoints, authentication, tech stack, and developer setup. Added "Mobile" nav section to docs sidebar.
+
 ## [3.54.1] - 2026-03-03
 
 ### Fixed

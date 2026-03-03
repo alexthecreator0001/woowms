@@ -43,6 +43,12 @@ const NAV_SECTIONS = [
       { to: '/search', label: 'Global Search' },
     ],
   },
+  {
+    label: 'Mobile',
+    items: [
+      { to: '/mobile-app', label: 'Picking App' },
+    ],
+  },
 ];
 
 export default function DocLayout() {
