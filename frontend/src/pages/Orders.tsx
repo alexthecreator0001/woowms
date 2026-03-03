@@ -10,8 +10,10 @@ import {
   Gear,
   Package,
   Truck,
+  Cube,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
+import { proxyUrl } from '../lib/image';
 import { getStatusStyle, fetchAllStatuses, type StatusDef } from '../lib/statuses';
 import api from '../services/api';
 import Pagination from '../components/Pagination';
@@ -204,7 +206,33 @@ export default function Orders() {
                       </span>
                     </td>
                   )}
-                  {isVisible('items') && <td className="px-5 py-3.5 text-sm text-muted-foreground">{order.items?.length || 0}</td>}
+                  {isVisible('items') && (
+                    <td className="px-5 py-3.5">
+                      {order.items && order.items.length > 0 ? (
+                        <div className="flex items-center gap-1">
+                          {order.items.slice(0, 3).map((item, i) => {
+                            const img = item.product?.imageUrl;
+                            return img ? (
+                              <div key={i} className="h-8 w-8 overflow-hidden rounded-md border border-border/40 bg-muted/20 flex-shrink-0">
+                                <img src={proxyUrl(img, 64)!} alt="" className="h-full w-full object-cover" loading="lazy" />
+                              </div>
+                            ) : (
+                              <div key={i} className="flex h-8 w-8 items-center justify-center rounded-md border border-border/40 bg-muted/30 flex-shrink-0">
+                                <Cube size={12} weight="duotone" className="text-muted-foreground/30" />
+                              </div>
+                            );
+                          })}
+                          {order.items.length > 3 && (
+                            <span className="flex h-8 items-center rounded-md bg-muted/50 px-2 text-xs font-semibold text-muted-foreground">
+                              +{order.items.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground/40">&mdash;</span>
+                      )}
+                    </td>
+                  )}
                   {isVisible('total') && <td className="px-5 py-3.5 text-sm font-medium">{order.currency} {order.total}</td>}
                   {isVisible('date') && (
                     <td className="px-5 py-3.5 text-sm text-muted-foreground">

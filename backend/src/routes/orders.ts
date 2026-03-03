@@ -28,7 +28,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where,
-        include: { items: true, _count: { select: { shipments: true } } },
+        include: { items: { include: { product: { select: { imageUrl: true } } } }, _count: { select: { shipments: true } } },
         orderBy: { wooCreatedAt: 'desc' },
         skip: (pageNum - 1) * limitNum,
         take: limitNum,

@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.38.0 / 2.31.0] - 2026-03-03
+
+### Changed
+- **Items column shows product thumbnails** — Orders table Items column now displays up to 3 product thumbnail images with a "+N" overflow badge for orders with more items, instead of just a plain number. Backend order list endpoint now includes product image URLs.
+
 ## [3.37.0 / 2.30.0] - 2026-03-03
 
 ### Added
