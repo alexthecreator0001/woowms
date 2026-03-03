@@ -3,6 +3,23 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.43.0 / 2.34.0] - 2026-03-03
+
+### Changed
+- **Analytics map redesign** — White background dotted world map with correctly placed pulsing markers per country. Uses DottedMap's own projection (`getPin`) for accurate dot placement. Removed curved lines — map now simply shows where orders come from. Full-width layout with inline top countries sidebar.
+- **Interactive charts** — Sales Over Time bar chart and new Orders Over Time line chart both support hover tooltips showing exact values, date, and order count.
+- **Analytics layout** — Smaller, more compact charts. Two charts side-by-side (sales bars + orders line).
+
+### Added
+- **Orders Over Time** — New interactive area/line chart showing daily order count alongside the sales bar chart.
+- **Orders by Status** — Horizontal bar chart breakdown of orders by fulfillment status (Pending, Processing, Shipped, etc.) with color-coded bars.
+- **Payment Methods** — Horizontal bar chart showing order count and revenue per payment method.
+- **Top Products** — Ranked list of top 10 best-selling products by quantity in the selected period.
+- Backend analytics endpoint now returns `ordersByStatus`, `ordersByPayment`, and `topProducts` data.
+
+### Removed
+- `framer-motion` dependency (no longer needed — map uses pure SVG animations).
+
 ## [3.42.0] - 2026-03-03
 
 ### Changed

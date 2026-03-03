@@ -9,8 +9,8 @@ export default function Analytics() {
       <h2>Overview</h2>
       <p>
         The Analytics page provides a real-time dashboard of your fulfillment
-        performance. It shows key metrics, a sales-over-time chart, and a
-        geographic order map &mdash; all in one view.
+        performance. It shows key metrics, interactive charts, order geography,
+        and breakdowns by status, payment method, and top products.
       </p>
 
       <h2>Time Period Selector</h2>
@@ -33,8 +33,7 @@ export default function Analytics() {
       </ul>
       <p>
         Each card shows a percentage comparison against the previous period of
-        the same length (e.g. if viewing 30 days, it compares to the 30 days
-        before that). Green indicates improvement, red indicates decline.
+        the same length. Green indicates improvement, red indicates decline.
       </p>
 
       <h3>Customizing Cards</h3>
@@ -44,34 +43,42 @@ export default function Analytics() {
         must remain visible.
       </p>
 
-      <h2>Sales Over Time Chart</h2>
+      <h2>Interactive Charts</h2>
+      <p>Two side-by-side charts visualize order data over time:</p>
+      <ul>
+        <li><strong>Sales Over Time</strong> &mdash; A bar chart showing daily revenue. Hover over any bar to see the exact total, order count, and date in a tooltip.</li>
+        <li><strong>Orders Over Time</strong> &mdash; A line/area chart showing daily order count. Hover for tooltips with exact counts.</li>
+      </ul>
       <p>
-        A full-width area chart shows daily sales totals for the selected
-        period. The chart includes grid lines, Y-axis values (formatted as
-        &ldquo;1.2k&rdquo; etc.), and X-axis date labels. Data points are
-        shown as dots when the period has 60 or fewer days.
+        Charts aggregate by day (7d/30d), week (90d), or month (1y) for
+        readable data at any scale.
       </p>
+
+      <h2>Status, Payments &amp; Top Products</h2>
+      <p>Three cards provide categorical breakdowns:</p>
+      <ul>
+        <li><strong>Orders by Status</strong> &mdash; Horizontal bar chart showing how many orders are in each fulfillment status (Pending, Processing, Shipped, etc.).</li>
+        <li><strong>Payment Methods</strong> &mdash; Horizontal bar chart with order count and revenue per payment method.</li>
+        <li><strong>Top Products</strong> &mdash; Ranked list of the 10 best-selling products by quantity in the selected period, with SKU and quantity sold.</li>
+      </ul>
 
       <h2>Order Map</h2>
       <p>
-        A dark-themed geographic visualization plots order origins across the
-        globe. Each dot represents a country where orders were shipped. Dot
-        size and brightness scale with order volume. The highest-traffic
-        countries display animated pulse rings and order count labels.
+        A full-width dotted world map shows where your orders come from. Each
+        order country is marked with a pulsing indigo dot. Dot size scales with
+        order volume &mdash; countries with more orders have larger markers.
       </p>
       <p>
-        Country data is extracted from the shipping address on each order. Only
-        countries with at least one order appear as active dots; all other
-        reference countries are shown as faint markers to provide geographic
-        context.
+        Country data is extracted from the shipping address on each order. The
+        map uses the <code>dotted-map</code> library&apos;s own Mercator
+        projection to ensure accurate pin placement.
       </p>
 
       <h2>Top Countries</h2>
       <p>
-        A sidebar list ranks the top 10 countries by order count. Each entry
-        shows the country flag, name, a proportional bar, order count, and
-        total revenue. This complements the map for quick at-a-glance
-        geographic insights.
+        An inline sidebar next to the map ranks the top 10 countries by order
+        count. Each entry shows the country flag, name, a proportional bar,
+        order count, and total revenue.
       </p>
     </article>
   );

@@ -1,7 +1,7 @@
 {
   "name": "picknpack-frontend",
   "private": true,
-  "version": "3.42.0",
+  "version": "3.43.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -22,8 +22,7 @@
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "tailwind-merge": "^2.6.0",
-    "dotted-map": "^2.1.0",
-    "framer-motion": "^11.15.0"
+    "dotted-map": "^2.1.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

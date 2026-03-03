@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   ChartLineUp,
   CurrencyDollar,
@@ -12,6 +12,8 @@ import {
   GearSix,
   Eye,
   EyeSlash,
+  CreditCard,
+  Trophy,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import { fmtMoney } from '../lib/currency';
@@ -35,6 +37,9 @@ interface AnalyticsData {
   };
   salesOverTime: { date: string; total: number; orders: number }[];
   ordersByCountry: { country: string; count: number; total: number }[];
+  ordersByStatus: { status: string; count: number }[];
+  ordersByPayment: { method: string; count: number; total: number }[];
+  topProducts: { sku: string; name: string; quantity: number }[];
   currency: string;
 }
 
@@ -61,10 +66,7 @@ const ICON_COLORS: Record<string, { bg: string; text: string; spark: string }> =
   amber:   { bg: 'bg-amber-500/10', text: 'text-amber-600', spark: '#f59e0b' },
 };
 
-// Warehouse origin for map lines (default: Prague, CZ)
-const WAREHOUSE_ORIGIN = { lat: 50.08, lng: 14.44 };
-
-// Country centroids for map dot destinations
+// Country centroids for map markers
 const COUNTRY_CENTROIDS: Record<string, { lat: number; lng: number }> = {
   US: { lat: 38, lng: -97 }, CA: { lat: 56, lng: -96 }, MX: { lat: 23, lng: -102 },
   BR: { lat: -14, lng: -51 }, AR: { lat: -34, lng: -58 }, CL: { lat: -33, lng: -71 },
@@ -107,6 +109,20 @@ const COUNTRY_NAMES: Record<string, string> = {
   PH: 'Philippines', ID: 'Indonesia', AU: 'Australia', NZ: 'New Zealand',
 };
 
+const STATUS_COLORS: Record<string, string> = {
+  PENDING: '#f59e0b',
+  PROCESSING: '#6366f1',
+  PICKING: '#8b5cf6',
+  PICKED: '#a78bfa',
+  PACKING: '#06b6d4',
+  PACKED: '#14b8a6',
+  SHIPPED: '#10b981',
+  DELIVERED: '#22c55e',
+  COMPLETED: '#22c55e',
+  CANCELLED: '#ef4444',
+  ON_HOLD: '#f97316',
+};
+
 /* ─── Helpers ────────────────────────────────────────── */
 
 function countryFlag(code: string): string {
@@ -118,23 +134,22 @@ function pctChange(current: number, previous: number): number {
   return ((current - previous) / previous) * 100;
 }
 
-// Aggregate daily data into weekly or monthly buckets
-function aggregateBars(data: { date: string; total: number; orders: number }[], period: string): { label: string; total: number; orders: number }[] {
+function aggregateBars(data: { date: string; total: number; orders: number }[], period: string): { label: string; total: number; orders: number; date: string }[] {
   if (period === '7d' || period === '30d') {
     return data.map((d) => ({
       label: new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       total: d.total,
       orders: d.orders,
+      date: d.date,
     }));
   }
-  // 90d → weekly, year → monthly
-  const buckets: Record<string, { total: number; orders: number }> = {};
+  const buckets: Record<string, { total: number; orders: number; date: string }> = {};
   for (const d of data) {
     const dt = new Date(d.date + 'T00:00:00');
     const key = period === 'year'
       ? dt.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
       : `W${getISOWeek(dt)}`;
-    if (!buckets[key]) buckets[key] = { total: 0, orders: 0 };
+    if (!buckets[key]) buckets[key] = { total: 0, orders: 0, date: d.date };
     buckets[key].total += d.total;
     buckets[key].orders += d.orders;
   }
@@ -147,6 +162,16 @@ function getISOWeek(d: Date): number {
   dt.setUTCDate(dt.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1));
   return Math.ceil((((dt.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+}
+
+function fmtNum(n: number): string {
+  if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
+  return n.toFixed(0);
+}
+
+function statusLabel(s: string): string {
+  return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /* ─── Sparkline ──────────────────────────────────────── */
@@ -176,87 +201,236 @@ function Sparkline({ data, color = '#6366f1' }: { data: number[]; color?: string
   );
 }
 
-/* ─── Bar Chart (Shopify-style) ──────────────────────── */
+/* ─── Interactive Bar Chart ──────────────────────────── */
 
-function BarChart({ bars }: { bars: { label: string; total: number; orders: number }[] }) {
+interface BarData { label: string; total: number; orders: number; date: string }
+
+function BarChart({ bars, currency }: { bars: BarData[]; currency: string }) {
+  const [hover, setHover] = useState<{ idx: number; x: number; y: number } | null>(null);
+
   if (!bars.length) return null;
 
   const W = 800;
-  const H = 280;
-  const pad = { t: 16, r: 16, b: 40, l: 52 };
+  const H = 200;
+  const pad = { t: 12, r: 12, b: 32, l: 48 };
   const cw = W - pad.l - pad.r;
   const ch = H - pad.t - pad.b;
 
   const maxVal = Math.max(...bars.map((b) => b.total), 1);
   const gap = cw / bars.length;
-  const barW = Math.max(Math.min(gap * 0.65, 28), 3);
+  const barW = Math.max(Math.min(gap * 0.65, 24), 3);
 
-  // Y-axis ticks
   const yTicks = [0, 0.25, 0.5, 0.75, 1];
-  // X-axis labels — show ~8 evenly spaced
   const labelStep = Math.max(Math.ceil(bars.length / 8), 1);
 
+  const hoveredBar = hover ? bars[hover.idx] : null;
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="xMidYMid meet">
-      {/* Grid lines */}
-      {yTicks.map((pct) => {
-        const y = pad.t + ch * (1 - pct);
-        return (
-          <line
-            key={pct}
-            x1={pad.l}
-            y1={y}
-            x2={W - pad.r}
-            y2={y}
-            stroke="#e5e7eb"
-            strokeWidth="0.5"
-            strokeDasharray={pct === 0 ? undefined : '4 4'}
-          />
-        );
-      })}
+    <div className="relative">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full"
+        preserveAspectRatio="xMidYMid meet"
+        onMouseLeave={() => setHover(null)}
+      >
+        {/* Grid lines */}
+        {yTicks.map((pct) => {
+          const y = pad.t + ch * (1 - pct);
+          return (
+            <line key={pct} x1={pad.l} y1={y} x2={W - pad.r} y2={y} stroke="#e5e7eb" strokeWidth="0.5" strokeDasharray={pct === 0 ? undefined : '4 4'} />
+          );
+        })}
+        {/* Bars + hover regions */}
+        {bars.map((b, i) => {
+          const x = pad.l + i * gap + (gap - barW) / 2;
+          const barH = Math.max((b.total / maxVal) * ch, b.total > 0 ? 2 : 0);
+          const y = pad.t + ch - barH;
+          const isHovered = hover?.idx === i;
+          return (
+            <g key={i}>
+              {/* Invisible hover region */}
+              <rect
+                x={pad.l + i * gap}
+                y={pad.t}
+                width={gap}
+                height={ch}
+                fill="transparent"
+                onMouseEnter={(e) => {
+                  const svg = (e.target as SVGRectElement).closest('svg')!;
+                  const rect = svg.getBoundingClientRect();
+                  const px = ((pad.l + i * gap + gap / 2) / W) * rect.width;
+                  setHover({ idx: i, x: px, y: 0 });
+                }}
+              />
+              {isHovered && (
+                <rect x={pad.l + i * gap} y={pad.t} width={gap} height={ch} fill="#6366f1" opacity="0.04" rx="2" />
+              )}
+              <rect
+                x={x}
+                y={y}
+                width={barW}
+                height={barH}
+                rx={barW > 6 ? 3 : 1.5}
+                fill={isHovered ? '#4f46e5' : '#6366f1'}
+                opacity={isHovered ? '1' : '0.8'}
+                className="transition-all duration-100"
+              />
+            </g>
+          );
+        })}
+        {/* Y-axis labels */}
+        {yTicks.map((pct) => {
+          const y = pad.t + ch * (1 - pct);
+          return (
+            <text key={pct} x={pad.l - 6} y={y + 3} textAnchor="end" fontSize="9" fill="#9ca3af">{fmtNum(maxVal * pct)}</text>
+          );
+        })}
+        {/* X-axis labels */}
+        {bars.map((b, i) => {
+          if (i % labelStep !== 0 && i !== bars.length - 1) return null;
+          const x = pad.l + i * gap + gap / 2;
+          return <text key={i} x={x} y={H - 6} textAnchor="middle" fontSize="9" fill="#9ca3af">{b.label}</text>;
+        })}
+      </svg>
+      {/* Tooltip */}
+      {hoveredBar && hover && (
+        <div
+          className="absolute top-0 pointer-events-none z-10"
+          style={{ left: hover.x, transform: 'translateX(-50%)' }}
+        >
+          <div className="rounded-lg border border-border/60 bg-card px-3 py-2 shadow-lg text-xs">
+            <p className="font-semibold text-foreground">{fmtMoney(hoveredBar.total, currency)}</p>
+            <p className="text-muted-foreground">{hoveredBar.orders} orders &middot; {hoveredBar.label}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
-      {/* Bars */}
-      {bars.map((b, i) => {
-        const x = pad.l + i * gap + (gap - barW) / 2;
-        const barH = Math.max((b.total / maxVal) * ch, b.total > 0 ? 2 : 0);
-        const y = pad.t + ch - barH;
-        return (
-          <rect
-            key={i}
-            x={x}
-            y={y}
-            width={barW}
-            height={barH}
-            rx={barW > 6 ? 3 : 1.5}
-            fill="#6366f1"
-            opacity="0.85"
-          />
-        );
-      })}
+/* ─── Interactive Orders-per-day Line Chart ──────────── */
 
-      {/* Y-axis labels */}
-      {yTicks.map((pct) => {
-        const y = pad.t + ch * (1 - pct);
-        const val = maxVal * pct;
-        const label = val >= 1000 ? `${(val / 1000).toFixed(val >= 10000 ? 0 : 1)}k` : val.toFixed(0);
-        return (
-          <text key={pct} x={pad.l - 8} y={y + 3} textAnchor="end" fontSize="10" fill="#9ca3af">
-            {label}
-          </text>
-        );
-      })}
+function OrdersChart({ bars, currency }: { bars: BarData[]; currency: string }) {
+  const [hover, setHover] = useState<{ idx: number; x: number } | null>(null);
+  if (!bars.length) return null;
 
-      {/* X-axis labels */}
-      {bars.map((b, i) => {
-        if (i % labelStep !== 0 && i !== bars.length - 1) return null;
-        const x = pad.l + i * gap + gap / 2;
+  const W = 800;
+  const H = 200;
+  const pad = { t: 12, r: 12, b: 32, l: 36 };
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+
+  const maxVal = Math.max(...bars.map((b) => b.orders), 1);
+  const gap = cw / Math.max(bars.length - 1, 1);
+  const yTicks = [0, 0.5, 1];
+  const labelStep = Math.max(Math.ceil(bars.length / 8), 1);
+
+  const points = bars.map((b, i) => {
+    const x = pad.l + i * gap;
+    const y = pad.t + ch - (b.orders / maxVal) * ch;
+    return { x, y };
+  });
+  const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  const areaD = `${pathD} L ${points[points.length - 1].x} ${pad.t + ch} L ${points[0].x} ${pad.t + ch} Z`;
+
+  const hoveredBar = hover ? bars[hover.idx] : null;
+
+  return (
+    <div className="relative">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full"
+        preserveAspectRatio="xMidYMid meet"
+        onMouseLeave={() => setHover(null)}
+      >
+        {yTicks.map((pct) => {
+          const y = pad.t + ch * (1 - pct);
+          return <line key={pct} x1={pad.l} y1={y} x2={W - pad.r} y2={y} stroke="#e5e7eb" strokeWidth="0.5" strokeDasharray={pct === 0 ? undefined : '4 4'} />;
+        })}
+        <path d={areaD} fill="url(#orders-area-grad)" />
+        <path d={pathD} fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <defs>
+          <linearGradient id="orders-area-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {/* Hover dots + regions */}
+        {points.map((p, i) => {
+          const isHovered = hover?.idx === i;
+          const halfGap = gap / 2;
+          return (
+            <g key={i}>
+              <rect
+                x={p.x - halfGap}
+                y={pad.t}
+                width={gap}
+                height={ch}
+                fill="transparent"
+                onMouseEnter={(e) => {
+                  const svg = (e.target as SVGRectElement).closest('svg')!;
+                  const rect = svg.getBoundingClientRect();
+                  const px = (p.x / W) * rect.width;
+                  setHover({ idx: i, x: px });
+                }}
+              />
+              {isHovered && (
+                <>
+                  <line x1={p.x} y1={pad.t} x2={p.x} y2={pad.t + ch} stroke="#8b5cf6" strokeWidth="0.5" strokeDasharray="4 4" />
+                  <circle cx={p.x} cy={p.y} r="4" fill="#8b5cf6" />
+                  <circle cx={p.x} cy={p.y} r="2" fill="white" />
+                </>
+              )}
+            </g>
+          );
+        })}
+        {yTicks.map((pct) => {
+          const y = pad.t + ch * (1 - pct);
+          return <text key={pct} x={pad.l - 6} y={y + 3} textAnchor="end" fontSize="9" fill="#9ca3af">{Math.round(maxVal * pct)}</text>;
+        })}
+        {bars.map((b, i) => {
+          if (i % labelStep !== 0 && i !== bars.length - 1) return null;
+          const x = pad.l + i * gap;
+          return <text key={i} x={x} y={H - 6} textAnchor="middle" fontSize="9" fill="#9ca3af">{b.label}</text>;
+        })}
+      </svg>
+      {hoveredBar && hover && (
+        <div className="absolute top-0 pointer-events-none z-10" style={{ left: hover.x, transform: 'translateX(-50%)' }}>
+          <div className="rounded-lg border border-border/60 bg-card px-3 py-2 shadow-lg text-xs">
+            <p className="font-semibold text-foreground">{hoveredBar.orders} orders</p>
+            <p className="text-muted-foreground">{fmtMoney(hoveredBar.total, currency)} &middot; {hoveredBar.label}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Horizontal Bar Chart (for status/payments) ─────── */
+
+function HorizontalBars({ items, colorMap }: { items: { label: string; value: number; subValue?: string }[]; colorMap?: Record<string, string> }) {
+  const max = Math.max(...items.map((i) => i.value), 1);
+  return (
+    <div className="space-y-2.5">
+      {items.map((item) => {
+        const color = colorMap?.[item.label.toUpperCase().replace(/ /g, '_')] || '#6366f1';
         return (
-          <text key={i} x={x} y={H - 8} textAnchor="middle" fontSize="10" fill="#9ca3af">
-            {b.label}
-          </text>
+          <div key={item.label} className="flex items-center gap-3">
+            <div className="w-24 shrink-0">
+              <p className="text-xs font-medium truncate">{item.label}</p>
+            </div>
+            <div className="flex-1 h-5 rounded-md bg-muted/40 overflow-hidden relative">
+              <div
+                className="h-full rounded-md transition-all duration-300"
+                style={{ width: `${Math.max((item.value / max) * 100, 2)}%`, backgroundColor: color, opacity: 0.75 }}
+              />
+              <span className="absolute right-2 top-0.5 text-[10px] font-semibold tabular-nums text-foreground">{item.value}</span>
+            </div>
+            {item.subValue && <span className="text-[10px] text-muted-foreground shrink-0 w-16 text-right tabular-nums">{item.subValue}</span>}
+          </div>
         );
       })}
-    </svg>
+    </div>
   );
 }
 
@@ -285,24 +459,24 @@ export default function Analytics() {
       .finally(() => setLoading(false));
   }, [period]);
 
-  const toggleCard = (key: string) => {
+  const toggleCard = useCallback((key: string) => {
     setVisibleCards((prev) => {
       const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
       if (next.length === 0) return prev;
       localStorage.setItem('analyticsCards', JSON.stringify(next));
       return next;
     });
-  };
+  }, []);
 
-  // Build world-map dots: warehouse → each order country
-  const mapDots = useMemo(() => {
+  // Build world-map markers
+  const mapMarkers = useMemo(() => {
     if (!data) return [];
     return data.ordersByCountry
       .filter((c) => COUNTRY_CENTROIDS[c.country])
-      .slice(0, 12) // limit lines for readability
       .map((c) => ({
-        start: WAREHOUSE_ORIGIN,
-        end: COUNTRY_CENTROIDS[c.country],
+        ...COUNTRY_CENTROIDS[c.country],
+        label: COUNTRY_NAMES[c.country] || c.country,
+        value: c.count,
       }));
   }, [data]);
 
@@ -322,7 +496,7 @@ export default function Analytics() {
 
   if (!data) return null;
 
-  const { metrics, salesOverTime, ordersByCountry, currency } = data;
+  const { metrics, salesOverTime, ordersByCountry, ordersByStatus, ordersByPayment, topProducts, currency } = data;
   const sparkSales = salesOverTime.map((d) => d.total);
   const sparkOrders = salesOverTime.map((d) => d.orders);
   const sparkAvg = salesOverTime.map((d) => (d.orders > 0 ? d.total / d.orders : 0));
@@ -354,8 +528,19 @@ export default function Analytics() {
     },
   };
 
+  const statusItems = ordersByStatus.map((s) => ({
+    label: statusLabel(s.status),
+    value: s.count,
+  }));
+
+  const paymentItems = ordersByPayment.map((p) => ({
+    label: p.method,
+    value: p.count,
+    subValue: fmtMoney(p.total, currency),
+  }));
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* ── Header ─────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -368,7 +553,6 @@ export default function Analytics() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* Card config */}
           <div className="relative">
             <button
               onClick={() => setShowCardConfig(!showCardConfig)}
@@ -395,7 +579,6 @@ export default function Analytics() {
               </div>
             )}
           </div>
-          {/* Period selector */}
           <div className="flex gap-0.5 rounded-lg border border-border/60 bg-muted/30 p-0.5">
             {PERIODS.map((p) => (
               <button
@@ -452,72 +635,140 @@ export default function Analytics() {
         })}
       </div>
 
-      {/* ── Sales Bar Chart ────────────────────────────── */}
-      <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
-        <div className="border-b border-border/50 px-6 py-4">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Sales Over Time</h3>
+      {/* ── Charts Row: Sales + Orders ───────────────────── */}
+      <div className="grid gap-5 lg:grid-cols-2">
+        <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
+          <div className="border-b border-border/50 px-5 py-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sales Over Time</h3>
+          </div>
+          <div className="p-3">
+            {chartBars.length > 1 ? (
+              <BarChart bars={chartBars} currency={currency} />
+            ) : (
+              <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">No data for this period</div>
+            )}
+          </div>
         </div>
-        <div className="p-4">
-          {chartBars.length > 1 ? (
-            <BarChart bars={chartBars} />
-          ) : (
-            <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">No data for this period</div>
-          )}
+        <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
+          <div className="border-b border-border/50 px-5 py-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Orders Over Time</h3>
+          </div>
+          <div className="p-3">
+            {chartBars.length > 1 ? (
+              <OrdersChart bars={chartBars} currency={currency} />
+            ) : (
+              <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">No data for this period</div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* ── Map + Top Countries ────────────────────────── */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Map */}
-        <div className="lg:col-span-2 rounded-2xl border border-slate-800 bg-slate-950 shadow-sm overflow-hidden">
-          <div className="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <GlobeHemisphereWest size={16} weight="duotone" className="text-indigo-400" />
-              <h3 className="text-sm font-semibold text-slate-200">Order Map</h3>
-            </div>
-            <span className="text-xs text-slate-400">
-              {ordersByCountry.reduce((s, c) => s + c.count, 0)} orders from {ordersByCountry.length} {ordersByCountry.length === 1 ? 'country' : 'countries'}
-            </span>
+      {/* ── Status + Payments Row ────────────────────────── */}
+      <div className="grid gap-5 lg:grid-cols-3">
+        {/* Orders by Status */}
+        <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
+          <div className="border-b border-border/50 px-5 py-3 flex items-center gap-2">
+            <ShoppingBag size={14} weight="duotone" className="text-violet-600" />
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Orders by Status</h3>
           </div>
-          <div className="px-4 py-2">
-            {mapDots.length > 0 ? (
-              <WorldMap dots={mapDots} lineColor="#818cf8" />
+          <div className="p-4">
+            {statusItems.length > 0 ? (
+              <HorizontalBars items={statusItems} colorMap={STATUS_COLORS} />
             ) : (
-              <div className="flex items-center justify-center py-20 text-sm text-slate-500">No geographic data yet</div>
+              <p className="text-center text-sm text-muted-foreground py-6">No data</p>
             )}
           </div>
         </div>
 
-        {/* Top Countries */}
+        {/* Payment Methods */}
         <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
-          <div className="border-b border-border/50 px-6 py-4">
-            <h3 className="text-sm font-semibold">Top Countries</h3>
+          <div className="border-b border-border/50 px-5 py-3 flex items-center gap-2">
+            <CreditCard size={14} weight="duotone" className="text-emerald-600" />
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Payment Methods</h3>
           </div>
-          <div className="divide-y divide-border/40">
-            {ordersByCountry.length === 0 && (
-              <div className="px-6 py-10 text-center text-sm text-muted-foreground">No data yet</div>
+          <div className="p-4">
+            {paymentItems.length > 0 ? (
+              <HorizontalBars items={paymentItems} />
+            ) : (
+              <p className="text-center text-sm text-muted-foreground py-6">No data</p>
             )}
-            {ordersByCountry.slice(0, 10).map((c) => {
-              const maxC = ordersByCountry[0]?.count || 1;
-              return (
-                <div key={c.country} className="flex items-center gap-3 px-6 py-3">
-                  <span className="text-base leading-none">{countryFlag(c.country)}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{COUNTRY_NAMES[c.country] || c.country}</p>
-                    <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-muted/60">
-                      <div
-                        className="h-full rounded-full bg-indigo-500 transition-all"
-                        style={{ width: `${(c.count / maxC) * 100}%` }}
-                      />
+          </div>
+        </div>
+
+        {/* Top Products */}
+        <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
+          <div className="border-b border-border/50 px-5 py-3 flex items-center gap-2">
+            <Trophy size={14} weight="duotone" className="text-amber-600" />
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Top Products</h3>
+          </div>
+          <div className="divide-y divide-border/40 max-h-[280px] overflow-y-auto">
+            {topProducts.length === 0 && (
+              <p className="text-center text-sm text-muted-foreground py-6">No data</p>
+            )}
+            {topProducts.map((p, i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-2.5">
+                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/60 text-[10px] font-bold text-muted-foreground">{i + 1}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium truncate">{p.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{p.sku}</p>
+                </div>
+                <span className="text-xs font-semibold tabular-nums">{p.quantity} sold</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Order Map (full width) ─────────────────────── */}
+      <div className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="border-b border-border/50 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <GlobeHemisphereWest size={16} weight="duotone" className="text-indigo-600" />
+            <h3 className="text-sm font-semibold">Order Map</h3>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {ordersByCountry.reduce((s, c) => s + c.count, 0)} orders from {ordersByCountry.length} {ordersByCountry.length === 1 ? 'country' : 'countries'}
+          </span>
+        </div>
+        <div className="grid gap-0 lg:grid-cols-[1fr_280px]">
+          <div className="px-4 py-2">
+            {mapMarkers.length > 0 ? (
+              <WorldMap markers={mapMarkers} markerColor="#6366f1" />
+            ) : (
+              <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">No geographic data yet</div>
+            )}
+          </div>
+          {/* Inline top countries */}
+          <div className="border-l border-border/40">
+            <div className="px-4 py-3 border-b border-border/40">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Top Countries</h4>
+            </div>
+            <div className="divide-y divide-border/40 max-h-[320px] overflow-y-auto">
+              {ordersByCountry.length === 0 && (
+                <div className="px-4 py-8 text-center text-sm text-muted-foreground">No data yet</div>
+              )}
+              {ordersByCountry.slice(0, 10).map((c) => {
+                const maxC = ordersByCountry[0]?.count || 1;
+                return (
+                  <div key={c.country} className="flex items-center gap-2.5 px-4 py-2.5">
+                    <span className="text-sm leading-none">{countryFlag(c.country)}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium truncate">{COUNTRY_NAMES[c.country] || c.country}</p>
+                      <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-muted/60">
+                        <div
+                          className="h-full rounded-full bg-indigo-500 transition-all"
+                          style={{ width: `${(c.count / maxC) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0 text-right">
+                      <p className="text-xs font-semibold tabular-nums">{c.count}</p>
+                      <p className="text-[10px] text-muted-foreground tabular-nums">{fmtMoney(c.total, currency)}</p>
                     </div>
                   </div>
-                  <div className="flex-shrink-0 text-right">
-                    <p className="text-sm font-semibold tabular-nums">{c.count}</p>
-                    <p className="text-[11px] text-muted-foreground tabular-nums">{fmtMoney(c.total, currency)}</p>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

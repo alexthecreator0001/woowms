@@ -18,7 +18,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const storeFilter = { store: { tenantId: req.tenantId } };
 
     // Current + previous period aggregates (parallel)
-    const [currentAgg, prevAgg, currentItemsAgg, prevItemsAgg] = await Promise.all([
+    const [currentAgg, prevAgg, currentItemsAgg, prevItemsAgg, statusCounts, topProducts] = await Promise.all([
       prisma.order.aggregate({
         where: { ...storeFilter, wooCreatedAt: { gte: startDate } },
         _sum: { total: true },
@@ -39,12 +39,26 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         where: { order: { ...storeFilter, wooCreatedAt: { gte: prevStart, lt: startDate } } },
         _sum: { quantity: true },
       }),
+      // Orders by status
+      prisma.order.groupBy({
+        by: ['status'],
+        where: { ...storeFilter, wooCreatedAt: { gte: startDate } },
+        _count: { id: true },
+      }),
+      // Top products by quantity sold
+      prisma.orderItem.groupBy({
+        by: ['sku', 'name'],
+        where: { order: { ...storeFilter, wooCreatedAt: { gte: startDate } } },
+        _sum: { quantity: true },
+        orderBy: { _sum: { quantity: 'desc' } },
+        take: 10,
+      }),
     ]);
 
-    // Daily breakdown + country data
+    // Daily breakdown + country + payment data
     const orders = await prisma.order.findMany({
       where: { ...storeFilter, wooCreatedAt: { gte: startDate } },
-      select: { total: true, currency: true, wooCreatedAt: true, shippingAddress: true },
+      select: { total: true, currency: true, wooCreatedAt: true, shippingAddress: true, paymentMethodTitle: true, status: true },
       orderBy: { wooCreatedAt: 'asc' },
     });
 
@@ -52,6 +66,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
     const byDay: Record<string, { total: number; orders: number }> = {};
     const byCountry: Record<string, { count: number; total: number }> = {};
+    const byPayment: Record<string, { count: number; total: number }> = {};
 
     for (const o of orders) {
       const day = o.wooCreatedAt.toISOString().slice(0, 10);
@@ -65,6 +80,11 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         byCountry[country].count += 1;
         byCountry[country].total += o.total?.toNumber() || 0;
       }
+
+      const pm = o.paymentMethodTitle || 'Unknown';
+      if (!byPayment[pm]) byPayment[pm] = { count: 0, total: 0 };
+      byPayment[pm].count += 1;
+      byPayment[pm].total += o.total?.toNumber() || 0;
     }
 
     // Fill missing dates
@@ -78,6 +98,21 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       .map(([country, d]) => ({ country, count: d.count, total: d.total }))
       .sort((a, b) => b.count - a.count);
 
+    const ordersByStatus = statusCounts.map((s) => ({
+      status: s.status,
+      count: s._count.id,
+    })).sort((a, b) => b.count - a.count);
+
+    const ordersByPayment = Object.entries(byPayment)
+      .map(([method, d]) => ({ method, count: d.count, total: d.total }))
+      .sort((a, b) => b.count - a.count);
+
+    const topProductsList = topProducts.map((p) => ({
+      sku: p.sku || '—',
+      name: p.name,
+      quantity: p._sum.quantity || 0,
+    }));
+
     res.json({
       data: {
         metrics: {
@@ -88,6 +123,9 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         },
         salesOverTime,
         ordersByCountry,
+        ordersByStatus,
+        ordersByPayment,
+        topProducts: topProductsList,
         currency,
       },
     });
