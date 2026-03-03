@@ -1,5 +1,4 @@
 import PDFDocument from 'pdfkit';
-import type { PassThrough } from 'stream';
 
 export type PoTemplate = 'modern' | 'classic' | 'minimal';
 
@@ -25,26 +24,24 @@ interface PdfOptions {
   logoBuffer: Buffer | null;
 }
 
-// ─── Color helpers ─────────────────────────────────────
+// ─── Color palettes (hex strings for PDFKit) ──────────
 
-type RGB = [number, number, number];
-
-const PALETTES: Record<PoTemplate, {
-  primary: RGB; accent: RGB; muted: RGB; headerBg: RGB; headerText: RGB; lightBg: RGB; border: RGB;
-}> = {
+const PALETTES = {
   modern: {
-    primary: [15, 23, 42], accent: [99, 102, 241], muted: [100, 116, 139],
-    headerBg: [15, 23, 42], headerText: [255, 255, 255], lightBg: [248, 250, 252], border: [226, 232, 240],
+    primary: '#0f172a', accent: '#6366f1', muted: '#64748b',
+    headerBg: '#0f172a', headerText: '#ffffff', lightBg: '#f8fafc', border: '#e2e8f0',
   },
   classic: {
-    primary: [30, 30, 30], accent: [55, 65, 81], muted: [107, 114, 128],
-    headerBg: [55, 65, 81], headerText: [255, 255, 255], lightBg: [249, 250, 251], border: [209, 213, 219],
+    primary: '#1e1e1e', accent: '#374151', muted: '#6b7280',
+    headerBg: '#374151', headerText: '#ffffff', lightBg: '#f9fafb', border: '#d1d5db',
   },
   minimal: {
-    primary: [23, 23, 23], accent: [23, 23, 23], muted: [115, 115, 115],
-    headerBg: [245, 245, 245], headerText: [23, 23, 23], lightBg: [250, 250, 250], border: [229, 229, 229],
+    primary: '#171717', accent: '#171717', muted: '#737373',
+    headerBg: '#f5f5f5', headerText: '#171717', lightBg: '#fafafa', border: '#e5e5e5',
   },
-};
+} as const;
+
+type Palette = typeof PALETTES.modern;
 
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -59,8 +56,8 @@ function fmtMoney(v: number) {
 export function generatePoPdf(po: PoData, opts: PdfOptions): PDFKit.PDFDocument {
   const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
   const p = PALETTES[opts.template];
-  const m = 40; // margin
-  const pageW = 595.28; // A4 width
+  const m = 40;
+  const pageW = 595.28;
   const contentW = pageW - m * 2;
 
   const items = po.items || [];
@@ -83,7 +80,6 @@ interface ColDef {
   label: string;
   width: number;
   align: 'left' | 'center' | 'right';
-  key: string;
 }
 
 function drawTable(
@@ -91,7 +87,7 @@ function drawTable(
   y: number,
   rows: string[][],
   cols: ColDef[],
-  p: typeof PALETTES.modern,
+  p: Palette,
   m: number,
   opts: { gridLines?: boolean } = {}
 ): number {
@@ -99,15 +95,14 @@ function drawTable(
   const headerH = 24;
   const fontSize = 8;
   const headerFontSize = 7.5;
+  const tableW = cols.reduce((s, c) => s + c.width, 0);
 
   // Header row
   doc.save();
-  doc.rect(m, y, cols.reduce((s, c) => s + c.width, 0), headerH).fill(p.headerBg);
+  doc.rect(m, y, tableW, headerH).fill(p.headerBg);
   let x = m;
   doc.fontSize(headerFontSize).font('Helvetica-Bold').fillColor(p.headerText);
   for (const col of cols) {
-    const textX = col.align === 'right' ? x + col.width - 6 : col.align === 'center' ? x + col.width / 2 : x + 6;
-    const alignOpt = col.align === 'right' ? { width: 0, align: 'right' as const } : col.align === 'center' ? { width: col.width, align: 'center' as const } : {};
     if (col.align === 'center') {
       doc.text(col.label, x, y + (headerH - headerFontSize) / 2, { width: col.width, align: 'center' });
     } else if (col.align === 'right') {
@@ -128,14 +123,14 @@ function drawTable(
 
     if (isAlt) {
       doc.save();
-      doc.rect(m, y, cols.reduce((s, c) => s + c.width, 0), rowH).fill(p.lightBg);
+      doc.rect(m, y, tableW, rowH).fill(p.lightBg);
       doc.restore();
     }
 
     if (opts.gridLines) {
       doc.save();
       doc.strokeColor(p.border).lineWidth(0.3);
-      doc.moveTo(m, y + rowH).lineTo(m + cols.reduce((s, c) => s + c.width, 0), y + rowH).stroke();
+      doc.moveTo(m, y + rowH).lineTo(m + tableW, y + rowH).stroke();
       doc.restore();
     }
 
@@ -163,7 +158,7 @@ function drawTable(
 
 function drawModern(
   doc: PDFKit.PDFDocument, po: PoData, items: PoData['items'], totalCost: number,
-  p: typeof PALETTES.modern, opts: PdfOptions, m: number, contentW: number, pageW: number
+  p: Palette, opts: PdfOptions, m: number, contentW: number, pageW: number
 ) {
   // Top accent bar
   doc.save().rect(0, 0, pageW, 5).fill(p.accent).restore();
@@ -207,12 +202,12 @@ function drawModern(
 
   // Table
   const cols: ColDef[] = [
-    { label: 'SKU', width: 70, align: 'left', key: 'sku' },
-    { label: 'Product', width: contentW - 70 - 50 - 50 - 60 - 60, align: 'left', key: 'product' },
-    { label: 'Ordered', width: 50, align: 'center', key: 'ordered' },
-    { label: 'Received', width: 50, align: 'center', key: 'received' },
-    { label: 'Unit Cost', width: 60, align: 'right', key: 'unitCost' },
-    { label: 'Total', width: 60, align: 'right', key: 'total' },
+    { label: 'SKU', width: 70, align: 'left' },
+    { label: 'Product', width: contentW - 70 - 50 - 50 - 60 - 60, align: 'left' },
+    { label: 'Ordered', width: 50, align: 'center' },
+    { label: 'Received', width: 50, align: 'center' },
+    { label: 'Unit Cost', width: 60, align: 'right' },
+    { label: 'Total', width: 60, align: 'right' },
   ];
 
   const rows = items.map(i => [
@@ -243,7 +238,7 @@ function drawModern(
   }
 
   // Footer
-  doc.font('Helvetica').fontSize(7).fillColor([180, 180, 180]);
+  doc.font('Helvetica').fontSize(7).fillColor('#b4b4b4');
   doc.text(`Generated ${new Date().toLocaleDateString()}`, m, 800);
   if (opts.companyName) doc.text(opts.companyName, m, 800, { width: contentW, align: 'right' });
 }
@@ -252,7 +247,7 @@ function drawModern(
 
 function drawClassic(
   doc: PDFKit.PDFDocument, po: PoData, items: PoData['items'], totalCost: number,
-  p: typeof PALETTES.classic, opts: PdfOptions, m: number, contentW: number, pageW: number
+  p: Palette, opts: PdfOptions, m: number, contentW: number, pageW: number
 ) {
   let y = 28;
 
@@ -299,12 +294,12 @@ function drawClassic(
 
   // Table with grid
   const cols: ColDef[] = [
-    { label: 'SKU', width: 65, align: 'left', key: 'sku' },
-    { label: 'Product', width: contentW - 65 - 44 - 44 - 58 - 62, align: 'left', key: 'product' },
-    { label: 'Qty', width: 44, align: 'center', key: 'ordered' },
-    { label: 'Rcvd', width: 44, align: 'center', key: 'received' },
-    { label: 'Unit Cost', width: 58, align: 'right', key: 'unitCost' },
-    { label: 'Line Total', width: 62, align: 'right', key: 'total' },
+    { label: 'SKU', width: 65, align: 'left' },
+    { label: 'Product', width: contentW - 65 - 44 - 44 - 58 - 62, align: 'left' },
+    { label: 'Qty', width: 44, align: 'center' },
+    { label: 'Rcvd', width: 44, align: 'center' },
+    { label: 'Unit Cost', width: 58, align: 'right' },
+    { label: 'Line Total', width: 62, align: 'right' },
   ];
 
   const rows = items.map(i => [
@@ -332,7 +327,7 @@ function drawClassic(
 
   // Footer
   doc.save().strokeColor(p.border).moveTo(m, 795).lineTo(pageW - m, 795).stroke().restore();
-  doc.font('Helvetica').fontSize(7).fillColor([160, 160, 160]);
+  doc.font('Helvetica').fontSize(7).fillColor('#a0a0a0');
   doc.text(opts.companyName || 'Purchase Order', m, 800);
   doc.text(`Page 1 · ${fmtDate(new Date().toISOString())}`, m, 800, { width: contentW, align: 'right' });
 }
@@ -341,7 +336,7 @@ function drawClassic(
 
 function drawMinimal(
   doc: PDFKit.PDFDocument, po: PoData, items: PoData['items'], totalCost: number,
-  p: typeof PALETTES.minimal, opts: PdfOptions, m: number, contentW: number, pageW: number
+  p: Palette, opts: PdfOptions, m: number, contentW: number, pageW: number
 ) {
   let y = 28;
 
@@ -370,12 +365,12 @@ function drawMinimal(
 
   // Table
   const cols: ColDef[] = [
-    { label: 'Product', width: contentW - 55 - 40 - 40 - 55 - 55, align: 'left', key: 'product' },
-    { label: 'SKU', width: 55, align: 'left', key: 'sku' },
-    { label: 'Ord', width: 40, align: 'center', key: 'ordered' },
-    { label: 'Rcvd', width: 40, align: 'center', key: 'received' },
-    { label: 'Cost', width: 55, align: 'right', key: 'unitCost' },
-    { label: 'Total', width: 55, align: 'right', key: 'total' },
+    { label: 'Product', width: contentW - 55 - 40 - 40 - 55 - 55, align: 'left' },
+    { label: 'SKU', width: 55, align: 'left' },
+    { label: 'Ord', width: 40, align: 'center' },
+    { label: 'Rcvd', width: 40, align: 'center' },
+    { label: 'Cost', width: 55, align: 'right' },
+    { label: 'Total', width: 55, align: 'right' },
   ];
 
   const rows = items.map(i => [
@@ -399,6 +394,6 @@ function drawMinimal(
   }
 
   // Footer
-  doc.font('Helvetica').fontSize(7).fillColor([200, 200, 200]);
+  doc.font('Helvetica').fontSize(7).fillColor('#c8c8c8');
   doc.text(opts.companyName || '', m, 805);
 }
