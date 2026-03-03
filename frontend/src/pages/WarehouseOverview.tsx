@@ -127,14 +127,6 @@ export default function WarehouseOverview() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => navigate('/warehouse/guide')}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            title="Warehouse setup guide"
-          >
-            <Question size={18} weight="bold" />
-          </button>
-          <button
-            type="button"
             onClick={() => setCreateModalOpen(true)}
             className={cn(
               'inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground',
@@ -211,14 +203,15 @@ export default function WarehouseOverview() {
               <Plus size={16} weight="bold" />
               Create Warehouse
             </button>
-            <button
-              type="button"
-              onClick={() => navigate('/warehouse/guide')}
+            <a
+              href="https://docs.picknpack.io/warehouse"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
               <Question size={16} />
-              Read the Guide First
-            </button>
+              Read the Docs
+            </a>
           </div>
         </div>
       )}

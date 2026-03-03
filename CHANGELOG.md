@@ -3,6 +3,21 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.39.0] - 2026-03-03
+
+### Added
+- **Suppliers stat strip** — Suppliers list page now shows stat cards: Total Suppliers, Active, Products Linked, Purchase Orders
+- **Supplier detail summary cards** — Detail page shows Products, POs, Avg Lead Time, and Open POs at a glance
+- **Supplier status filter** — Quick-filter pills for All / Active / Inactive suppliers
+- **Supplier avatar initials** — Table rows now show colored avatar initials for each supplier
+
+### Changed
+- **Enhanced Suppliers UI** — Full redesign of Suppliers list and detail pages: Phosphor icons, consistent table headers, better contact info display (email + phone in one column), loading states, improved empty states
+- **Supplier detail polish** — Consistent card styling, violet-tinted supplier SKU badges, hover-to-show delete buttons, dot indicators on PO status badges
+
+### Removed
+- **Warehouse Guide page** — Removed `/warehouse/guide` route and all links to it. Guide content moved to docs site at https://docs.picknpack.io/warehouse. Dashboard and WarehouseOverview now link to external docs.
+
 ## [3.38.0 / 2.31.0] - 2026-03-03
 
 ### Changed

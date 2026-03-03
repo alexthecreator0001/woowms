@@ -2,31 +2,31 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
-  Users,
-  Mail,
+  UsersThree,
+  Envelope,
   Phone,
   MapPin,
-  Pencil,
+  PencilSimple,
   X,
   Check,
-  Loader2,
+  CircleNotch,
   Package,
   Plus,
-  Trash2,
-  ClipboardList,
-  FileText,
-} from 'lucide-react';
+  Trash,
+  ClipboardText,
+  NoteBlank,
+} from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
 import ProductSearchDropdown from '../components/ProductSearchDropdown';
-import type { Supplier, SupplierProduct, PurchaseOrder, Product } from '../types';
+import type { Supplier, SupplierProduct, PurchaseOrder } from '../types';
 
-const poStatusStyles: Record<string, { label: string; bg: string; text: string }> = {
-  DRAFT: { label: 'Draft', bg: 'bg-gray-500/10', text: 'text-gray-500' },
-  ORDERED: { label: 'Ordered', bg: 'bg-blue-500/10', text: 'text-blue-600' },
-  PARTIALLY_RECEIVED: { label: 'Partial', bg: 'bg-amber-500/10', text: 'text-amber-600' },
-  RECEIVED: { label: 'Received', bg: 'bg-emerald-500/10', text: 'text-emerald-600' },
-  CANCELLED: { label: 'Cancelled', bg: 'bg-red-500/10', text: 'text-red-600' },
+const poStatusStyles: Record<string, { label: string; bg: string; text: string; dot: string }> = {
+  DRAFT: { label: 'Draft', bg: 'bg-gray-500/10', text: 'text-gray-500', dot: 'bg-gray-400' },
+  ORDERED: { label: 'Ordered', bg: 'bg-blue-500/10', text: 'text-blue-600', dot: 'bg-blue-500' },
+  PARTIALLY_RECEIVED: { label: 'Partial', bg: 'bg-amber-500/10', text: 'text-amber-600', dot: 'bg-amber-500' },
+  RECEIVED: { label: 'Received', bg: 'bg-emerald-500/10', text: 'text-emerald-600', dot: 'bg-emerald-500' },
+  CANCELLED: { label: 'Cancelled', bg: 'bg-red-500/10', text: 'text-red-600', dot: 'bg-red-500' },
 };
 
 export default function SupplierDetail() {
@@ -66,7 +66,6 @@ export default function SupplierDetail() {
 
   useEffect(() => { loadSupplier(); }, [loadSupplier]);
 
-
   const handleSave = async () => {
     if (!id) return;
     setSaving(true);
@@ -103,11 +102,8 @@ export default function SupplierDetail() {
       setShowAddProduct(false);
       setAddForm({ productId: 0, productName: '', supplierSku: '', supplierPrice: '', leadTimeDays: '' });
       loadSupplier();
-    } catch {
-      // Could show error
-    } finally {
-      setAddSaving(false);
-    }
+    } catch { /* ignore */ }
+    finally { setAddSaving(false); }
   };
 
   const handleRemoveProduct = async (productId: number) => {
@@ -121,7 +117,7 @@ export default function SupplierDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+        <CircleNotch size={32} className="animate-spin text-violet-600" />
       </div>
     );
   }
@@ -132,25 +128,25 @@ export default function SupplierDetail() {
   const purchaseOrders = supplier.purchaseOrders || [];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-5">
+      {/* Back + Header */}
       <div>
         <button
           onClick={() => navigate('/suppliers')}
           className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft size={16} />
           Back to Suppliers
         </button>
 
         <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-500/10">
-              <Users className="h-6 w-6 text-violet-600" />
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/10 text-lg font-bold text-violet-600">
+              {supplier.name.charAt(0).toUpperCase()}
             </div>
             <div>
               <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-bold tracking-tight">{supplier.name}</h2>
+                <h2 className="text-xl font-bold tracking-tight">{supplier.name}</h2>
                 <span className={cn(
                   'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide',
                   supplier.isActive ? 'bg-emerald-500/10 text-emerald-600' : 'bg-gray-500/10 text-gray-500'
@@ -159,36 +155,52 @@ export default function SupplierDetail() {
                   {supplier.isActive ? 'Active' : 'Inactive'}
                 </span>
               </div>
-              <p className="mt-0.5 text-sm text-muted-foreground">
+              <p className="text-[13px] text-muted-foreground">
                 {products.length} product{products.length !== 1 ? 's' : ''} &middot; {purchaseOrders.length} purchase order{purchaseOrders.length !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {!editing && (
-              <button
-                onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-2 text-xs font-medium shadow-sm transition-all hover:bg-muted/60"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Edit
-              </button>
-            )}
-          </div>
+          {!editing && (
+            <button
+              onClick={() => setEditing(true)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 text-sm font-medium text-muted-foreground shadow-sm transition-all hover:bg-muted/60 hover:text-foreground"
+            >
+              <PencilSimple size={14} />
+              Edit
+            </button>
+          )}
         </div>
         {saveMsg && (
           <p className={cn('mt-2 text-xs', saveMsg.includes('Failed') ? 'text-destructive' : 'text-emerald-600')}>{saveMsg}</p>
         )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-4 divide-x divide-border/50 rounded-xl border border-border/60 bg-card shadow-sm">
+        {[
+          { label: 'Products', value: products.length, icon: Package, iconColor: 'text-blue-500' },
+          { label: 'Purchase Orders', value: purchaseOrders.length, icon: ClipboardText, iconColor: 'text-amber-500' },
+          { label: 'Avg Lead Time', value: products.filter(p => p.leadTimeDays).length > 0 ? `${Math.round(products.filter(p => p.leadTimeDays).reduce((s, p) => s + (p.leadTimeDays || 0), 0) / products.filter(p => p.leadTimeDays).length)}d` : '\u2014', icon: ClipboardText, iconColor: 'text-violet-500' },
+          { label: 'Open POs', value: purchaseOrders.filter(po => po.status === 'ORDERED' || po.status === 'PARTIALLY_RECEIVED').length, icon: ClipboardText, iconColor: 'text-emerald-500' },
+        ].map((s) => (
+          <div key={s.label} className="flex items-center gap-3 px-5 py-3.5">
+            <s.icon size={18} weight="duotone" className={s.iconColor} />
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{s.label}</p>
+              <p className="text-lg font-bold tracking-tight">{typeof s.value === 'number' ? s.value.toLocaleString() : s.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-3">
         {/* LEFT — 2 cols */}
-        <div className="space-y-6 lg:col-span-2">
+        <div className="space-y-5 lg:col-span-2">
           {/* Products Card */}
-          <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
-            <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
+          <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
+            <div className="flex items-center justify-between border-b border-border/50 px-5 py-3.5">
               <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <Package className="h-4 w-4 text-muted-foreground" />
+                <Package size={16} weight="duotone" className="text-blue-500" />
                 Products
                 <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                   {products.length}
@@ -198,61 +210,61 @@ export default function SupplierDetail() {
                 onClick={() => setShowAddProduct(true)}
                 className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border/60 px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted/40"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus size={12} weight="bold" />
                 Add Product
               </button>
             </div>
             {products.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border/40 bg-muted/20">
-                      <th className="px-6 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Product</th>
-                      <th className="px-6 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Supplier SKU</th>
-                      <th className="px-6 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Price</th>
-                      <th className="px-6 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Lead Time</th>
-                      <th className="w-12 px-6 py-2.5" />
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border/40 bg-muted/30">
+                    <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Product</th>
+                    <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Supplier SKU</th>
+                    <th className="px-5 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Price</th>
+                    <th className="px-5 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Lead Time</th>
+                    <th className="w-10 px-5 py-2.5" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {products.map((sp) => (
+                    <tr key={sp.id} className="group transition-colors hover:bg-muted/30">
+                      <td className="px-5 py-3">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); sp.product && navigate(`/inventory/${sp.product.sku || sp.product.id}`); }}
+                          className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+                        >
+                          {sp.product?.name || `Product #${sp.productId}`}
+                        </button>
+                        {sp.product?.sku && (
+                          <p className="mt-0.5">
+                            <code className="rounded bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{sp.product.sku}</code>
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-5 py-3">
+                        <code className="rounded bg-violet-500/8 px-1.5 py-0.5 text-[11px] font-medium text-violet-600">{sp.supplierSku}</code>
+                      </td>
+                      <td className="px-5 py-3 text-right text-sm font-medium tabular-nums">
+                        {sp.supplierPrice ? `$${parseFloat(sp.supplierPrice).toFixed(2)}` : <span className="text-muted-foreground/40">&mdash;</span>}
+                      </td>
+                      <td className="px-5 py-3 text-right text-sm text-muted-foreground tabular-nums">
+                        {sp.leadTimeDays ? `${sp.leadTimeDays}d` : <span className="text-muted-foreground/40">&mdash;</span>}
+                      </td>
+                      <td className="px-5 py-3">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleRemoveProduct(sp.productId); }}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/40 opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-500"
+                        >
+                          <Trash size={14} />
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/30">
-                    {products.map((sp) => (
-                      <tr key={sp.id} className="border-l-4 border-l-transparent transition-all hover:border-l-violet-500 hover:bg-violet-500/[0.02]">
-                        <td className="px-6 py-3">
-                          <button
-                            onClick={() => sp.product && navigate(`/inventory/${sp.product.sku || sp.product.id}`)}
-                            className="text-sm font-medium text-primary hover:underline"
-                          >
-                            {sp.product?.name || `Product #${sp.productId}`}
-                          </button>
-                          {sp.product?.sku && (
-                            <p className="text-[11px] text-muted-foreground">{sp.product.sku}</p>
-                          )}
-                        </td>
-                        <td className="px-6 py-3">
-                          <code className="text-xs text-muted-foreground">{sp.supplierSku}</code>
-                        </td>
-                        <td className="px-6 py-3 text-right text-sm font-medium">
-                          {sp.supplierPrice ? `$${parseFloat(sp.supplierPrice).toFixed(2)}` : '—'}
-                        </td>
-                        <td className="px-6 py-3 text-right text-sm text-muted-foreground">
-                          {sp.leadTimeDays ? `${sp.leadTimeDays} days` : '—'}
-                        </td>
-                        <td className="px-6 py-3">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleRemoveProduct(sp.productId); }}
-                            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             ) : (
               <div className="py-12 text-center">
-                <Package className="mx-auto mb-2 h-7 w-7 text-muted-foreground/20" />
+                <Package size={28} weight="duotone" className="mx-auto mb-2 text-muted-foreground/20" />
                 <p className="text-sm text-muted-foreground">No products linked</p>
                 <p className="mt-1 text-xs text-muted-foreground/60">Add product mappings to track supplier SKUs and pricing.</p>
               </div>
@@ -260,10 +272,10 @@ export default function SupplierDetail() {
           </div>
 
           {/* Purchase Orders Card */}
-          <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
-            <div className="border-b border-border/50 px-6 py-4">
+          <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
+            <div className="border-b border-border/50 px-5 py-3.5">
               <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                <ClipboardText size={16} weight="duotone" className="text-amber-500" />
                 Purchase Orders
                 <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                   {purchaseOrders.length}
@@ -271,59 +283,57 @@ export default function SupplierDetail() {
               </h3>
             </div>
             {purchaseOrders.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border/40 bg-muted/20">
-                      <th className="px-6 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">PO Number</th>
-                      <th className="px-6 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
-                      <th className="px-6 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Expected</th>
-                      <th className="px-6 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Created</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/30">
-                    {purchaseOrders.map((po) => {
-                      const pst = poStatusStyles[po.status] || poStatusStyles.DRAFT;
-                      return (
-                        <tr
-                          key={po.id}
-                          onClick={() => navigate(`/receiving/${po.poNumber}`)}
-                          className="cursor-pointer border-l-4 border-l-transparent transition-all hover:border-l-amber-500 hover:bg-amber-500/[0.02]"
-                        >
-                          <td className="px-6 py-3 text-sm font-semibold">{po.poNumber}</td>
-                          <td className="px-6 py-3">
-                            <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold', pst.bg, pst.text)}>
-                              {pst.label}
-                            </span>
-                          </td>
-                          <td className="px-6 py-3 text-right text-sm text-muted-foreground">
-                            {po.expectedDate ? new Date(po.expectedDate).toLocaleDateString() : '—'}
-                          </td>
-                          <td className="px-6 py-3 text-right text-sm text-muted-foreground">
-                            {new Date(po.createdAt).toLocaleDateString()}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border/40 bg-muted/30">
+                    <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">PO Number</th>
+                    <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Status</th>
+                    <th className="px-5 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Expected</th>
+                    <th className="px-5 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Created</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {purchaseOrders.map((po) => {
+                    const pst = poStatusStyles[po.status] || poStatusStyles.DRAFT;
+                    return (
+                      <tr
+                        key={po.id}
+                        onClick={() => navigate(`/receiving/${po.poNumber}`)}
+                        className="group cursor-pointer transition-colors hover:bg-muted/30"
+                      >
+                        <td className="px-5 py-3 text-sm font-semibold group-hover:text-primary transition-colors">{po.poNumber}</td>
+                        <td className="px-5 py-3">
+                          <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold', pst.bg, pst.text)}>
+                            <span className={cn('h-1.5 w-1.5 rounded-full', pst.dot)} />
+                            {pst.label}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-right text-sm text-muted-foreground">
+                          {po.expectedDate ? new Date(po.expectedDate).toLocaleDateString() : <span className="text-muted-foreground/40">&mdash;</span>}
+                        </td>
+                        <td className="px-5 py-3 text-right text-sm text-muted-foreground">
+                          {new Date(po.createdAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             ) : (
               <div className="py-12 text-center">
-                <ClipboardList className="mx-auto mb-2 h-7 w-7 text-muted-foreground/20" />
+                <ClipboardText size={28} weight="duotone" className="mx-auto mb-2 text-muted-foreground/20" />
                 <p className="text-sm text-muted-foreground">No purchase orders yet</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* RIGHT — 1 col */}
-        <div className="space-y-6">
-          {/* Supplier Info Card */}
-          <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
-            <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
+        {/* RIGHT — Info card */}
+        <div>
+          <div className="rounded-xl border border-border/60 bg-card shadow-sm">
+            <div className="flex items-center justify-between border-b border-border/50 px-5 py-3.5">
               <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <Users className="h-4 w-4 text-muted-foreground" />
+                <UsersThree size={16} weight="duotone" className="text-violet-500" />
                 Supplier Info
               </h3>
               {editing && (
@@ -332,20 +342,20 @@ export default function SupplierDetail() {
                     onClick={() => setEditing(false)}
                     className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/60"
                   >
-                    <X className="h-3 w-3" /> Cancel
+                    <X size={12} /> Cancel
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={saving}
                     className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                   >
-                    {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                    {saving ? <CircleNotch size={12} className="animate-spin" /> : <Check size={12} weight="bold" />}
                     Save
                   </button>
                 </div>
               )}
             </div>
-            <div className="divide-y divide-border/40 px-6">
+            <div className="divide-y divide-border/40 px-5">
               {/* Name */}
               <div className="flex items-center justify-between py-3.5">
                 <span className="text-sm text-muted-foreground">Name</span>
@@ -364,7 +374,7 @@ export default function SupplierDetail() {
               {/* Email */}
               <div className="flex items-center justify-between py-3.5">
                 <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Mail className="h-3.5 w-3.5" />
+                  <Envelope size={14} className="text-muted-foreground/50" />
                   Email
                 </span>
                 {editing ? (
@@ -375,14 +385,14 @@ export default function SupplierDetail() {
                     className="h-8 w-40 rounded-lg border border-border/60 bg-background px-2 text-right text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 ) : (
-                  <span className="text-sm font-medium">{supplier.email || '—'}</span>
+                  <span className="text-sm font-medium">{supplier.email || <span className="text-muted-foreground/40">&mdash;</span>}</span>
                 )}
               </div>
 
               {/* Phone */}
               <div className="flex items-center justify-between py-3.5">
                 <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Phone className="h-3.5 w-3.5" />
+                  <Phone size={14} className="text-muted-foreground/50" />
                   Phone
                 </span>
                 {editing ? (
@@ -393,14 +403,14 @@ export default function SupplierDetail() {
                     className="h-8 w-40 rounded-lg border border-border/60 bg-background px-2 text-right text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 ) : (
-                  <span className="text-sm font-medium">{supplier.phone || '—'}</span>
+                  <span className="text-sm font-medium">{supplier.phone || <span className="text-muted-foreground/40">&mdash;</span>}</span>
                 )}
               </div>
 
               {/* Address */}
               <div className="flex items-center justify-between py-3.5">
                 <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <MapPin className="h-3.5 w-3.5" />
+                  <MapPin size={14} className="text-muted-foreground/50" />
                   Address
                 </span>
                 {editing ? (
@@ -411,14 +421,14 @@ export default function SupplierDetail() {
                     className="h-8 w-40 rounded-lg border border-border/60 bg-background px-2 text-right text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 ) : (
-                  <span className="max-w-[180px] truncate text-right text-sm font-medium">{supplier.address || '—'}</span>
+                  <span className="max-w-[180px] truncate text-right text-sm font-medium">{supplier.address || <span className="text-muted-foreground/40">&mdash;</span>}</span>
                 )}
               </div>
 
               {/* Notes */}
               <div className="py-3.5">
                 <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <FileText className="h-3.5 w-3.5" />
+                  <NoteBlank size={14} className="text-muted-foreground/50" />
                   Notes
                 </span>
                 {editing ? (
@@ -442,16 +452,18 @@ export default function SupplierDetail() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="mx-4 w-full max-w-md rounded-2xl border border-border/60 bg-card shadow-xl">
             <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
-              <h3 className="text-base font-semibold">Add Product Mapping</h3>
+              <div className="flex items-center gap-2.5">
+                <Package size={18} weight="bold" className="text-blue-500" />
+                <h3 className="text-base font-semibold">Add Product Mapping</h3>
+              </div>
               <button
                 onClick={() => { setShowAddProduct(false); setAddForm({ productId: 0, productName: '', supplierSku: '', supplierPrice: '', leadTimeDays: '' }); }}
                 className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
               >
-                <X className="h-4 w-4" />
+                <X size={16} weight="bold" />
               </button>
             </div>
             <div className="space-y-4 p-6">
-              {/* Product search */}
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Product *</label>
                 {addForm.productId ? (
@@ -461,7 +473,7 @@ export default function SupplierDetail() {
                       onClick={() => setAddForm({ ...addForm, productId: 0, productName: '' })}
                       className="text-muted-foreground hover:text-foreground"
                     >
-                      <X className="h-3.5 w-3.5" />
+                      <X size={14} />
                     </button>
                   </div>
                 ) : (
@@ -473,7 +485,6 @@ export default function SupplierDetail() {
                   />
                 )}
               </div>
-
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Supplier SKU *</label>
                 <input
@@ -484,7 +495,6 @@ export default function SupplierDetail() {
                   className="h-9 w-full rounded-lg border border-border/60 bg-background px-3 text-sm shadow-sm placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Price</label>
@@ -523,7 +533,7 @@ export default function SupplierDetail() {
                 disabled={addSaving || !addForm.productId || !addForm.supplierSku.trim()}
                 className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
-                {addSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {addSaving && <CircleNotch size={14} className="animate-spin" />}
                 Add Mapping
               </button>
             </div>

@@ -3,28 +3,54 @@ export default function Suppliers() {
     <article className="doc-prose">
       <h1 className="doc-heading text-4xl mb-2">Suppliers</h1>
       <p className="text-lg text-surface-400 mb-8">
-        Manage your supplier relationships and product mappings.
+        Manage your supplier relationships, product sourcing, and purchase order history.
       </p>
 
-      <h2>Overview</h2>
+      <h2>Supplier List</h2>
       <p>
-        The Suppliers module lets you maintain a directory of your product suppliers with contact
-        details and product-level mappings. This data integrates with Purchase Orders for
-        streamlined reordering.
+        The suppliers page shows all your suppliers in a table with avatar initials, contact info
+        (email and phone), linked product count, purchase order count, and active/inactive status.
       </p>
-
-      <h2>Supplier Records</h2>
       <p>
-        Each supplier stores:
+        A <strong>stat strip</strong> at the top shows key metrics at a glance:
       </p>
       <ul>
-        <li><strong>Name</strong> — Company or supplier name</li>
-        <li><strong>Email</strong> — Primary contact email</li>
-        <li><strong>Phone</strong> — Contact phone number</li>
-        <li><strong>Address</strong> — Physical address</li>
-        <li><strong>Notes</strong> — Internal notes about the supplier</li>
-        <li><strong>Active status</strong> — Toggle to deactivate suppliers without deleting</li>
+        <li><strong>Total Suppliers</strong> &mdash; Total number of suppliers in the system</li>
+        <li><strong>Active</strong> &mdash; Count of active suppliers</li>
+        <li><strong>Products Linked</strong> &mdash; Total product-supplier mappings across all suppliers</li>
+        <li><strong>Purchase Orders</strong> &mdash; Total POs across all suppliers</li>
       </ul>
+
+      <h3>Filtering</h3>
+      <p>
+        Use the search bar to find suppliers by name or email. Quick-filter pills let you toggle
+        between <strong>All</strong>, <strong>Active</strong>, and <strong>Inactive</strong> suppliers.
+      </p>
+
+      <h2>Adding a Supplier</h2>
+      <p>
+        Click <strong>Add Supplier</strong> to open the creation modal. Only the name is required;
+        email, phone, address, and notes are optional. After creation you'll be taken to the
+        supplier's detail page.
+      </p>
+
+      <h2>Supplier Detail Page</h2>
+      <p>
+        Click any supplier row to open their detail page. The page has a two-column layout:
+      </p>
+      <ul>
+        <li>
+          <strong>Left column:</strong> Products table (linked products with supplier SKU, price,
+          and lead time) and Purchase Orders table (all POs for this supplier with status badges)
+        </li>
+        <li>
+          <strong>Right column:</strong> Supplier info card with editable fields (name, email,
+          phone, address, notes)
+        </li>
+      </ul>
+      <p>
+        A summary strip shows Products count, Purchase Orders count, Average Lead Time, and Open POs.
+      </p>
 
       <h2>Product Mappings</h2>
       <p>
@@ -61,18 +87,18 @@ export default function Suppliers() {
         </p>
       </div>
 
-      <h2>Supplier Detail Page</h2>
+      <h2>Editing Supplier Info</h2>
       <p>
-        Click any supplier in the list to view their detail page. Here you can edit supplier
-        information and manage product mappings using the searchable product dropdown with
-        thumbnails, SKU badges, and stock levels.
+        Click the <strong>Edit</strong> button in the header to switch the info card into edit mode.
+        All fields (name, email, phone, address, notes) become editable inline. Click <strong>Save</strong>
+        to persist or <strong>Cancel</strong> to discard changes.
       </p>
 
       <h2>Creating Purchase Orders</h2>
       <p>
-        When creating a Purchase Order, select a supplier from the dropdown. The supplier's
-        product mappings are available for quick item addition. The supplier's contact details
-        are automatically included in the PO for easy reference.
+        When creating a Purchase Order in the Receiving module, select a supplier from the dropdown.
+        The supplier's product mappings are available for quick item addition with pre-filled SKUs
+        and pricing. The supplier's contact details are included in the PO for easy reference.
       </p>
     </article>
   );

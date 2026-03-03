@@ -195,16 +195,18 @@ export default function Dashboard() {
             <h2 className="text-base font-semibold">Resources</h2>
           </div>
           <div className="space-y-2">
-            <Link
-              to="/warehouse/guide"
+            <a
+              href="https://docs.picknpack.io/warehouse"
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-start gap-3 rounded-xl border border-border/60 bg-card p-4 shadow-sm transition-colors hover:border-border hover:bg-muted/30"
             >
               <Warehouse size={20} weight="duotone" className="mt-0.5 flex-shrink-0 text-primary" />
               <div>
-                <p className="text-sm font-semibold">Warehouse Setup Guide</p>
+                <p className="text-sm font-semibold">Warehouse Docs</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">Learn about zones, aisles, racks, and shelf locations.</p>
               </div>
-            </Link>
+            </a>
             <a
               href="https://docs.picknpack.io"
               target="_blank"
