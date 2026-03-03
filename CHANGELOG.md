@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.54.0] - 2026-03-03
+
+### Changed
+- **Settings restructure: Documents vs Business** — Moved brand color picker, company stamp/signature upload, and default PO note from Business settings into Documents settings. Documents page now has a "General document settings" section (color, stamp, note) above the PO template picker. Business page is streamlined to company name, address, contact details, logo, and sidebar preview.
+
 ## [3.53.1] - 2026-03-03
 
 ### Fixed

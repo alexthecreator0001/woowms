@@ -1,7 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Check,
   CircleNotch,
+  Palette,
+  Stamp,
+  NoteBlank,
+  FileText,
+  UploadSimple,
+  Trash,
 } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import api from '../../services/api';
@@ -14,13 +20,51 @@ const TEMPLATES: { value: PoTemplate; label: string; description: string }[] = [
   { value: 'minimal', label: 'Minimal', description: 'Ultra-clean with thin lines, lots of whitespace.' },
 ];
 
+const BRAND_COLORS = [
+  { value: '#6366f1', label: 'Indigo' },
+  { value: '#3b82f6', label: 'Blue' },
+  { value: '#0ea5e9', label: 'Sky' },
+  { value: '#14b8a6', label: 'Teal' },
+  { value: '#22c55e', label: 'Green' },
+  { value: '#f59e0b', label: 'Amber' },
+  { value: '#f97316', label: 'Orange' },
+  { value: '#ef4444', label: 'Red' },
+  { value: '#ec4899', label: 'Pink' },
+  { value: '#a855f7', label: 'Purple' },
+  { value: '#64748b', label: 'Slate' },
+  { value: '#1e293b', label: 'Dark' },
+];
+
+const MAX_FILE_SIZE = 512 * 1024; // 512KB
+
 export default function DocumentsSection() {
-  const [template, setTemplate] = useState<PoTemplate>('modern');
-  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [msg, setMsg] = useState('');
+
+  // --- PO template ---
+  const [template, setTemplate] = useState<PoTemplate>('modern');
+  const [templateSaving, setTemplateSaving] = useState(false);
+  const [templateMsg, setTemplateMsg] = useState('');
+
+  // --- Brand color ---
+  const [brandColor, setBrandColor] = useState('#6366f1');
+  const [colorSaving, setColorSaving] = useState(false);
+  const [colorMsg, setColorMsg] = useState('');
+
+  // --- Company stamp ---
+  const [stampUrl, setStampUrl] = useState('');
+  const [stampUploading, setStampUploading] = useState(false);
+  const [stampMsg, setStampMsg] = useState('');
+  const stampFileRef = useRef<HTMLInputElement>(null);
+
+  // --- Default PO note ---
+  const [defaultPoNote, setDefaultPoNote] = useState('');
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteMsg, setNoteMsg] = useState('');
+
+  // --- Company name (for template previews) ---
   const [companyName, setCompanyName] = useState('');
 
+  // --- Load data ---
   useEffect(() => {
     Promise.all([
       api.get('/account/tenant-settings'),
@@ -30,22 +74,68 @@ export default function DocumentsSection() {
       if (s.poTemplate === 'modern' || s.poTemplate === 'classic' || s.poTemplate === 'minimal') {
         setTemplate(s.poTemplate);
       }
+      if (s.brandColor) setBrandColor(s.brandColor);
+      if (s.defaultPoNote) setDefaultPoNote(s.defaultPoNote);
+      if (s.stampUrl) setStampUrl(s.stampUrl);
       setCompanyName(meRes.data.data.tenantName || 'Your Company');
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  const handleSave = async (val: PoTemplate) => {
+  // --- Template handler ---
+  const handleTemplateSave = async (val: PoTemplate) => {
     setTemplate(val);
-    setMsg('');
-    setSaving(true);
+    setTemplateMsg('');
+    setTemplateSaving(true);
     try {
       await api.patch('/account/tenant-settings', { poTemplate: val });
-      setMsg('Template saved');
-      setTimeout(() => setMsg(''), 2000);
+      setTemplateMsg('Template saved');
+      setTimeout(() => setTemplateMsg(''), 2000);
     } catch {
-      setMsg('Failed to save');
+      setTemplateMsg('Failed to save');
     } finally {
-      setSaving(false);
+      setTemplateSaving(false);
+    }
+  };
+
+  // --- Stamp handlers ---
+  const handleStampSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setStampMsg('Please select an image file');
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setStampMsg('Image must be under 512KB');
+      return;
+    }
+    setStampUploading(true);
+    setStampMsg('');
+    try {
+      const dataUrl = await resizeImage(file, 300);
+      await api.patch('/account/tenant-settings', { stampUrl: dataUrl });
+      setStampUrl(dataUrl);
+      setStampMsg('Stamp saved');
+      setTimeout(() => setStampMsg(''), 2000);
+    } catch {
+      setStampMsg('Failed to upload stamp');
+    } finally {
+      setStampUploading(false);
+      if (stampFileRef.current) stampFileRef.current.value = '';
+    }
+  };
+
+  const removeStamp = async () => {
+    setStampUploading(true);
+    try {
+      await api.patch('/account/tenant-settings', { stampUrl: null });
+      setStampUrl('');
+      setStampMsg('Stamp removed');
+      setTimeout(() => setStampMsg(''), 2000);
+    } catch {
+      setStampMsg('Failed to remove stamp');
+    } finally {
+      setStampUploading(false);
     }
   };
 
@@ -59,9 +149,169 @@ export default function DocumentsSection() {
 
   return (
     <div className="space-y-6">
+      {/* ── General document settings ── */}
       <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
         <div className="border-b border-border/50 px-6 py-4">
-          <h3 className="text-base font-semibold">Purchase Order PDF Template</h3>
+          <h3 className="text-base font-semibold">General document settings</h3>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            These settings apply to all generated documents (purchase orders, packing lists, invoices).
+          </p>
+        </div>
+        <div className="divide-y divide-border/40">
+          {/* Brand color */}
+          <div className="px-6 py-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Palette size={16} weight="duotone" className="text-muted-foreground" />
+              <h4 className="text-sm font-semibold">Brand color</h4>
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Used as accent color on document PDFs (headers, bars, highlights).
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {BRAND_COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  disabled={colorSaving}
+                  onClick={async () => {
+                    setBrandColor(c.value);
+                    setColorSaving(true);
+                    setColorMsg('');
+                    try {
+                      await api.patch('/account/tenant-settings', { brandColor: c.value });
+                      setColorMsg('Saved');
+                      setTimeout(() => setColorMsg(''), 2000);
+                    } catch { setColorMsg('Failed'); }
+                    finally { setColorSaving(false); }
+                  }}
+                  className={cn(
+                    'relative h-9 w-9 rounded-full border-2 transition-all',
+                    brandColor === c.value ? 'border-foreground scale-110 shadow-md' : 'border-transparent hover:scale-105'
+                  )}
+                  style={{ backgroundColor: c.value }}
+                  title={c.label}
+                >
+                  {brandColor === c.value && (
+                    <Check size={14} weight="bold" className="absolute inset-0 m-auto text-white drop-shadow-sm" />
+                  )}
+                </button>
+              ))}
+            </div>
+            {colorMsg && (
+              <p className={cn('mt-2 text-xs', colorMsg === 'Failed' ? 'text-destructive' : 'text-emerald-600')}>{colorMsg}</p>
+            )}
+          </div>
+
+          {/* Company stamp */}
+          <div className="px-6 py-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Stamp size={16} weight="duotone" className="text-muted-foreground" />
+              <h4 className="text-sm font-semibold">Company stamp / signature</h4>
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Printed on purchase orders and official documents. Max 512KB, resized to 300px.
+            </p>
+            <div className="flex items-start gap-5">
+              {/* Stamp preview */}
+              <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/10">
+                {stampUrl ? (
+                  <img src={stampUrl} alt="Stamp" className="h-16 w-16 rounded-lg object-contain" />
+                ) : (
+                  <Stamp size={28} weight="duotone" className="text-muted-foreground/30" />
+                )}
+              </div>
+
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => stampFileRef.current?.click()}
+                    disabled={stampUploading}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-muted/50 disabled:opacity-50"
+                  >
+                    {stampUploading ? <CircleNotch size={14} className="animate-spin" /> : <UploadSimple size={14} />}
+                    {stampUrl ? 'Change' : 'Upload'}
+                  </button>
+                  {stampUrl && (
+                    <button
+                      type="button"
+                      onClick={removeStamp}
+                      disabled={stampUploading}
+                      className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-200 bg-background px-3 text-sm font-medium text-red-600 shadow-sm transition-colors hover:bg-red-50 disabled:opacity-50"
+                    >
+                      <Trash size={14} />
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Upload a PNG or JPEG of your company stamp or authorized signature.
+                </p>
+                {stampMsg && (
+                  <p className={cn('mt-1.5 text-xs', stampMsg.includes('Failed') || stampMsg.includes('must') || stampMsg.includes('Please') ? 'text-destructive' : 'text-emerald-600')}>
+                    {stampMsg}
+                  </p>
+                )}
+              </div>
+            </div>
+            <input
+              ref={stampFileRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={handleStampSelect}
+            />
+          </div>
+
+          {/* Default PO note */}
+          <div className="px-6 py-5">
+            <div className="flex items-center gap-2 mb-3">
+              <NoteBlank size={16} weight="duotone" className="text-muted-foreground" />
+              <h4 className="text-sm font-semibold">Default PO note</h4>
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">
+              This note is automatically included on every purchase order PDF. E.g. payment terms, delivery instructions.
+            </p>
+            <textarea
+              value={defaultPoNote}
+              onChange={(e) => setDefaultPoNote(e.target.value)}
+              rows={3}
+              placeholder="e.g. Payment within 30 days. Deliver to warehouse gate B."
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none"
+            />
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                type="button"
+                disabled={noteSaving}
+                onClick={async () => {
+                  setNoteSaving(true);
+                  setNoteMsg('');
+                  try {
+                    await api.patch('/account/tenant-settings', { defaultPoNote });
+                    setNoteMsg('Saved');
+                    setTimeout(() => setNoteMsg(''), 2000);
+                  } catch { setNoteMsg('Failed'); }
+                  finally { setNoteSaving(false); }
+                }}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {noteSaving ? <CircleNotch size={12} className="animate-spin" /> : 'Save note'}
+              </button>
+              {noteMsg && (
+                <span className={cn('text-xs', noteMsg === 'Failed' ? 'text-destructive' : 'text-emerald-600')}>{noteMsg}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Purchase Order template ── */}
+      <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
+        <div className="border-b border-border/50 px-6 py-4">
+          <div className="flex items-center gap-2">
+            <FileText size={16} weight="duotone" className="text-muted-foreground" />
+            <h3 className="text-base font-semibold">Purchase Order template</h3>
+          </div>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Choose a design for generated purchase order PDFs. Includes your logo, supplier info, delivery address, SKUs, and EAN codes.
           </p>
@@ -72,8 +322,8 @@ export default function DocumentsSection() {
               <button
                 key={t.value}
                 type="button"
-                onClick={() => handleSave(t.value)}
-                disabled={saving}
+                onClick={() => handleTemplateSave(t.value)}
+                disabled={templateSaving}
                 className={cn(
                   'relative rounded-xl border-2 p-3 text-left transition-all',
                   template === t.value
@@ -99,10 +349,10 @@ export default function DocumentsSection() {
             ))}
           </div>
 
-          {msg && (
-            <p className={cn('mt-4 flex items-center gap-1.5 text-sm', msg.includes('Failed') ? 'text-destructive' : 'text-emerald-600')}>
-              {!msg.includes('Failed') && <Check size={14} weight="bold" />}
-              {msg}
+          {templateMsg && (
+            <p className={cn('mt-4 flex items-center gap-1.5 text-sm', templateMsg.includes('Failed') ? 'text-destructive' : 'text-emerald-600')}>
+              {!templateMsg.includes('Failed') && <Check size={14} weight="bold" />}
+              {templateMsg}
             </p>
           )}
         </div>
@@ -310,4 +560,28 @@ function MinimalPreview({ company }: { company: string }) {
       <div className="mt-auto pt-[1%] text-[2px] text-neutral-200">{company}</div>
     </div>
   );
+}
+
+/** Resize image to maxDim and return a PNG data URL */
+function resizeImage(file: File, maxDim: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+        else { w = Math.round((w * maxDim) / h); h = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Canvas not supported')); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = URL.createObjectURL(file);
+  });
 }
