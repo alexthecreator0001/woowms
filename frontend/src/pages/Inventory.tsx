@@ -8,8 +8,6 @@ import {
   Package,
   WarningCircle,
   CaretRight,
-  ArrowDown,
-  Lock,
   CheckCircle,
   ImageSquare,
   MapPin,
@@ -25,7 +23,7 @@ import api from '../services/api';
 import Pagination from '../components/Pagination';
 import TableConfigDropdown from '../components/TableConfigDropdown';
 import { useTableConfig } from '../hooks/useTableConfig';
-import type { Product, InventoryStats, PaginationMeta, TableColumnDef } from '../types';
+import type { Product, PaginationMeta, TableColumnDef } from '../types';
 
 const inventoryColumnDefs: TableColumnDef[] = [
   { id: 'image', label: 'Image' },
@@ -59,7 +57,6 @@ export default function Inventory() {
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<InventoryStats | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [stockFilter, setStockFilter] = useState<StockFilter>('all');
   const [sortField, setSortField] = useState<SortField>('name');
@@ -92,7 +89,6 @@ export default function Inventory() {
 
   useEffect(() => {
     loadProducts();
-    loadStats();
     loadFilterCounts();
   }, []);
 
@@ -103,15 +99,6 @@ export default function Inventory() {
   useEffect(() => {
     loadProducts();
   }, [search, page, stockFilter, sortField, sortOrder]);
-
-  async function loadStats() {
-    try {
-      const { data } = await api.get('/inventory/stats');
-      setStats(data.data);
-    } catch (err) {
-      console.error('Failed to load stats:', err);
-    }
-  }
 
   async function loadProducts() {
     try {
@@ -154,7 +141,7 @@ export default function Inventory() {
             setSyncResult({ added: job.added, updated: job.updated, skipped: job.skipped });
             setSyncing(false);
             setSyncJobId(null);
-            await Promise.all([loadProducts(), loadStats(), loadFilterCounts()]);
+            await Promise.all([loadProducts(), loadFilterCounts()]);
           } else if (job.status === 'error') {
             clearInterval(poll);
             setSyncPhase(job.error || 'Sync failed');
@@ -243,13 +230,13 @@ export default function Inventory() {
       </div>
 
       {/* Stat Strip */}
-      {stats && (
+      {filterCounts && (
         <div className="grid grid-cols-4 divide-x divide-border/50 rounded-xl border border-border/60 bg-card shadow-sm">
           {[
-            { label: 'Total Units', value: stats.inStock, icon: Package, color: 'text-foreground', iconColor: 'text-emerald-500' },
-            { label: 'Reserved Units', value: stats.reserved, icon: Lock, color: stats.reserved > 0 ? 'text-amber-600' : 'text-foreground', iconColor: 'text-amber-500' },
-            { label: 'Incoming Units', value: stats.incoming, icon: ArrowDown, color: 'text-foreground', iconColor: 'text-blue-500' },
-            { label: 'Available Units', value: stats.freeToSell, icon: CheckCircle, color: 'text-foreground', iconColor: 'text-emerald-500' },
+            { label: 'Total Products', value: filterCounts.total, icon: Package, color: 'text-foreground', iconColor: 'text-primary' },
+            { label: 'In Stock', value: filterCounts.inStock, icon: CheckCircle, color: 'text-emerald-600', iconColor: 'text-emerald-500' },
+            { label: 'Low Stock', value: filterCounts.lowStock, icon: WarningCircle, color: filterCounts.lowStock > 0 ? 'text-amber-600' : 'text-foreground', iconColor: 'text-amber-500' },
+            { label: 'Out of Stock', value: filterCounts.outOfStock, icon: WarningCircle, color: filterCounts.outOfStock > 0 ? 'text-red-600' : 'text-foreground', iconColor: 'text-red-500' },
           ].map((s) => (
             <div key={s.label} className="flex items-center gap-3 px-5 py-3.5">
               <s.icon size={18} weight="duotone" className={s.iconColor} />
@@ -430,14 +417,9 @@ export default function Inventory() {
                     {/* Product Name */}
                     {isVisible('product') && (
                       <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-sm font-medium leading-tight text-foreground group-hover:text-primary transition-colors">
-                            {product.name}
-                          </p>
-                          {product.isBundle && (
-                            <span className="flex-shrink-0 rounded bg-violet-500/10 px-1 py-px text-[9px] font-semibold text-violet-600">BUNDLE</span>
-                          )}
-                        </div>
+                        <p className="text-sm font-medium leading-tight text-foreground group-hover:text-primary transition-colors">
+                          {product.name}
+                        </p>
                       </td>
                     )}
 

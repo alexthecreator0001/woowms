@@ -45,6 +45,30 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
+// GET /api/v1/orders/stats
+router.get('/stats', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = req.prisma!;
+    const storeWhere = { store: { tenantId: req.tenantId } };
+
+    const counts = await prisma.order.groupBy({
+      by: ['status'],
+      where: storeWhere,
+      _count: { id: true },
+    });
+
+    const total = counts.reduce((sum, c) => sum + c._count.id, 0);
+    const byStatus: Record<string, number> = {};
+    for (const c of counts) {
+      byStatus[c.status] = c._count.id;
+    }
+
+    res.json({ data: { total, byStatus } });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/v1/orders/:id
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {

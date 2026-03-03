@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ShoppingBag,
@@ -6,6 +6,10 @@ import {
   CaretRight,
   CaretDown as CaretDownIcon,
   Star,
+  ClockCounterClockwise,
+  Gear,
+  Package,
+  Truck,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import { getStatusStyle, fetchAllStatuses, type StatusDef } from '../lib/statuses';
@@ -14,6 +18,11 @@ import Pagination from '../components/Pagination';
 import TableConfigDropdown from '../components/TableConfigDropdown';
 import { useTableConfig } from '../hooks/useTableConfig';
 import type { Order, PaginationMeta, TableColumnDef } from '../types';
+
+interface OrderStats {
+  total: number;
+  byStatus: Record<string, number>;
+}
 
 const orderColumnDefs: TableColumnDef[] = [
   { id: 'order', label: 'Order' },
@@ -37,10 +46,21 @@ export default function Orders() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [allStatuses, setAllStatuses] = useState<StatusDef[]>([]);
+  const [orderStats, setOrderStats] = useState<OrderStats | null>(null);
   const { visibleIds, toggleColumn, isVisible } = useTableConfig('orderColumns', orderColumnDefs);
+
+  const loadStats = useCallback(async () => {
+    try {
+      const { data } = await api.get('/orders/stats');
+      setOrderStats(data.data);
+    } catch (err) {
+      console.error('Failed to load order stats:', err);
+    }
+  }, []);
 
   useEffect(() => {
     fetchAllStatuses().then(setAllStatuses);
+    loadStats();
   }, []);
 
   useEffect(() => {
@@ -67,22 +87,48 @@ export default function Orders() {
     }
   }
 
+  // Derive stat strip values from order stats
+  const pending = orderStats ? (orderStats.byStatus['PENDING'] || 0) + (orderStats.byStatus['ON_HOLD'] || 0) : 0;
+  const processing = orderStats ? (orderStats.byStatus['PROCESSING'] || 0) : 0;
+  const picking = orderStats ? (orderStats.byStatus['PICKING'] || 0) + (orderStats.byStatus['PACKING'] || 0) : 0;
+  const shipped = orderStats ? (orderStats.byStatus['SHIPPED'] || 0) + (orderStats.byStatus['DELIVERED'] || 0) : 0;
+
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
             <ShoppingBag size={20} weight="duotone" className="text-primary" />
           </div>
           <div>
             <h2 className="text-xl font-bold tracking-tight">Orders</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Manage and track your WooCommerce orders.
+            <p className="text-[13px] text-muted-foreground">
+              {orderStats ? `${orderStats.total} total orders` : 'Loading...'}
             </p>
           </div>
         </div>
       </div>
+
+      {/* Stat Strip */}
+      {orderStats && (
+        <div className="grid grid-cols-4 divide-x divide-border/50 rounded-xl border border-border/60 bg-card shadow-sm">
+          {[
+            { label: 'Pending', value: pending, icon: ClockCounterClockwise, color: 'text-foreground', iconColor: 'text-amber-500' },
+            { label: 'Processing', value: processing, icon: Gear, color: processing > 0 ? 'text-blue-600' : 'text-foreground', iconColor: 'text-blue-500' },
+            { label: 'Picking / Packing', value: picking, icon: Package, color: picking > 0 ? 'text-violet-600' : 'text-foreground', iconColor: 'text-violet-500' },
+            { label: 'Shipped', value: shipped, icon: Truck, color: 'text-foreground', iconColor: 'text-emerald-500' },
+          ].map((s) => (
+            <div key={s.label} className="flex items-center gap-3 px-5 py-3.5">
+              <s.icon size={18} weight="duotone" className={s.iconColor} />
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{s.label}</p>
+                <p className={cn('text-lg font-bold tracking-tight', s.color)}>{s.value.toLocaleString()}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Filters Bar */}
       <div className="flex items-center gap-3">

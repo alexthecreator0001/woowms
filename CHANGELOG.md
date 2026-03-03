@@ -3,6 +3,17 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.37.0 / 2.30.0] - 2026-03-03
+
+### Added
+- **Order stats strip** — Orders page now shows a stat strip with counts for Pending, Processing, Picking/Packing, and Shipped orders. New `GET /orders/stats` backend endpoint returns order counts grouped by status
+- **Order page header** — Shows total order count in subtitle
+
+### Changed
+- **Inventory stat strip fixed** — Replaced confusing unit-level aggregates with product-level counts (Total Products, In Stock, Low Stock, Out of Stock) matching the filter buttons. Numbers are now consistent and accurate
+- **Removed BUNDLE badge from product name** — Since there's now a dedicated "Type" column, the inline bundle badge next to the product name has been removed to avoid redundancy
+- **Page layout height fix** — Main content area now fills the viewport properly so pages aren't cut off
+
 ## [3.36.0] - 2026-03-03
 
 ### Added
