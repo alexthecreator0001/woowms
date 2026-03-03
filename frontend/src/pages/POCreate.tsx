@@ -6,11 +6,13 @@ import {
   Plus,
   Trash2,
   Loader2,
-  ChevronDown,
-  Search,
   Info,
+  X,
+  ExternalLink,
 } from 'lucide-react';
+import { Package, ImageSquare } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
+import { proxyUrl } from '../lib/image';
 import api from '../services/api';
 import ProductSearchDropdown from '../components/ProductSearchDropdown';
 import type { Supplier } from '../types';
@@ -21,6 +23,21 @@ interface POItemForm {
   productName: string;
   orderedQty: number;
   unitCost: string;
+  imageUrl?: string | null;
+  productId?: number | null;
+}
+
+interface ProductInfo {
+  id: number;
+  name: string;
+  sku: string;
+  imageUrl: string | null;
+  price: string | number | null;
+  stockQty: number;
+  reservedQty: number;
+  packageQty: number | null;
+  weight: string | number | null;
+  supplierProducts: { supplierSku: string; supplierPrice: string | null; leadTimeDays: number | null; supplier: { name: string } }[];
 }
 
 let itemKeyCounter = 1;
@@ -38,7 +55,6 @@ export default function POCreate() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Prefill from navigation state (e.g., from product detail "Create PO")
   const prefill = (location.state as { sku?: string; productName?: string } | null) || {};
 
   const [poNumber, setPoNumber] = useState(generatePONumber);
@@ -55,12 +71,15 @@ export default function POCreate() {
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
   const supplierRef = useRef<HTMLDivElement>(null);
 
-  // Tracking fields
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingUrl, setTrackingUrl] = useState('');
 
-  // Package qty hints
+  // Package qty hints keyed by item.key
   const [packageHints, setPackageHints] = useState<Record<number, number>>({});
+
+  // Product detail popup
+  const [detailPopup, setDetailPopup] = useState<ProductInfo | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => {
     api.get('/suppliers', { params: { limit: 100 } })
@@ -102,7 +121,25 @@ export default function POCreate() {
       if (data.data?.packageQty) {
         setPackageHints((prev) => ({ ...prev, [key]: data.data.packageQty }));
       }
+      // Also set image if we don't have it
+      if (data.data?.imageUrl) {
+        setItems((prev) =>
+          prev.map((i) => (i.key === key && !i.imageUrl ? { ...i, imageUrl: data.data.imageUrl, productId: data.data.id } : i))
+        );
+      }
     } catch { /* ignore */ }
+  }
+
+  async function openProductDetail(sku: string) {
+    if (!sku.trim()) return;
+    setDetailLoading(true);
+    try {
+      const { data } = await api.get('/receiving/product-info', { params: { sku: sku.trim() } });
+      if (data.data) {
+        setDetailPopup(data.data);
+      }
+    } catch { /* ignore */ }
+    setDetailLoading(false);
   }
 
   async function handleSubmit(markOrdered: boolean) {
@@ -307,67 +344,111 @@ export default function POCreate() {
                 Add Row
               </button>
             </div>
-            {/* Product Search */}
+            {/* Product Search — excludes bundles */}
             <div className="border-b border-border/40 px-6 py-3">
               <ProductSearchDropdown
+                excludeBundles
                 onSelect={(product) => {
-                  // Check if there's an empty first row to fill
                   const emptyIdx = items.findIndex((i) => !i.sku && !i.productName);
                   if (emptyIdx >= 0) {
                     setItems((prev) =>
                       prev.map((i, idx) =>
                         idx === emptyIdx
-                          ? { ...i, sku: product.sku || '', productName: product.name, orderedQty: 1 }
+                          ? { ...i, sku: product.sku || '', productName: product.name, orderedQty: 1, imageUrl: product.imageUrl, productId: product.id }
                           : i
                       )
                     );
+                    // Fetch package hint for the filled row
+                    if (product.sku) fetchPackageHint(items[emptyIdx].key, product.sku);
                   } else {
+                    const newKey = itemKeyCounter++;
                     setItems((prev) => [
                       ...prev,
-                      { key: itemKeyCounter++, sku: product.sku || '', productName: product.name, orderedQty: 1, unitCost: '' },
+                      { key: newKey, sku: product.sku || '', productName: product.name, orderedQty: 1, unitCost: '', imageUrl: product.imageUrl, productId: product.id },
                     ]);
+                    if (product.sku) fetchPackageHint(newKey, product.sku);
                   }
                 }}
                 excludeIds={[]}
-                placeholder="Search product to add..."
+                placeholder="Search product to add (bundles excluded)..."
               />
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border/40 bg-muted/20">
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">SKU</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Product Name</th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground w-24">Qty</th>
-                    <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground w-28">Unit Cost</th>
-                    <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground w-28">Line Total</th>
-                    <th className="w-12 px-4 py-2.5" />
+                    <th className="w-10 px-3 py-2.5" />
+                    <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">SKU</th>
+                    <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Product Name</th>
+                    <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground w-28">Qty</th>
+                    <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground w-28">Unit Cost</th>
+                    <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground w-28">Line Total</th>
+                    <th className="w-10 px-3 py-2.5" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
                   {items.map((item) => {
                     const lineTotal = item.unitCost ? parseFloat(item.unitCost || '0') * Math.max(item.orderedQty, 1) : 0;
+                    const pkgQty = packageHints[item.key];
+                    const notFullPack = pkgQty && item.orderedQty % pkgQty !== 0;
+                    const fullPackQty = pkgQty ? Math.ceil(item.orderedQty / pkgQty) * pkgQty : null;
+                    const fullPackCount = pkgQty ? Math.ceil(item.orderedQty / pkgQty) : null;
                     return (
-                      <tr key={item.key}>
-                        <td className="px-4 py-2">
-                          <input
-                            type="text"
-                            value={item.sku}
-                            onChange={(e) => updateItem(item.key, 'sku', e.target.value)}
-                            placeholder="SKU"
-                            className="h-8 w-full rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                          />
+                      <tr key={item.key} className="group">
+                        {/* Thumbnail */}
+                        <td className="px-3 py-2">
+                          {item.imageUrl ? (
+                            <div className="h-8 w-8 overflow-hidden rounded-md border border-border/40 bg-muted/20">
+                              <img src={proxyUrl(item.imageUrl, 64)!} alt="" className="h-full w-full object-cover" loading="lazy" />
+                            </div>
+                          ) : (
+                            <div className="flex h-8 w-8 items-center justify-center rounded-md border border-border/40 bg-muted/20">
+                              <ImageSquare size={14} className="text-muted-foreground/30" />
+                            </div>
+                          )}
                         </td>
-                        <td className="px-4 py-2">
-                          <input
-                            type="text"
-                            value={item.productName}
-                            onChange={(e) => updateItem(item.key, 'productName', e.target.value)}
-                            placeholder="Product name"
-                            className="h-8 w-full rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                          />
+                        {/* SKU — clickable */}
+                        <td className="px-3 py-2">
+                          {item.sku ? (
+                            <button
+                              type="button"
+                              onClick={() => openProductDetail(item.sku)}
+                              className="inline-block rounded bg-muted/50 px-1.5 py-0.5 text-xs font-mono font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
+                            >
+                              {item.sku}
+                            </button>
+                          ) : (
+                            <input
+                              type="text"
+                              value={item.sku}
+                              onChange={(e) => updateItem(item.key, 'sku', e.target.value)}
+                              placeholder="SKU"
+                              className="h-8 w-full rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                          )}
                         </td>
-                        <td className="px-4 py-2">
+                        {/* Product Name — clickable */}
+                        <td className="px-3 py-2">
+                          {item.sku && item.productName ? (
+                            <button
+                              type="button"
+                              onClick={() => openProductDetail(item.sku)}
+                              className="text-left text-sm font-medium text-foreground hover:text-primary transition-colors cursor-pointer truncate block max-w-[260px]"
+                            >
+                              {item.productName}
+                            </button>
+                          ) : (
+                            <input
+                              type="text"
+                              value={item.productName}
+                              onChange={(e) => updateItem(item.key, 'productName', e.target.value)}
+                              placeholder="Product name"
+                              className="h-8 w-full rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                          )}
+                        </td>
+                        {/* Qty + package hint */}
+                        <td className="px-3 py-2">
                           <input
                             type="number"
                             min={1}
@@ -376,22 +457,27 @@ export default function POCreate() {
                             onBlur={() => fetchPackageHint(item.key, item.sku)}
                             className="h-8 w-full rounded-lg border border-border/60 bg-background px-2 text-center text-sm font-medium shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                           />
-                          {packageHints[item.key] && item.orderedQty % packageHints[item.key] !== 0 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const packQty = packageHints[item.key];
-                                const rounded = Math.ceil(item.orderedQty / packQty) * packQty;
-                                updateItem(item.key, 'orderedQty', rounded);
-                              }}
-                              className="mt-1 flex items-center gap-1 text-[10px] text-amber-600 hover:underline"
-                            >
-                              <Info className="h-3 w-3" />
-                              Packs of {packageHints[item.key]}. Round to {Math.ceil(item.orderedQty / packageHints[item.key]) * packageHints[item.key]}?
-                            </button>
+                          {pkgQty && (
+                            <div className="mt-1">
+                              {notFullPack ? (
+                                <button
+                                  type="button"
+                                  onClick={() => updateItem(item.key, 'orderedQty', fullPackQty!)}
+                                  className="flex items-center gap-1 text-[10px] text-amber-600 hover:text-amber-700 hover:underline"
+                                >
+                                  <Package size={10} weight="bold" />
+                                  Order {fullPackCount} full {fullPackCount === 1 ? 'pack' : 'packs'} ({fullPackQty} pcs)?
+                                </button>
+                              ) : (
+                                <span className="flex items-center gap-1 text-[10px] text-emerald-600">
+                                  <Package size={10} weight="bold" />
+                                  {item.orderedQty / pkgQty} full {item.orderedQty / pkgQty === 1 ? 'pack' : 'packs'} ({pkgQty}/pack)
+                                </span>
+                              )}
+                            </div>
                           )}
                         </td>
-                        <td className="px-4 py-2">
+                        <td className="px-3 py-2">
                           <input
                             type="number"
                             min={0}
@@ -402,10 +488,10 @@ export default function POCreate() {
                             className="h-8 w-full rounded-lg border border-border/60 bg-background px-2 text-right text-sm shadow-sm placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                           />
                         </td>
-                        <td className="px-4 py-2 text-right text-sm font-medium text-muted-foreground">
+                        <td className="px-3 py-2 text-right text-sm font-medium text-muted-foreground">
                           {lineTotal > 0 ? `$${lineTotal.toFixed(2)}` : '—'}
                         </td>
-                        <td className="px-4 py-2">
+                        <td className="px-3 py-2">
                           {items.length > 1 && (
                             <button
                               onClick={() => removeItem(item.key)}
@@ -464,6 +550,104 @@ export default function POCreate() {
           </div>
         </div>
       </div>
+
+      {/* ── Product Detail Popup ──────────────────────── */}
+      {detailPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setDetailPopup(null)}>
+          <div className="relative w-full max-w-md rounded-2xl border border-border/60 bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setDetailPopup(null)} className="absolute right-3 top-3 rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+              <X className="h-4 w-4" />
+            </button>
+            {/* Image */}
+            <div className="flex items-center gap-4 p-6 pb-0">
+              {detailPopup.imageUrl ? (
+                <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-border/40 bg-muted/20">
+                  <img src={proxyUrl(detailPopup.imageUrl, 200)!} alt="" className="h-full w-full object-cover" />
+                </div>
+              ) : (
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-border/40 bg-muted/20">
+                  <ImageSquare size={28} className="text-muted-foreground/25" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <h3 className="text-base font-semibold leading-tight">{detailPopup.name}</h3>
+                <code className="mt-1 inline-block rounded bg-muted/50 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">{detailPopup.sku}</code>
+              </div>
+            </div>
+            {/* Info grid */}
+            <div className="grid grid-cols-3 gap-3 p-6">
+              <div className="rounded-xl border border-border/40 bg-muted/20 p-3 text-center">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">In Stock</p>
+                <p className="mt-1 text-lg font-bold tabular-nums">{detailPopup.stockQty}</p>
+              </div>
+              <div className="rounded-xl border border-border/40 bg-muted/20 p-3 text-center">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Reserved</p>
+                <p className="mt-1 text-lg font-bold tabular-nums">{detailPopup.reservedQty}</p>
+              </div>
+              <div className="rounded-xl border border-border/40 bg-muted/20 p-3 text-center">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Available</p>
+                <p className={cn('mt-1 text-lg font-bold tabular-nums', (detailPopup.stockQty - detailPopup.reservedQty) <= 0 ? 'text-red-500' : 'text-emerald-600')}>
+                  {detailPopup.stockQty - detailPopup.reservedQty}
+                </p>
+              </div>
+            </div>
+            {/* Extra info */}
+            <div className="space-y-2 border-t border-border/40 px-6 py-4">
+              {detailPopup.packageQty && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Pack size</span>
+                  <span className="font-semibold">{detailPopup.packageQty} pcs / pack</span>
+                </div>
+              )}
+              {detailPopup.price && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Sell price</span>
+                  <span className="font-semibold">${Number(detailPopup.price).toFixed(2)}</span>
+                </div>
+              )}
+              {detailPopup.weight && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Weight</span>
+                  <span className="font-semibold">{Number(detailPopup.weight).toFixed(2)} kg</span>
+                </div>
+              )}
+              {detailPopup.supplierProducts.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-border/40">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Supplier Info</p>
+                  {detailPopup.supplierProducts.map((sp, i) => (
+                    <div key={i} className="flex items-center justify-between text-sm py-1">
+                      <span className="text-muted-foreground">{sp.supplier.name}</span>
+                      <div className="text-right">
+                        <span className="font-mono text-xs text-muted-foreground">{sp.supplierSku}</span>
+                        {sp.supplierPrice && <span className="ml-2 font-semibold">${Number(sp.supplierPrice).toFixed(2)}</span>}
+                        {sp.leadTimeDays && <span className="ml-2 text-xs text-muted-foreground">{sp.leadTimeDays}d lead</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Link to inventory */}
+            {detailPopup.id && (
+              <div className="border-t border-border/40 px-6 py-3">
+                <button
+                  onClick={() => { setDetailPopup(null); navigate(`/inventory/${detailPopup.id}`); }}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  View full product details
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {detailLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      )}
     </div>
   );
 }

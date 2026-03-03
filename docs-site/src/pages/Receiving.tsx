@@ -35,10 +35,33 @@ export default function Receiving() {
       <div className="doc-callout">
         <p>
           <strong>Pack quantity hints:</strong> If a product has a configured package quantity
-          (e.g., comes in packs of 12), the PO form shows a "round up to nearest pack" hint
-          when your ordered quantity doesn't align.
+          (e.g., comes in packs of 36), the PO form shows whether you&apos;re ordering full packs.
+          If not, it prompts &ldquo;Order 2 full packs (72 pcs)?&rdquo; to round up.
+          When qty is already a full-pack multiple, it confirms with a green indicator.
         </p>
       </div>
+
+      <div className="doc-callout">
+        <p>
+          <strong>Bundle products are excluded:</strong> The product search in PO creation
+          automatically filters out bundle products, since bundles are assembled internally
+          and not ordered from suppliers.
+        </p>
+      </div>
+
+      <h3>Product Detail Popup</h3>
+      <p>
+        Click any <strong>SKU</strong> or <strong>product name</strong> in the items table to
+        open a product detail popup showing the product image, stock levels (in stock / reserved
+        / available), pack size, sell price, weight, and linked supplier info. From the popup
+        you can navigate to the full product detail page.
+      </p>
+
+      <h3>Product Images</h3>
+      <p>
+        Each item row displays a small product thumbnail. Images are loaded automatically when
+        you add a product via the search dropdown.
+      </p>
 
       <h2>Receiving Items</h2>
       <p>

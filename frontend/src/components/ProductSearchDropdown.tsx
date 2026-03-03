@@ -18,9 +18,10 @@ interface ProductSearchDropdownProps {
   excludeIds?: number[];
   placeholder?: string;
   autoFocus?: boolean;
+  excludeBundles?: boolean;
 }
 
-export default function ProductSearchDropdown({ onSelect, excludeIds = [], placeholder = 'Search products...', autoFocus }: ProductSearchDropdownProps) {
+export default function ProductSearchDropdown({ onSelect, excludeIds = [], placeholder = 'Search products...', autoFocus, excludeBundles }: ProductSearchDropdownProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
@@ -49,7 +50,7 @@ export default function ProductSearchDropdown({ onSelect, excludeIds = [], place
     const timer = setTimeout(async () => {
       try {
         setLoading(true);
-        const { data } = await api.get('/inventory', { params: { search: query, limit: 15 } });
+        const { data } = await api.get('/inventory', { params: { search: query, limit: 15, ...(excludeBundles && { excludeBundles: 'true' }) } });
         setResults(data.data as Product[]);
         setOpen(true);
         setActiveIndex(-1);

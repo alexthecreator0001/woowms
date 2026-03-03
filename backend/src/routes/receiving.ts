@@ -108,7 +108,12 @@ router.get('/product-info', async (req: Request, res: Response, next: NextFuncti
         id: true,
         name: true,
         sku: true,
+        imageUrl: true,
+        price: true,
+        stockQty: true,
+        reservedQty: true,
         packageQty: true,
+        weight: true,
         supplierProducts: {
           include: { supplier: true },
         },

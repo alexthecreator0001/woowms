@@ -202,7 +202,10 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const pageNum = parseInt(page || '1');
     const limitNum = Math.min(parseInt(limit || '25'), 100);
 
+    const excludeBundles = req.query.excludeBundles === 'true';
+
     const where: any = { isActive: true, store: { tenantId: req.tenantId } };
+    if (excludeBundles) where.isBundle = false;
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },

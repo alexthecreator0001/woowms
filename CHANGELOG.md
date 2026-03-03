@@ -3,6 +3,16 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.46.0 / 2.35.0] - 2026-03-03
+
+### Added
+- **PO product detail popup** — Click any SKU or product name in the PO items table to see a popup with product image, stock levels (in stock / reserved / available), pack size, sell price, weight, and supplier info. Link to full product detail page.
+- **Product images in PO items** — Each item row shows a product thumbnail on the left.
+- **Full-pack ordering hints** — When a product has a `packageQty`, the qty field shows whether you're ordering full packs. If not, shows a clickable prompt like "Order 2 full packs (72 pcs)?" to round up. When qty is already a full-pack multiple, shows a green confirmation like "3 full packs (36/pack)".
+- **Bundles excluded from PO search** — Product search in PO creation now filters out bundle products (can't order bundles from suppliers).
+- Backend `/inventory` endpoint now accepts `excludeBundles=true` query param.
+- Backend `/receiving/product-info` now returns `imageUrl`, `price`, `stockQty`, `reservedQty`, `weight`.
+
 ## [3.45.0] - 2026-03-03
 
 ### Changed
