@@ -3,6 +3,14 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.45.0] - 2026-03-03
+
+### Changed
+- **World map much more visible** — Map background dots opacity raised to 63% for a clearly visible world outline.
+- **Hoverable map markers** — Hovering a country dot on the map shows a tooltip with country name, order count, and revenue.
+- **Stat cards show comparison permanently** — Previous period value and change amount now displayed below each sparkline (not hidden behind hover). Shows "prev 30 days: €X / +€Y" at a glance.
+- **Better Customize dropdown** — Two sections: "Metric Cards" (toggle cards) and "Sections" (toggle Charts, Breakdowns, Map). Click outside to close.
+
 ## [3.44.0] - 2026-03-03
 
 ### Changed

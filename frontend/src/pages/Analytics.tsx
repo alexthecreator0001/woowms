@@ -452,7 +452,6 @@ export default function Analytics() {
     }
   });
   const [showCardConfig, setShowCardConfig] = useState(false);
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const configRef = useRef<HTMLDivElement>(null);
 
   const SECTION_DEFS = [
@@ -514,6 +513,7 @@ export default function Analytics() {
         ...COUNTRY_CENTROIDS[c.country],
         label: COUNTRY_NAMES[c.country] || c.country,
         value: c.count,
+        extra: fmtMoney(c.total, data.currency),
       }));
   }, [data]);
 
@@ -682,15 +682,9 @@ export default function Analytics() {
           const Icon = card.Icon;
           const isUp = d.pct > 0;
           const isDown = d.pct < 0;
-          const isHovered = hoveredCard === card.key;
           const diff = d.rawValue - d.rawPrev;
           return (
-            <div
-              key={card.key}
-              className="relative rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition-shadow hover:shadow-md cursor-default"
-              onMouseEnter={() => setHoveredCard(card.key)}
-              onMouseLeave={() => setHoveredCard(null)}
-            >
+            <div key={card.key} className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', ic.bg)}>
                   <Icon size={18} weight="duotone" className={ic.text} />
@@ -715,31 +709,14 @@ export default function Analytics() {
                   <Sparkline data={d.sparkline} color={d.sparkColor} />
                 </div>
               )}
-              {/* Hover tooltip */}
-              {isHovered && (
-                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50 pointer-events-none">
-                  <div className="rounded-lg border border-border/60 bg-card px-3 py-2 shadow-lg text-xs whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Current ({periodLabel})</p>
-                        <p className="font-semibold">{d.value}</p>
-                      </div>
-                      <div className="w-px h-6 bg-border/60" />
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Previous {periodLabel}</p>
-                        <p className="font-semibold">{d.prevValue}</p>
-                      </div>
-                      <div className="w-px h-6 bg-border/60" />
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Change</p>
-                        <p className={cn('font-semibold', isUp && 'text-emerald-600', isDown && 'text-rose-600')}>
-                          {diff > 0 ? '+' : ''}{card.isMoney ? fmtMoney(diff, currency) : diff.toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Previous period comparison */}
+              <div className="mt-3 flex items-center gap-2 pt-3 border-t border-border/40">
+                <span className="text-[11px] text-muted-foreground">prev {periodLabel}:</span>
+                <span className="text-[11px] font-medium tabular-nums">{d.prevValue}</span>
+                <span className={cn('text-[11px] font-semibold tabular-nums ml-auto', isUp && 'text-emerald-600', isDown && 'text-rose-600', !isUp && !isDown && 'text-muted-foreground')}>
+                  {diff > 0 ? '+' : ''}{card.isMoney ? fmtMoney(diff, currency) : diff.toLocaleString()}
+                </span>
+              </div>
             </div>
           );
         })}
