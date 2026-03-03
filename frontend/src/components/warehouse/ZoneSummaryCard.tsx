@@ -4,7 +4,8 @@ import {
   Printer,
 } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
-import type { Zone, FloorPlanElementType } from '../../types';
+import type { Zone, FloorPlanElementType, BinSize } from '../../types';
+import { BIN_SIZE_CAPACITY } from '../../types';
 import { getTemplate } from './floorplan/ElementPalette';
 import UtilizationBar from './UtilizationBar';
 
@@ -37,9 +38,9 @@ export default function ZoneSummaryCard({
 
   const bins = zone.bins || [];
   const totalBins = bins.length;
-  const occupiedBins = bins.filter((b) => (b._stockCount ?? 0) > 0).length;
+  const totalCapacity = bins.reduce((sum, b) => sum + (b.capacity ?? BIN_SIZE_CAPACITY[b.binSize as BinSize] ?? 50), 0);
   const totalItems = bins.reduce((sum, b) => sum + (b._stockCount ?? 0), 0);
-  const utilPct = totalBins > 0 ? Math.round((occupiedBins / totalBins) * 100) : 0;
+  const utilPct = totalCapacity > 0 ? Math.round((totalItems / totalCapacity) * 100) : 0;
 
   return (
     <div
@@ -77,20 +78,18 @@ export default function ZoneSummaryCard({
               <span>
                 <span className="font-semibold text-foreground">{totalBins}</span> location{totalBins !== 1 ? 's' : ''}
               </span>
-              {totalItems > 0 && (
-                <span>
-                  <span className="font-semibold text-foreground">{totalItems}</span> item{totalItems !== 1 ? 's' : ''}
-                </span>
-              )}
               <span>
-                <span className={cn('font-semibold', utilPct > 0 ? 'text-foreground' : '')}>{utilPct}%</span> occupied
+                <span className="font-semibold text-foreground">{totalItems}</span> / {totalCapacity} capacity
+              </span>
+              <span>
+                <span className={cn('font-semibold', utilPct > 0 ? 'text-foreground' : '')}>{utilPct}%</span> full
               </span>
             </div>
 
             {/* Utilization bar */}
             <UtilizationBar
-              segments={[{ value: occupiedBins, color: badge.barColor }]}
-              total={totalBins}
+              segments={[{ value: totalItems, color: badge.barColor }]}
+              total={totalCapacity}
               className="mt-2"
             />
           </div>

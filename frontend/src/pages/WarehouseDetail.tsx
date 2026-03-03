@@ -15,7 +15,7 @@ import { cn } from '../lib/utils';
 import api from '../services/api';
 import { useSidebar } from '../contexts/SidebarContext';
 import type { Warehouse, Zone, ZoneType, FloorPlanElement, BinSize } from '../types';
-import { BIN_SIZE_LABELS } from '../types';
+import { BIN_SIZE_LABELS, BIN_SIZE_CAPACITY } from '../types';
 import ZoneSummaryCard from '../components/warehouse/ZoneSummaryCard';
 import UtilizationBar from '../components/warehouse/UtilizationBar';
 import SlideOver from '../components/warehouse/SlideOver';
@@ -114,25 +114,29 @@ export default function WarehouseDetail() {
   // Filtered zones
   const filteredZones = typeFilter === 'ALL' ? zones : zones.filter((z) => z.type === typeFilter);
 
-  // Aggregate utilization
+  // Aggregate utilization — capacity-based
   const totalBins = zones.reduce((sum, z) => sum + (z.bins?.length || 0), 0);
-  const occupiedBins = zones.reduce(
-    (sum, z) => sum + (z.bins?.filter((b) => (b._stockCount ?? 0) > 0).length || 0),
+  const totalCapacity = zones.reduce(
+    (sum, z) => sum + (z.bins?.reduce((s, b) => s + (b.capacity ?? BIN_SIZE_CAPACITY[b.binSize as BinSize] ?? 50), 0) || 0),
+    0,
+  );
+  const totalStored = zones.reduce(
+    (sum, z) => sum + (z.bins?.reduce((s, b) => s + (b._stockCount ?? 0), 0) || 0),
     0,
   );
 
-  // Utilization segments per zone type
+  // Utilization segments per zone type (capacity-based)
   const utilizationSegments = useMemo(() => {
-    return zones.reduce<{ type: string; occupied: number }[]>((acc, z) => {
-      const occ = z.bins?.filter((b) => (b._stockCount ?? 0) > 0).length || 0;
-      if (occ > 0) {
+    return zones.reduce<{ type: string; stored: number }[]>((acc, z) => {
+      const stored = z.bins?.reduce((s, b) => s + (b._stockCount ?? 0), 0) || 0;
+      if (stored > 0) {
         const existing = acc.find((s) => s.type === z.type);
-        if (existing) existing.occupied += occ;
-        else acc.push({ type: z.type, occupied: occ });
+        if (existing) existing.stored += stored;
+        else acc.push({ type: z.type, stored });
       }
       return acc;
     }, []).map((s) => ({
-      value: s.occupied,
+      value: s.stored,
       color: zoneBarColor[s.type] || 'bg-gray-500',
       label: s.type.charAt(0) + s.type.slice(1).toLowerCase(),
     }));
@@ -397,13 +401,13 @@ export default function WarehouseDetail() {
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">Utilization</span>
             <span className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">{occupiedBins}</span> / {totalBins} locations occupied
-              ({totalBins > 0 ? Math.round((occupiedBins / totalBins) * 100) : 0}%)
+              <span className="font-semibold text-foreground">{totalStored}</span> / {totalCapacity} capacity used
+              ({totalCapacity > 0 ? Math.round((totalStored / totalCapacity) * 100) : 0}%)
             </span>
           </div>
           <UtilizationBar
             segments={utilizationSegments}
-            total={totalBins}
+            total={totalCapacity}
             height="md"
             showLabels={utilizationSegments.length > 1}
           />

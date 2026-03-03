@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.31.1] - 2026-03-03
+
+### Fixed
+- **Warehouse utilization now capacity-based** — zone and warehouse utilization is now calculated as items stored vs total capacity (based on Location Size: Small=25, Medium=50, Large=100, XL=200) instead of treating each item as filling an entire location. "3/600 capacity used (1%)" instead of the misleading "3/12 locations occupied (25%)"
+
 ## [2.27.1] - 2026-03-03
 
 ### Fixed
