@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import DocLayout from './components/DocLayout';
 import GettingStarted from './pages/GettingStarted';
 import Dashboard from './pages/Dashboard';
+import Analytics from './pages/Analytics';
 import Orders from './pages/Orders';
 import Inventory from './pages/Inventory';
 import WarehouseOverview from './pages/WarehouseOverview';
@@ -23,6 +24,7 @@ export default function App() {
         <Route index element={<Navigate to="/getting-started" replace />} />
         <Route path="/getting-started" element={<GettingStarted />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/analytics" element={<Analytics />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/warehouse" element={<WarehouseOverview />} />

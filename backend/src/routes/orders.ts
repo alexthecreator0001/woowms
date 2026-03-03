@@ -91,7 +91,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     // Customer stats: aggregate order count + total revenue for this customer
-    let customerStats: { orderCount: number; totalRevenue: number; labels: { label: string; color: string }[] } | undefined;
+    let customerStats: { orderCount: number; totalRevenue: number; labels: { label: string; color: string }[]; manualTags: { label: string; color: string }[] } | undefined;
     if (order.customerEmail) {
       const agg = await prisma.order.aggregate({
         where: { customerEmail: order.customerEmail, store: { tenantId: req.tenantId } },
@@ -118,7 +118,9 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
         }
       }
 
-      customerStats = { orderCount, totalRevenue, labels };
+      // Manual customer tags from tenant settings
+      const manualTags = ((tenant?.settings as any)?.customerTags?.[order.customerEmail!] || []) as { label: string; color: string }[];
+      customerStats = { orderCount, totalRevenue, labels, manualTags };
     }
 
     res.json({ data: { ...order, customerStats } });
@@ -162,6 +164,71 @@ router.patch('/:id/status', async (req: Request, res: Response, next: NextFuncti
     }
 
     res.json({ data: order });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/v1/orders/:id — update order fields (tags, packingNote)
+router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = req.prisma!;
+    let existing = await prisma.order.findFirst({ where: { orderNumber: req.params.id, store: { tenantId: req.tenantId } }, include: { store: true } });
+    if (!existing && /^\d+$/.test(req.params.id)) {
+      existing = await prisma.order.findUnique({ where: { id: parseInt(req.params.id) }, include: { store: true } });
+    }
+    if (!existing || existing.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Order not found', code: 'NOT_FOUND' });
+    }
+
+    const { tags, packingNote } = req.body as { tags?: unknown; packingNote?: string | null };
+    const data: Record<string, unknown> = {};
+    if (tags !== undefined) data.tags = tags;
+    if (packingNote !== undefined) data.packingNote = packingNote;
+
+    const order = await prisma.order.update({
+      where: { id: existing.id },
+      data,
+    });
+
+    res.json({ data: order });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/v1/orders/:id/customer-tags — update manual customer tags in tenant settings
+router.put('/:id/customer-tags', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = req.prisma!;
+    let order = await prisma.order.findFirst({ where: { orderNumber: req.params.id, store: { tenantId: req.tenantId } }, include: { store: true } });
+    if (!order && /^\d+$/.test(req.params.id)) {
+      order = await prisma.order.findUnique({ where: { id: parseInt(req.params.id) }, include: { store: true } });
+    }
+    if (!order || order.store.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'Order not found', code: 'NOT_FOUND' });
+    }
+    if (!order.customerEmail) {
+      return res.status(400).json({ error: true, message: 'Order has no customer email', code: 'VALIDATION_ERROR' });
+    }
+
+    const { tags } = req.body as { tags: { label: string; color: string }[] };
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId }, select: { settings: true } });
+    const settings = ((tenant?.settings as Record<string, any>) || {});
+    const customerTags = settings.customerTags || {};
+
+    if (tags && tags.length > 0) {
+      customerTags[order.customerEmail] = tags;
+    } else {
+      delete customerTags[order.customerEmail];
+    }
+
+    await prisma.tenant.update({
+      where: { id: req.tenantId },
+      data: { settings: { ...settings, customerTags } },
+    });
+
+    res.json({ data: { tags: tags || [] } });
   } catch (err) {
     next(err);
   }

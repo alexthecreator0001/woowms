@@ -13,9 +13,11 @@ import {
   Envelope,
   Phone,
   GlobeSimple,
+  Cube,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
+import { proxyUrl } from '../lib/image';
 import Pagination from '../components/Pagination';
 import TableConfigDropdown from '../components/TableConfigDropdown';
 import { useTableConfig } from '../hooks/useTableConfig';
@@ -267,13 +269,30 @@ export default function Suppliers() {
                     </td>
                   )}
                   {isVisible('products') && (
-                    <td className="px-5 py-3.5 text-center">
-                      <span className={cn(
-                        'text-sm font-semibold tabular-nums',
-                        (s._count?.supplierProducts ?? 0) > 0 ? 'text-foreground' : 'text-muted-foreground/40'
-                      )}>
-                        {s._count?.supplierProducts ?? 0}
-                      </span>
+                    <td className="px-5 py-3.5">
+                      {(s as any).supplierProducts?.length > 0 ? (
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex items-center -space-x-1.5">
+                            {(s as any).supplierProducts.slice(0, 3).map((sp: any, idx: number) => {
+                              const src = proxyUrl(sp.product?.imageUrl, 64);
+                              return src ? (
+                                <img key={idx} src={src} alt="" className="h-7 w-7 rounded-md border-2 border-card object-cover" />
+                              ) : (
+                                <div key={idx} className="flex h-7 w-7 items-center justify-center rounded-md border-2 border-card bg-muted/50">
+                                  <Cube size={12} className="text-muted-foreground/30" />
+                                </div>
+                              );
+                            })}
+                            {(s._count?.supplierProducts ?? 0) > 3 && (
+                              <div className="flex h-7 w-7 items-center justify-center rounded-md border-2 border-card bg-muted text-[10px] font-bold text-muted-foreground">
+                                +{(s._count?.supplierProducts ?? 0) - 3}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground/40">&mdash;</span>
+                      )}
                     </td>
                   )}
                   {isVisible('pos') && (

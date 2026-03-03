@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import {
   SquaresFour,
+  ChartLineUp,
   ShoppingBag,
   Cube,
   Buildings,
@@ -41,6 +42,7 @@ const navSections: NavSection[] = [
     label: 'Overview',
     items: [
       { path: '/', label: 'Dashboard', icon: SquaresFour },
+      { path: '/analytics', label: 'Analytics', icon: ChartLineUp },
       { path: '/orders', label: 'Orders', icon: ShoppingBag },
     ],
   },

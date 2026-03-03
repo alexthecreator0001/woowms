@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -21,9 +21,13 @@ import {
   Mail,
   Phone,
   CircleDot,
+  Plus,
+  X,
+  Tag,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { proxyUrl } from '../lib/image';
+import { fmtMoney } from '../lib/currency';
 import { getStatusStyle, fetchAllStatuses, type StatusDef } from '../lib/statuses';
 import api from '../services/api';
 import type { OrderDetail as OrderDetailType, WooAddress, Shipment } from '../types';
@@ -113,6 +117,76 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+/* ─── Tag Colors & Popover ────────────────────────────── */
+
+const TAG_COLORS = [
+  { name: 'blue', bg: 'bg-blue-500/10', text: 'text-blue-600', dot: 'bg-blue-500' },
+  { name: 'emerald', bg: 'bg-emerald-500/10', text: 'text-emerald-600', dot: 'bg-emerald-500' },
+  { name: 'amber', bg: 'bg-amber-500/10', text: 'text-amber-600', dot: 'bg-amber-500' },
+  { name: 'violet', bg: 'bg-violet-500/10', text: 'text-violet-600', dot: 'bg-violet-500' },
+  { name: 'rose', bg: 'bg-rose-500/10', text: 'text-rose-600', dot: 'bg-rose-500' },
+  { name: 'orange', bg: 'bg-orange-500/10', text: 'text-orange-600', dot: 'bg-orange-500' },
+  { name: 'cyan', bg: 'bg-cyan-500/10', text: 'text-cyan-600', dot: 'bg-cyan-500' },
+  { name: 'fuchsia', bg: 'bg-fuchsia-500/10', text: 'text-fuchsia-600', dot: 'bg-fuchsia-500' },
+];
+
+const TAG_COLOR_MAP: Record<string, { bg: string; text: string }> = Object.fromEntries(
+  TAG_COLORS.map((c) => [c.name, { bg: c.bg, text: c.text }])
+);
+
+function TagPopover({ onAdd, onClose }: { onAdd: (tag: { label: string; color: string }) => void; onClose: () => void }) {
+  const [label, setLabel] = useState('');
+  const [color, setColor] = useState('blue');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  const submit = () => {
+    if (!label.trim()) return;
+    onAdd({ label: label.trim(), color });
+    onClose();
+  };
+
+  return (
+    <div ref={ref} className="absolute top-full left-0 mt-1 z-50 w-56 rounded-xl border border-border/60 bg-card p-3 shadow-lg">
+      <input
+        autoFocus
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && submit()}
+        placeholder="Tag label..."
+        className="w-full rounded-lg border border-border/60 bg-background px-3 py-1.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+      />
+      <div className="mt-2 flex items-center gap-1.5">
+        {TAG_COLORS.map((c) => (
+          <button
+            key={c.name}
+            onClick={() => setColor(c.name)}
+            className={cn(
+              'h-5 w-5 rounded-full transition-all',
+              c.dot,
+              color === c.name ? 'ring-2 ring-offset-2 ring-primary' : 'ring-1 ring-transparent hover:ring-border'
+            )}
+          />
+        ))}
+      </div>
+      <button
+        onClick={submit}
+        disabled={!label.trim()}
+        className="mt-2 w-full rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+      >
+        Add Tag
+      </button>
+    </div>
+  );
+}
+
 /* ─── Main Component ─────────────────────────────────── */
 
 export default function OrderDetail() {
@@ -122,6 +196,11 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [allStatuses, setAllStatuses] = useState<StatusDef[]>([]);
+  const [orderTags, setOrderTags] = useState<{ label: string; color: string }[]>([]);
+  const [customerManualTags, setCustomerManualTags] = useState<{ label: string; color: string }[]>([]);
+  const [packingNote, setPackingNote] = useState('');
+  const [tagPopover, setTagPopover] = useState<'order' | 'customer' | null>(null);
+  const [noteSaved, setNoteSaved] = useState(false);
 
   useEffect(() => {
     fetchAllStatuses().then(setAllStatuses);
@@ -138,6 +217,55 @@ export default function OrderDetail() {
       })
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Sync state from order data
+  useEffect(() => {
+    if (order) {
+      setOrderTags(order.tags || []);
+      setCustomerManualTags(order.customerStats?.manualTags || []);
+      setPackingNote(order.packingNote || '');
+    }
+  }, [order]);
+
+  // Order tags management
+  const saveOrderTags = useCallback(async (tags: { label: string; color: string }[]) => {
+    if (!order) return;
+    setOrderTags(tags);
+    try { await api.patch(`/orders/${order.orderNumber}`, { tags }); } catch (err) { console.error('Failed to save order tags:', err); }
+  }, [order]);
+
+  const addOrderTag = useCallback((tag: { label: string; color: string }) => {
+    saveOrderTags([...orderTags, tag]);
+  }, [orderTags, saveOrderTags]);
+
+  const removeOrderTag = useCallback((idx: number) => {
+    saveOrderTags(orderTags.filter((_, i) => i !== idx));
+  }, [orderTags, saveOrderTags]);
+
+  // Customer manual tags management
+  const saveCustomerTags = useCallback(async (tags: { label: string; color: string }[]) => {
+    if (!order) return;
+    setCustomerManualTags(tags);
+    try { await api.put(`/orders/${order.orderNumber}/customer-tags`, { tags }); } catch (err) { console.error('Failed to save customer tags:', err); }
+  }, [order]);
+
+  const addCustomerTag = useCallback((tag: { label: string; color: string }) => {
+    saveCustomerTags([...customerManualTags, tag]);
+  }, [customerManualTags, saveCustomerTags]);
+
+  const removeCustomerTag = useCallback((idx: number) => {
+    saveCustomerTags(customerManualTags.filter((_, i) => i !== idx));
+  }, [customerManualTags, saveCustomerTags]);
+
+  // Packing note — save on blur
+  const savePackingNote = useCallback(async () => {
+    if (!order) return;
+    try {
+      await api.patch(`/orders/${order.orderNumber}`, { packingNote: packingNote || null });
+      setNoteSaved(true);
+      setTimeout(() => setNoteSaved(false), 2000);
+    } catch (err) { console.error('Failed to save packing note:', err); }
+  }, [order, packingNote]);
 
   const updateStatus = useCallback(async (newStatus: string) => {
     if (!order) return;
@@ -223,6 +351,37 @@ export default function OrderDetail() {
                     {order.shippingMethodTitle}
                   </span>
                 )}
+                {/* Order Tags */}
+                {orderTags.map((tag, i) => {
+                  const cs = TAG_COLOR_MAP[tag.color] || TAG_COLOR_MAP.blue;
+                  return (
+                    <span
+                      key={i}
+                      className={cn('group inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold', cs.bg, cs.text)}
+                    >
+                      <Tag className="h-3 w-3" />
+                      {tag.label}
+                      <button
+                        onClick={() => removeOrderTag(i)}
+                        className="ml-0.5 hidden rounded-full p-0.5 transition-colors hover:bg-black/10 group-hover:inline-flex"
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </span>
+                  );
+                })}
+                <div className="relative">
+                  <button
+                    onClick={() => setTagPopover(tagPopover === 'order' ? null : 'order')}
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                    title="Add tag"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                  {tagPopover === 'order' && (
+                    <TagPopover onAdd={addOrderTag} onClose={() => setTagPopover(null)} />
+                  )}
+                </div>
               </div>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {order.store?.name && <>{order.store.name} &middot; </>}
@@ -325,9 +484,9 @@ export default function OrderDetail() {
 
                     {/* Qty x Price */}
                     <div className="flex-shrink-0 text-right">
-                      <p className="text-sm font-semibold">{order.currency} {lineTotal.toFixed(2)}</p>
+                      <p className="text-sm font-semibold">{fmtMoney(lineTotal, order.currency)}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {item.quantity} &times; {order.currency} {parseFloat(item.price).toFixed(2)}
+                        {item.quantity} &times; {fmtMoney(item.price, order.currency)}
                       </p>
                     </div>
                   </div>
@@ -346,7 +505,7 @@ export default function OrderDetail() {
                 <span className="text-sm text-muted-foreground">
                   {order.items.reduce((s, i) => s + i.quantity, 0)} items total
                 </span>
-                <span className="text-sm font-bold">{order.currency} {subtotal.toFixed(2)}</span>
+                <span className="text-sm font-bold">{fmtMoney(subtotal, order.currency)}</span>
               </div>
             )}
           </div>
@@ -445,13 +604,40 @@ export default function OrderDetail() {
             )}
           </div>
 
+          {/* ── Packing Note Card ────────────────────────── */}
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/[0.03] shadow-sm">
+            <div className="border-b border-amber-500/20 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h3 className="flex items-center gap-2 text-sm font-semibold">
+                  <StickyNote className="h-4 w-4 text-amber-600" />
+                  Packing Note
+                </h3>
+                {noteSaved && (
+                  <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-600">
+                    <Check className="h-3 w-3" /> Saved
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="px-6 py-4">
+              <textarea
+                value={packingNote}
+                onChange={(e) => setPackingNote(e.target.value)}
+                onBlur={savePackingNote}
+                placeholder="Add a note for packing / picking..."
+                rows={3}
+                className="w-full resize-none rounded-lg border border-border/60 bg-background px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+          </div>
+
           {/* ── Notes Card ──────────────────────────────── */}
           {order.notes && (
             <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
               <div className="border-b border-border/50 px-6 py-4">
                 <h3 className="flex items-center gap-2 text-sm font-semibold">
                   <StickyNote className="h-4 w-4 text-muted-foreground" />
-                  Notes
+                  Customer Notes
                 </h3>
               </div>
               <div className="px-6 py-4">
@@ -509,30 +695,17 @@ export default function OrderDetail() {
                       {order.customerStats.orderCount} {order.customerStats.orderCount === 1 ? 'order' : 'orders'}
                     </span>
                     <span className="text-[11px] font-medium text-muted-foreground tabular-nums">
-                      {order.currency} {order.customerStats.totalRevenue.toFixed(2)} lifetime
+                      {fmtMoney(order.customerStats.totalRevenue, order.currency)} lifetime
                     </span>
                   </div>
                   {order.customerStats.labels.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {order.customerStats.labels.map((tag, i) => {
-                        const colorMap: Record<string, { bg: string; text: string }> = {
-                          amber:   { bg: 'bg-amber-500/10',   text: 'text-amber-600' },
-                          emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-600' },
-                          violet:  { bg: 'bg-violet-500/10',  text: 'text-violet-600' },
-                          blue:    { bg: 'bg-blue-500/10',    text: 'text-blue-600' },
-                          rose:    { bg: 'bg-rose-500/10',    text: 'text-rose-600' },
-                          orange:  { bg: 'bg-orange-500/10',  text: 'text-orange-600' },
-                          cyan:    { bg: 'bg-cyan-500/10',    text: 'text-cyan-600' },
-                          fuchsia: { bg: 'bg-fuchsia-500/10', text: 'text-fuchsia-600' },
-                        };
-                        const cs = colorMap[tag.color] || colorMap.blue;
+                        const cs = TAG_COLOR_MAP[tag.color] || TAG_COLOR_MAP.blue;
                         return (
                           <span
-                            key={i}
-                            className={cn(
-                              'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
-                              cs.bg, cs.text
-                            )}
+                            key={`auto-${i}`}
+                            className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold', cs.bg, cs.text)}
                           >
                             {tag.label}
                           </span>
@@ -540,6 +713,38 @@ export default function OrderDetail() {
                       })}
                     </div>
                   )}
+                  {/* Manual customer tags */}
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {customerManualTags.map((tag, i) => {
+                      const cs = TAG_COLOR_MAP[tag.color] || TAG_COLOR_MAP.blue;
+                      return (
+                        <span
+                          key={`manual-${i}`}
+                          className={cn('group inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold', cs.bg, cs.text)}
+                        >
+                          {tag.label}
+                          <button
+                            onClick={() => removeCustomerTag(i)}
+                            className="ml-0.5 hidden rounded-full p-0.5 transition-colors hover:bg-black/10 group-hover:inline-flex"
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                    <div className="relative">
+                      <button
+                        onClick={() => setTagPopover(tagPopover === 'customer' ? null : 'customer')}
+                        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                        title="Add customer tag"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                      {tagPopover === 'customer' && (
+                        <TagPopover onAdd={addCustomerTag} onClose={() => setTagPopover(null)} />
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -688,7 +893,7 @@ export default function OrderDetail() {
               )}
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal ({order.items?.length || 0} items)</span>
-                <span className="font-medium">{order.currency} {subtotal.toFixed(2)}</span>
+                <span className="font-medium">{fmtMoney(subtotal, order.currency)}</span>
               </div>
               <div className="border-t border-border/40" />
               <div className="flex items-center justify-between">
@@ -704,7 +909,7 @@ export default function OrderDetail() {
                     </span>
                   )}
                 </div>
-                <span className="text-lg font-bold">{order.currency} {parseFloat(order.total).toFixed(2)}</span>
+                <span className="text-lg font-bold">{fmtMoney(order.total, order.currency)}</span>
               </div>
             </div>
           </div>

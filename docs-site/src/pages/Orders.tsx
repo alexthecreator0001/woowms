@@ -124,6 +124,30 @@ export default function Orders() {
         You can change the order status directly from the detail page using the status dropdown.
       </p>
 
+      <h3>Order Tags</h3>
+      <p>
+        Add colored tags to any order using the <strong>+</strong> button in the
+        header row (next to the status badge). Tags are useful for flagging
+        orders that need special attention. Each tag has a label and a color.
+        Remove a tag by hovering and clicking the <strong>&times;</strong> icon.
+      </p>
+
+      <h3>Customer Tags</h3>
+      <p>
+        In the Customer card, you can add manual tags to the customer (by email).
+        These tags persist across all orders from the same customer. They appear
+        alongside the auto-generated tags from Rules.
+      </p>
+
+      <h3>Packing Note</h3>
+      <p>
+        The amber-tinted <strong>Packing Note</strong> card in the left column
+        lets warehouse staff write internal notes about how to pack the order
+        (e.g. &ldquo;Wrap items individually&rdquo;). The note auto-saves when
+        you click away (on blur). This is separate from the customer-facing
+        order notes synced from WooCommerce.
+      </p>
+
       <h2>Order Rules</h2>
       <p>
         Admins can define automation rules in Settings &rarr; Rules. Rules automate actions when
@@ -153,12 +177,6 @@ export default function Orders() {
         </li>
       </ul>
 
-      <h2>Column Customization</h2>
-      <p>
-        Click the <strong>Columns</strong> button above the orders table to toggle which columns
-        are visible. Your preferences are saved to your account and persist across sessions.
-        A minimum of 2 columns is enforced.
-      </p>
     </article>
   );
 }

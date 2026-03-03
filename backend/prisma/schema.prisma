@@ -109,6 +109,8 @@ model Order {
   total           Decimal      @db.Decimal(10, 2)
   currency        String       @default("USD")
   notes           String?
+  tags            Json?        @default("[]")
+  packingNote     String?      @map("packing_note")
   priority        Int          @default(0)
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")

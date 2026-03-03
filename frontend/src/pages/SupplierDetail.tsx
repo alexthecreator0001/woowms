@@ -275,7 +275,7 @@ export default function SupplierDetail() {
                               <div>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); sp.product && navigate(`/inventory/${sp.product.sku || sp.product.id}`); }}
-                                  className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+                                  className="text-[13px] font-medium text-foreground hover:text-primary transition-colors line-clamp-1 text-left"
                                 >
                                   {sp.product?.name || `Product #${sp.productId}`}
                                 </button>

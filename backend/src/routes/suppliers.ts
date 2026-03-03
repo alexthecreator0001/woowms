@@ -29,6 +29,11 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         where,
         include: {
           _count: { select: { supplierProducts: true, purchaseOrders: true } },
+          supplierProducts: {
+            take: 4,
+            include: { product: { select: { imageUrl: true } } },
+            orderBy: { createdAt: 'desc' },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip,

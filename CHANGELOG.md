@@ -3,6 +3,23 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.41.0 / 2.33.0] - 2026-03-03
+
+### Added
+- **Analytics page** — New `/analytics` route with period selector (7d/30d/90d/1y), four configurable stat cards with sparklines (Total Sales, Total Orders, Avg Order Value, Items Sold), SVG area chart for sales over time, dark-themed SVG world map with animated dots for order geography, and Top Countries sidebar with flags and proportional bars. Cards can be customized via the "Customize" button.
+- **Order tags** — Add colored tags to orders from the order detail header. Tags are stored per order and help warehouse staff flag orders for special attention.
+- **Customer manual tags** — Add manual colored tags to customers (by email) from the order detail Customer card. Tags persist across all orders from the same customer, alongside auto-generated rule tags.
+- **Packing note** — Amber-tinted editable text area on order detail for warehouse packing/picking instructions. Auto-saves on blur. Separate from WooCommerce order notes.
+- **Currency symbols** — All monetary values now display with proper currency symbols (€, $, £, Kč, etc.) instead of raw codes (EUR, USD). Supports postfix currencies (e.g. "123.45 Kč").
+
+### Changed
+- **Suppliers list product images** — Products column now shows thumbnail images (up to 3 with +N overflow) instead of a plain count.
+- **Supplier detail name truncation** — Long product names in supplier detail tables are now truncated to one line with smaller font.
+- **Notes card renamed** — Order detail "Notes" card renamed to "Customer Notes" to distinguish from the new Packing Note.
+
+### Fixed
+- Removed duplicate "Column Customization" section from Orders documentation.
+
 ## [3.40.0 / 2.32.0] - 2026-03-03
 
 ### Added

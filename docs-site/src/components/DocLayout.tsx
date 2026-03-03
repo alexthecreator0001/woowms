@@ -7,6 +7,7 @@ const NAV_SECTIONS = [
     items: [
       { to: '/getting-started', label: 'Setup & Connect' },
       { to: '/dashboard', label: 'Dashboard' },
+      { to: '/analytics', label: 'Analytics' },
     ],
   },
   {

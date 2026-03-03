@@ -18,6 +18,7 @@ import {
   Info,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
+import { fmtMoney } from '../lib/currency';
 import { proxyUrl } from '../lib/image';
 import api from '../services/api';
 import Pagination from '../components/Pagination';
@@ -450,7 +451,7 @@ export default function Inventory() {
                     {/* Price */}
                     {isVisible('price') && (
                       <td className="px-4 py-2.5 text-right">
-                        <span className="text-sm tabular-nums font-medium">{product.currency} {parseFloat(product.price).toFixed(2)}</span>
+                        <span className="text-sm tabular-nums font-medium">{fmtMoney(product.price, product.currency)}</span>
                       </td>
                     )}
 

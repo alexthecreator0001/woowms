@@ -262,12 +262,15 @@ export interface OrderDetail extends Order {
   billingAddress?: WooAddress;
   notes?: string | null;
   priority?: number;
+  tags?: { label: string; color: string }[];
+  packingNote?: string | null;
   shipments?: Shipment[];
   pickLists?: PickList[];
   customerStats?: {
     orderCount: number;
     totalRevenue: number;
     labels: { label: string; color: string }[];
+    manualTags: { label: string; color: string }[];
   };
 }
 

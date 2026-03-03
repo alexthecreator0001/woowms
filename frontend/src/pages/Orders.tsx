@@ -14,6 +14,7 @@ import {
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import { proxyUrl } from '../lib/image';
+import { fmtMoney } from '../lib/currency';
 import { getStatusStyle, fetchAllStatuses, type StatusDef } from '../lib/statuses';
 import api from '../services/api';
 import Pagination from '../components/Pagination';
@@ -233,7 +234,7 @@ export default function Orders() {
                       )}
                     </td>
                   )}
-                  {isVisible('total') && <td className="px-5 py-3.5 text-sm font-medium">{order.currency} {order.total}</td>}
+                  {isVisible('total') && <td className="px-5 py-3.5 text-sm font-medium">{fmtMoney(order.total, order.currency)}</td>}
                   {isVisible('date') && (
                     <td className="px-5 py-3.5 text-sm text-muted-foreground">
                       {new Date(order.wooCreatedAt).toLocaleDateString()}
