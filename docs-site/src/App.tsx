@@ -4,7 +4,11 @@ import GettingStarted from './pages/GettingStarted';
 import Dashboard from './pages/Dashboard';
 import Orders from './pages/Orders';
 import Inventory from './pages/Inventory';
-import Warehouse from './pages/Warehouse';
+import WarehouseOverview from './pages/WarehouseOverview';
+import WarehouseZones from './pages/WarehouseZones';
+import WarehouseFloorPlan from './pages/WarehouseFloorPlan';
+import WarehouseBins from './pages/WarehouseBins';
+import WarehouseLabels from './pages/WarehouseLabels';
 import Picking from './pages/Picking';
 import Shipping from './pages/Shipping';
 import Receiving from './pages/Receiving';
@@ -21,7 +25,11 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/inventory" element={<Inventory />} />
-        <Route path="/warehouse" element={<Warehouse />} />
+        <Route path="/warehouse" element={<WarehouseOverview />} />
+        <Route path="/warehouse/zones" element={<WarehouseZones />} />
+        <Route path="/warehouse/floor-plan" element={<WarehouseFloorPlan />} />
+        <Route path="/warehouse/bins" element={<WarehouseBins />} />
+        <Route path="/warehouse/labels" element={<WarehouseLabels />} />
         <Route path="/picking" element={<Picking />} />
         <Route path="/shipping" element={<Shipping />} />
         <Route path="/receiving" element={<Receiving />} />

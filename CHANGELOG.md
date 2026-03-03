@@ -10,7 +10,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - **Docs site is the single help source** — removed the in-app `/docs` Help Center page. All help links (sidebar "Help", dashboard "Documentation") now point to https://docs.picknpack.io
-- **Docs site design improvements** — fixed oversized logo on mobile (now compact icon mark on small screens, full wordmark on desktop), added footer, improved mobile text sizes and responsive padding
+- **Docs site logo fixed** — header and footer now use the correct PickNPack LogoMark (the "pQ" icon with proper viewBox), matching the app's favicon and sidebar icon
+- **Warehouse docs split into 5 pages** — the massive single Warehouse page is now organized into subcategories: Overview, Zones & Racks, Floor Plan, Bins & Stock, and Labels. Sidebar shows "Warehouse" as its own section with sub-links
+- **Docs site design improvements** — added footer, improved mobile text sizes and responsive padding
 - **CLAUDE.md updated** — docs-site update is now a numbered mandatory rule (rule #5) alongside changelog and version bump
 
 ## [3.33.0 / 2.28.0] - 2026-03-03
