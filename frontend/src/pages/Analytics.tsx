@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   ChartLineUp,
   CurrencyDollar,
@@ -15,6 +15,7 @@ import {
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import { fmtMoney } from '../lib/currency';
+import { WorldMap } from '../components/ui/world-map';
 import api from '../services/api';
 
 /* ─── Types ──────────────────────────────────────────── */
@@ -60,48 +61,32 @@ const ICON_COLORS: Record<string, { bg: string; text: string; spark: string }> =
   amber:   { bg: 'bg-amber-500/10', text: 'text-amber-600', spark: '#f59e0b' },
 };
 
-// ~80 reference dots forming a recognizable world map
-const COUNTRY_POINTS: { code: string; lat: number; lng: number }[] = [
-  // North America
-  { code: 'CA', lat: 62, lng: -110 }, { code: 'CA', lat: 53, lng: -80 },
-  { code: 'US', lat: 47, lng: -120 }, { code: 'US', lat: 39, lng: -105 }, { code: 'US', lat: 38, lng: -85 }, { code: 'US', lat: 33, lng: -112 }, { code: 'US', lat: 30, lng: -95 }, { code: 'US', lat: 40, lng: -74 },
-  { code: 'MX', lat: 23, lng: -102 }, { code: 'MX', lat: 19, lng: -99 },
-  { code: 'GT', lat: 14, lng: -90 }, { code: 'CR', lat: 10, lng: -84 }, { code: 'CU', lat: 22, lng: -79 },
-  { code: 'GL', lat: 72, lng: -42 },
-  // South America
-  { code: 'CO', lat: 4, lng: -74 }, { code: 'VE', lat: 6, lng: -66 },
-  { code: 'BR', lat: -3, lng: -60 }, { code: 'BR', lat: -15, lng: -47 }, { code: 'BR', lat: -23, lng: -43 },
-  { code: 'PE', lat: -12, lng: -77 }, { code: 'CL', lat: -33, lng: -71 }, { code: 'AR', lat: -34, lng: -58 }, { code: 'AR', lat: -43, lng: -65 },
-  // Europe
-  { code: 'IS', lat: 65, lng: -19 }, { code: 'IE', lat: 53, lng: -8 }, { code: 'GB', lat: 54, lng: -2 },
-  { code: 'PT', lat: 39, lng: -8 }, { code: 'ES', lat: 40, lng: -4 }, { code: 'FR', lat: 46, lng: 2 },
-  { code: 'BE', lat: 51, lng: 4 }, { code: 'NL', lat: 52, lng: 5 }, { code: 'DE', lat: 51, lng: 10 },
-  { code: 'CH', lat: 47, lng: 8 }, { code: 'AT', lat: 47, lng: 14 }, { code: 'IT', lat: 42, lng: 12 },
-  { code: 'CZ', lat: 50, lng: 15 }, { code: 'SK', lat: 48, lng: 19 }, { code: 'PL', lat: 52, lng: 20 },
-  { code: 'HU', lat: 47, lng: 19 }, { code: 'RO', lat: 46, lng: 25 }, { code: 'BG', lat: 42, lng: 25 },
-  { code: 'HR', lat: 45, lng: 16 }, { code: 'RS', lat: 44, lng: 21 }, { code: 'GR', lat: 39, lng: 22 },
-  { code: 'NO', lat: 60, lng: 8 }, { code: 'SE', lat: 60, lng: 18 }, { code: 'FI', lat: 61, lng: 26 },
-  { code: 'DK', lat: 56, lng: 10 }, { code: 'EE', lat: 59, lng: 25 }, { code: 'LV', lat: 57, lng: 25 },
-  { code: 'LT', lat: 55, lng: 24 }, { code: 'UA', lat: 49, lng: 32 },
-  // Russia / CIS
-  { code: 'RU', lat: 56, lng: 38 }, { code: 'RU', lat: 55, lng: 73 }, { code: 'RU', lat: 56, lng: 105 }, { code: 'RU', lat: 62, lng: 134 },
-  { code: 'KZ', lat: 48, lng: 68 },
-  // Middle East
-  { code: 'TR', lat: 39, lng: 35 }, { code: 'IL', lat: 31, lng: 35 }, { code: 'SA', lat: 24, lng: 45 }, { code: 'AE', lat: 24, lng: 54 }, { code: 'IQ', lat: 33, lng: 44 },
-  // Africa
-  { code: 'MA', lat: 32, lng: -5 }, { code: 'DZ', lat: 28, lng: 2 }, { code: 'EG', lat: 27, lng: 30 },
-  { code: 'NG', lat: 10, lng: 8 }, { code: 'KE', lat: -1, lng: 38 }, { code: 'TZ', lat: -6, lng: 35 },
-  { code: 'ZA', lat: -29, lng: 24 }, { code: 'CD', lat: -3, lng: 24 },
-  // Asia
-  { code: 'PK', lat: 30, lng: 69 }, { code: 'IN', lat: 20, lng: 78 }, { code: 'IN', lat: 28, lng: 77 },
-  { code: 'BD', lat: 24, lng: 90 }, { code: 'TH', lat: 15, lng: 101 }, { code: 'VN', lat: 16, lng: 108 },
-  { code: 'MY', lat: 4, lng: 102 }, { code: 'SG', lat: 1, lng: 104 }, { code: 'PH', lat: 13, lng: 122 },
-  { code: 'ID', lat: -2, lng: 118 }, { code: 'CN', lat: 35, lng: 105 }, { code: 'CN', lat: 31, lng: 121 },
-  { code: 'KR', lat: 36, lng: 128 }, { code: 'JP', lat: 36, lng: 140 }, { code: 'TW', lat: 24, lng: 121 },
-  { code: 'MN', lat: 48, lng: 107 },
-  // Oceania
-  { code: 'AU', lat: -25, lng: 134 }, { code: 'AU', lat: -33, lng: 151 }, { code: 'NZ', lat: -41, lng: 174 },
-];
+// Warehouse origin for map lines (default: Prague, CZ)
+const WAREHOUSE_ORIGIN = { lat: 50.08, lng: 14.44 };
+
+// Country centroids for map dot destinations
+const COUNTRY_CENTROIDS: Record<string, { lat: number; lng: number }> = {
+  US: { lat: 38, lng: -97 }, CA: { lat: 56, lng: -96 }, MX: { lat: 23, lng: -102 },
+  BR: { lat: -14, lng: -51 }, AR: { lat: -34, lng: -58 }, CL: { lat: -33, lng: -71 },
+  CO: { lat: 4, lng: -74 }, PE: { lat: -12, lng: -77 }, VE: { lat: 6, lng: -66 },
+  GB: { lat: 54, lng: -2 }, IE: { lat: 53, lng: -8 }, FR: { lat: 46, lng: 2 },
+  DE: { lat: 51, lng: 10 }, IT: { lat: 42, lng: 12 }, ES: { lat: 40, lng: -4 },
+  PT: { lat: 39, lng: -8 }, NL: { lat: 52, lng: 5 }, BE: { lat: 51, lng: 4 },
+  CH: { lat: 47, lng: 8 }, AT: { lat: 47, lng: 14 }, PL: { lat: 52, lng: 20 },
+  CZ: { lat: 50, lng: 15 }, SK: { lat: 48, lng: 19 }, HU: { lat: 47, lng: 19 },
+  RO: { lat: 46, lng: 25 }, BG: { lat: 42, lng: 25 }, HR: { lat: 45, lng: 16 },
+  RS: { lat: 44, lng: 21 }, GR: { lat: 39, lng: 22 }, SE: { lat: 60, lng: 18 },
+  NO: { lat: 60, lng: 8 }, DK: { lat: 56, lng: 10 }, FI: { lat: 61, lng: 26 },
+  EE: { lat: 59, lng: 25 }, LV: { lat: 57, lng: 25 }, LT: { lat: 55, lng: 24 },
+  UA: { lat: 49, lng: 32 }, RU: { lat: 56, lng: 38 }, TR: { lat: 39, lng: 35 },
+  IL: { lat: 31, lng: 35 }, SA: { lat: 24, lng: 45 }, AE: { lat: 24, lng: 54 },
+  EG: { lat: 27, lng: 30 }, MA: { lat: 32, lng: -5 }, NG: { lat: 10, lng: 8 },
+  KE: { lat: -1, lng: 38 }, ZA: { lat: -29, lng: 24 }, IN: { lat: 20, lng: 78 },
+  CN: { lat: 35, lng: 105 }, JP: { lat: 36, lng: 140 }, KR: { lat: 36, lng: 128 },
+  TH: { lat: 15, lng: 101 }, VN: { lat: 16, lng: 108 }, SG: { lat: 1, lng: 104 },
+  MY: { lat: 4, lng: 102 }, PH: { lat: 13, lng: 122 }, ID: { lat: -2, lng: 118 },
+  AU: { lat: -25, lng: 134 }, NZ: { lat: -41, lng: 174 },
+};
 
 const COUNTRY_NAMES: Record<string, string> = {
   US: 'United States', CA: 'Canada', MX: 'Mexico', BR: 'Brazil', AR: 'Argentina',
@@ -115,33 +100,53 @@ const COUNTRY_NAMES: Record<string, string> = {
   RU: 'Russia', KZ: 'Kazakhstan', TR: 'Turkey', IL: 'Israel',
   SA: 'Saudi Arabia', AE: 'UAE', IQ: 'Iraq',
   EG: 'Egypt', MA: 'Morocco', DZ: 'Algeria', NG: 'Nigeria',
-  KE: 'Kenya', TZ: 'Tanzania', ZA: 'South Africa', CD: 'DR Congo',
+  KE: 'Kenya', TZ: 'Tanzania', ZA: 'South Africa',
   IN: 'India', PK: 'Pakistan', BD: 'Bangladesh', CN: 'China',
   JP: 'Japan', KR: 'South Korea', TW: 'Taiwan',
   TH: 'Thailand', VN: 'Vietnam', MY: 'Malaysia', SG: 'Singapore',
-  PH: 'Philippines', ID: 'Indonesia', MN: 'Mongolia',
-  AU: 'Australia', NZ: 'New Zealand',
-  GT: 'Guatemala', CR: 'Costa Rica', CU: 'Cuba', PA: 'Panama',
-  GL: 'Greenland', JM: 'Jamaica',
+  PH: 'Philippines', ID: 'Indonesia', AU: 'Australia', NZ: 'New Zealand',
 };
 
 /* ─── Helpers ────────────────────────────────────────── */
 
-function project(lat: number, lng: number): [number, number] {
-  return [10 + ((lng + 180) / 360) * 780, 10 + ((90 - lat) / 180) * 380];
-}
-
 function countryFlag(code: string): string {
-  return code
-    .toUpperCase()
-    .split('')
-    .map((c) => String.fromCodePoint(127397 + c.charCodeAt(0)))
-    .join('');
+  return code.toUpperCase().split('').map((c) => String.fromCodePoint(127397 + c.charCodeAt(0))).join('');
 }
 
 function pctChange(current: number, previous: number): number {
   if (previous === 0) return current > 0 ? 100 : 0;
   return ((current - previous) / previous) * 100;
+}
+
+// Aggregate daily data into weekly or monthly buckets
+function aggregateBars(data: { date: string; total: number; orders: number }[], period: string): { label: string; total: number; orders: number }[] {
+  if (period === '7d' || period === '30d') {
+    return data.map((d) => ({
+      label: new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      total: d.total,
+      orders: d.orders,
+    }));
+  }
+  // 90d → weekly, year → monthly
+  const buckets: Record<string, { total: number; orders: number }> = {};
+  for (const d of data) {
+    const dt = new Date(d.date + 'T00:00:00');
+    const key = period === 'year'
+      ? dt.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+      : `W${getISOWeek(dt)}`;
+    if (!buckets[key]) buckets[key] = { total: 0, orders: 0 };
+    buckets[key].total += d.total;
+    buckets[key].orders += d.orders;
+  }
+  return Object.entries(buckets).map(([label, v]) => ({ label, ...v }));
+}
+
+function getISOWeek(d: Date): number {
+  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = dt.getUTCDay() || 7;
+  dt.setUTCDate(dt.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1));
+  return Math.ceil((((dt.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }
 
 /* ─── Sparkline ──────────────────────────────────────── */
@@ -171,56 +176,63 @@ function Sparkline({ data, color = '#6366f1' }: { data: number[]; color?: string
   );
 }
 
-/* ─── Sales Chart ────────────────────────────────────── */
+/* ─── Bar Chart (Shopify-style) ──────────────────────── */
 
-function SalesChart({ data, currency }: { data: { date: string; total: number; orders: number }[]; currency: string }) {
-  if (!data.length) return null;
+function BarChart({ bars }: { bars: { label: string; total: number; orders: number }[] }) {
+  if (!bars.length) return null;
 
   const W = 800;
   const H = 280;
-  const pad = { t: 20, r: 16, b: 36, l: 56 };
+  const pad = { t: 16, r: 16, b: 40, l: 52 };
   const cw = W - pad.l - pad.r;
   const ch = H - pad.t - pad.b;
 
-  const maxVal = Math.max(...data.map((d) => d.total), 1);
-
-  const points = data.map((d, i) => ({
-    x: pad.l + (i / Math.max(data.length - 1, 1)) * cw,
-    y: pad.t + ch - (d.total / maxVal) * ch,
-  }));
-
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-  const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${(pad.t + ch).toFixed(1)} L ${points[0].x.toFixed(1)} ${(pad.t + ch).toFixed(1)} Z`;
+  const maxVal = Math.max(...bars.map((b) => b.total), 1);
+  const gap = cw / bars.length;
+  const barW = Math.max(Math.min(gap * 0.65, 28), 3);
 
   // Y-axis ticks
   const yTicks = [0, 0.25, 0.5, 0.75, 1];
-  // X-axis labels — show ~6 evenly spaced
-  const step = Math.max(Math.floor(data.length / 6), 1);
+  // X-axis labels — show ~8 evenly spaced
+  const labelStep = Math.max(Math.ceil(bars.length / 8), 1);
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="xMidYMid meet">
-      <defs>
-        <linearGradient id="chart-area" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#6366f1" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="#6366f1" stopOpacity="0.02" />
-        </linearGradient>
-      </defs>
-
       {/* Grid lines */}
       {yTicks.map((pct) => {
         const y = pad.t + ch * (1 - pct);
-        return <line key={pct} x1={pad.l} y1={y} x2={W - pad.r} y2={y} stroke="#e5e7eb" strokeWidth="0.5" strokeDasharray={pct === 0 ? undefined : '4 4'} />;
+        return (
+          <line
+            key={pct}
+            x1={pad.l}
+            y1={y}
+            x2={W - pad.r}
+            y2={y}
+            stroke="#e5e7eb"
+            strokeWidth="0.5"
+            strokeDasharray={pct === 0 ? undefined : '4 4'}
+          />
+        );
       })}
 
-      {/* Area + Line */}
-      <path d={areaPath} fill="url(#chart-area)" />
-      <path d={linePath} fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-
-      {/* Dots at data points (show for < 60 points) */}
-      {data.length <= 60 &&
-        points.map((p, i) =>
-          data[i].total > 0 ? <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="#6366f1" /> : null
-        )}
+      {/* Bars */}
+      {bars.map((b, i) => {
+        const x = pad.l + i * gap + (gap - barW) / 2;
+        const barH = Math.max((b.total / maxVal) * ch, b.total > 0 ? 2 : 0);
+        const y = pad.t + ch - barH;
+        return (
+          <rect
+            key={i}
+            x={x}
+            y={y}
+            width={barW}
+            height={barH}
+            rx={barW > 6 ? 3 : 1.5}
+            fill="#6366f1"
+            opacity="0.85"
+          />
+        );
+      })}
 
       {/* Y-axis labels */}
       {yTicks.map((pct) => {
@@ -235,54 +247,13 @@ function SalesChart({ data, currency }: { data: { date: string; total: number; o
       })}
 
       {/* X-axis labels */}
-      {data.map((d, i) =>
-        i % step === 0 || i === data.length - 1 ? (
-          <text key={d.date} x={points[i].x} y={H - 8} textAnchor="middle" fontSize="10" fill="#9ca3af">
-            {new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-          </text>
-        ) : null
-      )}
-    </svg>
-  );
-}
-
-/* ─── World Map ──────────────────────────────────────── */
-
-function WorldMap({ ordersByCountry }: { ordersByCountry: { country: string; count: number; total: number }[] }) {
-  const countryMap = new Map(ordersByCountry.map((c) => [c.country, c]));
-  const maxCount = Math.max(...ordersByCountry.map((c) => c.count), 1);
-
-  return (
-    <svg viewBox="0 0 800 400" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-      {/* Background grid dots for visual texture */}
-      {Array.from({ length: 40 }, (_, row) =>
-        Array.from({ length: 80 }, (_, col) => (
-          <circle key={`g${row}-${col}`} cx={col * 10 + 5} cy={row * 10 + 5} r="0.5" fill="#334155" opacity="0.3" />
-        ))
-      )}
-
-      {/* Country reference dots */}
-      {COUNTRY_POINTS.map((pt, i) => {
-        const [x, y] = project(pt.lat, pt.lng);
-        const data = countryMap.get(pt.code);
-        const isActive = !!data;
-        const scale = isActive ? Math.min(3 + (data!.count / maxCount) * 9, 12) : 2;
-        const opacity = isActive ? 0.7 + (data!.count / maxCount) * 0.3 : 0.12;
+      {bars.map((b, i) => {
+        if (i % labelStep !== 0 && i !== bars.length - 1) return null;
+        const x = pad.l + i * gap + gap / 2;
         return (
-          <g key={i}>
-            {isActive && (
-              <circle cx={x} cy={y} r={scale + 4} fill="#818cf8" opacity="0.15">
-                <animate attributeName="r" values={`${scale + 2};${scale + 8};${scale + 2}`} dur="3s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.15;0.05;0.15" dur="3s" repeatCount="indefinite" />
-              </circle>
-            )}
-            <circle cx={x} cy={y} r={scale} fill={isActive ? '#818cf8' : '#475569'} opacity={opacity} />
-            {isActive && data!.count > 2 && (
-              <text x={x} y={y - scale - 4} textAnchor="middle" fontSize="8" fill="#c7d2fe" fontWeight="600">
-                {data!.count}
-              </text>
-            )}
-          </g>
+          <text key={i} x={x} y={H - 8} textAnchor="middle" fontSize="10" fill="#9ca3af">
+            {b.label}
+          </text>
         );
       })}
     </svg>
@@ -317,11 +288,29 @@ export default function Analytics() {
   const toggleCard = (key: string) => {
     setVisibleCards((prev) => {
       const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
-      if (next.length === 0) return prev; // at least 1
+      if (next.length === 0) return prev;
       localStorage.setItem('analyticsCards', JSON.stringify(next));
       return next;
     });
   };
+
+  // Build world-map dots: warehouse → each order country
+  const mapDots = useMemo(() => {
+    if (!data) return [];
+    return data.ordersByCountry
+      .filter((c) => COUNTRY_CENTROIDS[c.country])
+      .slice(0, 12) // limit lines for readability
+      .map((c) => ({
+        start: WAREHOUSE_ORIGIN,
+        end: COUNTRY_CENTROIDS[c.country],
+      }));
+  }, [data]);
+
+  // Aggregate bars for chart
+  const chartBars = useMemo(() => {
+    if (!data) return [];
+    return aggregateBars(data.salesOverTime, period);
+  }, [data, period]);
 
   if (loading && !data) {
     return (
@@ -463,14 +452,14 @@ export default function Analytics() {
         })}
       </div>
 
-      {/* ── Sales Chart ────────────────────────────────── */}
+      {/* ── Sales Bar Chart ────────────────────────────── */}
       <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
         <div className="border-b border-border/50 px-6 py-4">
-          <h3 className="text-sm font-semibold">Sales Over Time</h3>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Sales Over Time</h3>
         </div>
         <div className="p-4">
-          {salesOverTime.length > 1 ? (
-            <SalesChart data={salesOverTime} currency={currency} />
+          {chartBars.length > 1 ? (
+            <BarChart bars={chartBars} />
           ) : (
             <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">No data for this period</div>
           )}
@@ -480,8 +469,8 @@ export default function Analytics() {
       {/* ── Map + Top Countries ────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Map */}
-        <div className="lg:col-span-2 rounded-2xl border border-border/60 bg-slate-900 shadow-sm overflow-hidden">
-          <div className="border-b border-slate-700/50 px-6 py-4 flex items-center justify-between">
+        <div className="lg:col-span-2 rounded-2xl border border-slate-800 bg-slate-950 shadow-sm overflow-hidden">
+          <div className="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <GlobeHemisphereWest size={16} weight="duotone" className="text-indigo-400" />
               <h3 className="text-sm font-semibold text-slate-200">Order Map</h3>
@@ -490,9 +479,9 @@ export default function Analytics() {
               {ordersByCountry.reduce((s, c) => s + c.count, 0)} orders from {ordersByCountry.length} {ordersByCountry.length === 1 ? 'country' : 'countries'}
             </span>
           </div>
-          <div className="p-4">
-            {ordersByCountry.length > 0 ? (
-              <WorldMap ordersByCountry={ordersByCountry} />
+          <div className="px-4 py-2">
+            {mapDots.length > 0 ? (
+              <WorldMap dots={mapDots} lineColor="#818cf8" />
             ) : (
               <div className="flex items-center justify-center py-20 text-sm text-slate-500">No geographic data yet</div>
             )}
@@ -508,7 +497,7 @@ export default function Analytics() {
             {ordersByCountry.length === 0 && (
               <div className="px-6 py-10 text-center text-sm text-muted-foreground">No data yet</div>
             )}
-            {ordersByCountry.slice(0, 10).map((c, i) => {
+            {ordersByCountry.slice(0, 10).map((c) => {
               const maxC = ordersByCountry[0]?.count || 1;
               return (
                 <div key={c.country} className="flex items-center gap-3 px-6 py-3">

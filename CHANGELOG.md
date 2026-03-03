@@ -3,6 +3,16 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.42.0] - 2026-03-03
+
+### Changed
+- **Analytics world map** — Replaced custom SVG dot map with `dotted-map` library. Map now shows a proper dotted world map with animated curved lines from warehouse origin (Prague) to order destination countries using `framer-motion`.
+- **Analytics bar chart** — Replaced area chart with Shopify-style vertical bar chart. Bars aggregate by day (7d/30d), week (90d), or month (1y) for clean readability.
+
+### Added
+- `dotted-map` and `framer-motion` as frontend dependencies.
+- `frontend/src/components/ui/world-map.tsx` — Reusable WorldMap component adapted from shadcn/aceternity pattern.
+
 ## [3.41.0 / 2.33.0] - 2026-03-03
 
 ### Added
