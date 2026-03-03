@@ -3,6 +3,13 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.39.2] - 2026-03-03
+
+### Fixed
+- **PO PDF empty pages (root cause fix)** — PDFKit auto-creates pages when `doc.text()` is called near the bottom margin, even with `lineBreak: false`. Fixed by: (1) using `autoFirstPage: false` with manual page management instead of `bufferPages`, (2) temporarily setting `page.margins.bottom = 0` before drawing footer text, (3) tracking page count manually instead of relying on `bufferedPageRange()`.
+- **PO PDF text wrapping in table cells** — `lineBreak: false` with `width` param does NOT prevent wrapping in PDFKit. Fixed by removing ALL `width` params from table cell `doc.text()` calls. Text is now manually truncated with `doc.widthOfString()` + ellipsis before rendering, and positioned manually using calculated x coordinates.
+- **PO PDF column headers truncated** — "Supplier SKU" was too long for 60pt column. Shortened to "Sup. SKU". Increased column widths (SKU 70, Sup. SKU 70, EAN 85) for better readability.
+
 ## [3.51.0] - 2026-03-03
 
 ### Added
