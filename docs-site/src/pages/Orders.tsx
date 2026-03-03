@@ -79,6 +79,23 @@ export default function Orders() {
         Pagination shows 25 orders per page.
       </p>
 
+      <h2>Column Customization</h2>
+      <p>
+        Click the <strong>Columns</strong> button to show or hide table columns. Default columns
+        are Order, Customer, Status, Items, Total, and Date. Additional columns you can enable:
+      </p>
+      <ul>
+        <li><strong>Email</strong> — Customer email address</li>
+        <li><strong>Payment</strong> — Payment method used (e.g. "Credit Card", "PayPal")</li>
+        <li><strong>Shipping</strong> — Shipping method (e.g. "Flat Rate", "Free Shipping")</li>
+        <li><strong>Priority</strong> — Order priority level (Low / Normal / High)</li>
+      </ul>
+      <p>
+        Column preferences are saved to your account and persist across page reloads and devices.
+        At least 2 columns must remain visible. You can also manage columns from
+        Settings &rarr; Table Configuration.
+      </p>
+
       <h2>Order Detail</h2>
       <p>
         Click any order row to open the full detail page. The rich two-column layout shows:

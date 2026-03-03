@@ -3,6 +3,16 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.36.0] - 2026-03-03
+
+### Added
+- **Columns toggle on Inventory** — Inventory page now has the same Columns dropdown as Orders, allowing users to show/hide columns. Preferences persist across refreshes (synced to server)
+- **More column options** — Orders table adds Email, Payment Method, Shipping Method, and Priority columns (hidden by default). Inventory table adds SKU (separate toggle), Type (Simple/Bundle), and Low Threshold columns (hidden by default)
+
+### Changed
+- **Fixed inventory stat cards** — header subtitle now shows product count + products in stock (from filter counts) instead of mixing product count with unit count. Stat strip cards now clearly labeled "Total Units", "Reserved Units", etc. to distinguish from product-level counts in filter buttons
+- **Consistent page styling** — Orders and Inventory now use the same heading size, icon library (Phosphor), spacing, and table header styles
+
 ## [3.35.0 / 2.29.0] - 2026-03-03
 
 ### Added

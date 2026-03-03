@@ -23,7 +23,22 @@ import { cn } from '../lib/utils';
 import { proxyUrl } from '../lib/image';
 import api from '../services/api';
 import Pagination from '../components/Pagination';
-import type { Product, InventoryStats, PaginationMeta } from '../types';
+import TableConfigDropdown from '../components/TableConfigDropdown';
+import { useTableConfig } from '../hooks/useTableConfig';
+import type { Product, InventoryStats, PaginationMeta, TableColumnDef } from '../types';
+
+const inventoryColumnDefs: TableColumnDef[] = [
+  { id: 'image', label: 'Image' },
+  { id: 'product', label: 'Product' },
+  { id: 'sku', label: 'SKU' },
+  { id: 'price', label: 'Price' },
+  { id: 'inStock', label: 'On Hand' },
+  { id: 'reserved', label: 'Reserved' },
+  { id: 'available', label: 'Available' },
+  { id: 'location', label: 'Location' },
+  { id: 'type', label: 'Type', defaultVisible: false },
+  { id: 'threshold', label: 'Low Threshold', defaultVisible: false },
+];
 
 type StockFilter = 'all' | 'low' | 'out' | 'healthy';
 type SortField = 'name' | 'sku' | 'price' | 'stock' | 'reserved';
@@ -49,6 +64,9 @@ export default function Inventory() {
   const [stockFilter, setStockFilter] = useState<StockFilter>('all');
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+  // Column config
+  const { visibleIds, toggleColumn, isVisible } = useTableConfig('inventoryColumns', inventoryColumnDefs);
 
   // Server-side filter counts
   const [filterCounts, setFilterCounts] = useState<FilterCounts | null>(null);
@@ -209,7 +227,7 @@ export default function Inventory() {
             <h2 className="text-xl font-bold tracking-tight">Inventory</h2>
             <p className="text-[13px] text-muted-foreground">
               {meta ? `${meta.total} product${meta.total !== 1 ? 's' : ''}` : 'Loading...'}
-              {stats ? ` \u00b7 ${stats.inStock.toLocaleString()} units in stock` : ''}
+              {filterCounts ? ` \u00b7 ${filterCounts.inStock} in stock` : ''}
             </p>
           </div>
         </div>
@@ -228,10 +246,10 @@ export default function Inventory() {
       {stats && (
         <div className="grid grid-cols-4 divide-x divide-border/50 rounded-xl border border-border/60 bg-card shadow-sm">
           {[
-            { label: 'In Stock', value: stats.inStock, icon: Package, color: 'text-foreground', iconColor: 'text-emerald-500' },
-            { label: 'Reserved', value: stats.reserved, icon: Lock, color: stats.reserved > 0 ? 'text-amber-600' : 'text-foreground', iconColor: 'text-amber-500' },
-            { label: 'Incoming', value: stats.incoming, icon: ArrowDown, color: 'text-foreground', iconColor: 'text-blue-500' },
-            { label: 'Available', value: stats.freeToSell, icon: CheckCircle, color: 'text-foreground', iconColor: 'text-emerald-500' },
+            { label: 'Total Units', value: stats.inStock, icon: Package, color: 'text-foreground', iconColor: 'text-emerald-500' },
+            { label: 'Reserved Units', value: stats.reserved, icon: Lock, color: stats.reserved > 0 ? 'text-amber-600' : 'text-foreground', iconColor: 'text-amber-500' },
+            { label: 'Incoming Units', value: stats.incoming, icon: ArrowDown, color: 'text-foreground', iconColor: 'text-blue-500' },
+            { label: 'Available Units', value: stats.freeToSell, icon: CheckCircle, color: 'text-foreground', iconColor: 'text-emerald-500' },
           ].map((s) => (
             <div key={s.label} className="flex items-center gap-3 px-5 py-3.5">
               <s.icon size={18} weight="duotone" className={s.iconColor} />
@@ -290,8 +308,13 @@ export default function Inventory() {
           ))}
         </div>
 
-        <div className="ml-auto text-sm text-muted-foreground">
-          {meta ? `${meta.total} result${meta.total !== 1 ? 's' : ''}` : ''}
+        <div className="ml-auto flex items-center gap-3">
+          {meta && meta.total > 0 && (
+            <span className="text-sm text-muted-foreground">
+              {meta.total} result{meta.total !== 1 ? 's' : ''}
+            </span>
+          )}
+          <TableConfigDropdown columns={inventoryColumnDefs} visibleIds={visibleIds} onToggle={toggleColumn} />
         </div>
       </div>
 
@@ -300,53 +323,67 @@ export default function Inventory() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border/50 bg-muted/40">
-              <th className="w-[52px] py-2.5 pl-4 pr-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70" />
-              <th
-                className="cursor-pointer px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors"
-                onClick={() => handleSort('name')}
-              >
-                <span className="inline-flex items-center gap-1">Product <SortIcon field="name" /></span>
-              </th>
-              <th
-                className="cursor-pointer px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors"
-                onClick={() => handleSort('sku')}
-              >
-                <span className="inline-flex items-center gap-1">SKU <SortIcon field="sku" /></span>
-              </th>
-              <th
-                className="cursor-pointer px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors"
-                onClick={() => handleSort('price')}
-              >
-                <span className="inline-flex items-center gap-1 justify-end">Price <SortIcon field="price" /></span>
-              </th>
-              <th
-                className="cursor-pointer px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors"
-                onClick={() => handleSort('stock')}
-              >
-                <span className="inline-flex items-center gap-1 justify-center">On Hand <SortIcon field="stock" /></span>
-              </th>
-              <th
-                className="cursor-pointer px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors"
-                onClick={() => handleSort('reserved')}
-              >
-                <span className="inline-flex items-center gap-1 justify-center">Reserved <SortIcon field="reserved" /></span>
-              </th>
-              <th className="w-[180px] px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Available</th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Location</th>
+              {isVisible('image') && <th className="w-[52px] py-2.5 pl-4 pr-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70" />}
+              {isVisible('product') && (
+                <th
+                  className="cursor-pointer px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors"
+                  onClick={() => handleSort('name')}
+                >
+                  <span className="inline-flex items-center gap-1">Product <SortIcon field="name" /></span>
+                </th>
+              )}
+              {isVisible('sku') && (
+                <th
+                  className="cursor-pointer px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors"
+                  onClick={() => handleSort('sku')}
+                >
+                  <span className="inline-flex items-center gap-1">SKU <SortIcon field="sku" /></span>
+                </th>
+              )}
+              {isVisible('type') && (
+                <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Type</th>
+              )}
+              {isVisible('price') && (
+                <th
+                  className="cursor-pointer px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors"
+                  onClick={() => handleSort('price')}
+                >
+                  <span className="inline-flex items-center gap-1 justify-end">Price <SortIcon field="price" /></span>
+                </th>
+              )}
+              {isVisible('inStock') && (
+                <th
+                  className="cursor-pointer px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors"
+                  onClick={() => handleSort('stock')}
+                >
+                  <span className="inline-flex items-center gap-1 justify-center">On Hand <SortIcon field="stock" /></span>
+                </th>
+              )}
+              {isVisible('reserved') && (
+                <th
+                  className="cursor-pointer px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors"
+                  onClick={() => handleSort('reserved')}
+                >
+                  <span className="inline-flex items-center gap-1 justify-center">Reserved <SortIcon field="reserved" /></span>
+                </th>
+              )}
+              {isVisible('available') && <th className="w-[180px] px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Available</th>}
+              {isVisible('threshold') && <th className="px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Low Threshold</th>}
+              {isVisible('location') && <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Location</th>}
               <th className="w-8 py-2.5 pr-4" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border/30">
             {loading && products.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-20 text-center">
+                <td colSpan={visibleIds.length + 1} className="py-20 text-center">
                   <CircleNotch size={24} className="mx-auto animate-spin text-muted-foreground/30" />
                   <p className="mt-3 text-sm text-muted-foreground/50">Loading inventory...</p>
                 </td>
               </tr>
             ) : products.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-20 text-center">
+                <td colSpan={visibleIds.length + 1} className="py-20 text-center">
                   <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/50">
                     <Package size={24} weight="duotone" className="text-muted-foreground/30" />
                   </div>
@@ -371,100 +408,134 @@ export default function Inventory() {
                     className="group cursor-pointer transition-colors hover:bg-muted/30"
                   >
                     {/* Thumbnail */}
-                    <td className="py-2.5 pl-4 pr-2">
-                      {product.imageUrl ? (
-                        <div className="h-10 w-10 overflow-hidden rounded-lg border border-border/40 bg-muted/20 shadow-sm">
-                          <img
-                            src={proxyUrl(product.imageUrl, 80)!}
-                            alt=""
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/40 bg-muted/30">
-                          <ImageSquare size={16} weight="duotone" className="text-muted-foreground/25" />
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Product Name */}
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-medium leading-tight text-foreground group-hover:text-primary transition-colors">
-                          {product.name}
-                        </p>
-                        {product.isBundle && (
-                          <span className="flex-shrink-0 rounded bg-violet-500/10 px-1 py-px text-[9px] font-semibold text-violet-600">BUNDLE</span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* SKU */}
-                    <td className="px-4 py-2.5">
-                      {product.sku ? (
-                        <code className="rounded bg-muted/50 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-                          {product.sku}
-                        </code>
-                      ) : (
-                        <span className="text-xs text-muted-foreground/30">&mdash;</span>
-                      )}
-                    </td>
-
-                    {/* Price */}
-                    <td className="px-4 py-2.5 text-right">
-                      <span className="text-sm tabular-nums font-medium">{product.currency} {parseFloat(product.price).toFixed(2)}</span>
-                    </td>
-
-                    {/* On Hand */}
-                    <td className="px-4 py-2.5 text-center">
-                      <span className="text-sm tabular-nums font-semibold">{product.stockQty}</span>
-                    </td>
-
-                    {/* Reserved */}
-                    <td className="px-4 py-2.5 text-center">
-                      <span className={cn(
-                        'text-sm tabular-nums font-medium',
-                        product.reservedQty > 0 ? 'text-amber-600' : 'text-muted-foreground/40'
-                      )}>
-                        {product.reservedQty > 0 ? product.reservedQty : '\u2014'}
-                      </span>
-                    </td>
-
-                    {/* Available — with inline bar */}
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5 min-w-[52px]">
-                          {stock.level === 'out' && <WarningCircle size={14} weight="fill" className="text-red-500 flex-shrink-0" />}
-                          {stock.level === 'low' && <WarningCircle size={14} weight="fill" className="text-amber-500 flex-shrink-0" />}
-                          <span className={cn('text-sm tabular-nums font-bold', stock.color)}>
-                            {available}
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <div className={cn('h-1.5 w-full rounded-full', stock.barBg)}>
-                            <div
-                              className={cn('h-full rounded-full transition-all', stock.bg)}
-                              style={{ width: `${Math.max(stock.pct, stock.level === 'out' ? 0 : 4)}%` }}
+                    {isVisible('image') && (
+                      <td className="py-2.5 pl-4 pr-2">
+                        {product.imageUrl ? (
+                          <div className="h-10 w-10 overflow-hidden rounded-lg border border-border/40 bg-muted/20 shadow-sm">
+                            <img
+                              src={proxyUrl(product.imageUrl, 80)!}
+                              alt=""
+                              className="h-full w-full object-cover"
+                              loading="lazy"
                             />
                           </div>
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/40 bg-muted/30">
+                            <ImageSquare size={16} weight="duotone" className="text-muted-foreground/25" />
+                          </div>
+                        )}
+                      </td>
+                    )}
+
+                    {/* Product Name */}
+                    {isVisible('product') && (
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-medium leading-tight text-foreground group-hover:text-primary transition-colors">
+                            {product.name}
+                          </p>
+                          {product.isBundle && (
+                            <span className="flex-shrink-0 rounded bg-violet-500/10 px-1 py-px text-[9px] font-semibold text-violet-600">BUNDLE</span>
+                          )}
                         </div>
-                      </div>
-                    </td>
+                      </td>
+                    )}
+
+                    {/* SKU */}
+                    {isVisible('sku') && (
+                      <td className="px-4 py-2.5">
+                        {product.sku ? (
+                          <code className="rounded bg-muted/50 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                            {product.sku}
+                          </code>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/30">&mdash;</span>
+                        )}
+                      </td>
+                    )}
+
+                    {/* Type */}
+                    {isVisible('type') && (
+                      <td className="px-4 py-2.5">
+                        {product.isBundle ? (
+                          <span className="inline-flex items-center rounded-full bg-violet-500/10 px-2 py-0.5 text-[11px] font-semibold text-violet-600">Bundle</span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">Simple</span>
+                        )}
+                      </td>
+                    )}
+
+                    {/* Price */}
+                    {isVisible('price') && (
+                      <td className="px-4 py-2.5 text-right">
+                        <span className="text-sm tabular-nums font-medium">{product.currency} {parseFloat(product.price).toFixed(2)}</span>
+                      </td>
+                    )}
+
+                    {/* On Hand */}
+                    {isVisible('inStock') && (
+                      <td className="px-4 py-2.5 text-center">
+                        <span className="text-sm tabular-nums font-semibold">{product.stockQty}</span>
+                      </td>
+                    )}
+
+                    {/* Reserved */}
+                    {isVisible('reserved') && (
+                      <td className="px-4 py-2.5 text-center">
+                        <span className={cn(
+                          'text-sm tabular-nums font-medium',
+                          product.reservedQty > 0 ? 'text-amber-600' : 'text-muted-foreground/40'
+                        )}>
+                          {product.reservedQty > 0 ? product.reservedQty : '\u2014'}
+                        </span>
+                      </td>
+                    )}
+
+                    {/* Available — with inline bar */}
+                    {isVisible('available') && (
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1.5 min-w-[52px]">
+                            {stock.level === 'out' && <WarningCircle size={14} weight="fill" className="text-red-500 flex-shrink-0" />}
+                            {stock.level === 'low' && <WarningCircle size={14} weight="fill" className="text-amber-500 flex-shrink-0" />}
+                            <span className={cn('text-sm tabular-nums font-bold', stock.color)}>
+                              {available}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <div className={cn('h-1.5 w-full rounded-full', stock.barBg)}>
+                              <div
+                                className={cn('h-full rounded-full transition-all', stock.bg)}
+                                style={{ width: `${Math.max(stock.pct, stock.level === 'out' ? 0 : 4)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    )}
+
+                    {/* Low Stock Threshold */}
+                    {isVisible('threshold') && (
+                      <td className="px-4 py-2.5 text-center">
+                        <span className="text-sm tabular-nums text-muted-foreground">{product.lowStockThreshold}</span>
+                      </td>
+                    )}
 
                     {/* Location */}
-                    <td className="px-4 py-2.5">
-                      {locations.length > 0 ? (
-                        <div className="flex items-center gap-1">
-                          <MapPin size={12} className="flex-shrink-0 text-muted-foreground/40" />
-                          <span className="text-xs text-muted-foreground truncate max-w-[120px]">
-                            {locations.join(', ')}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground/30">&mdash;</span>
-                      )}
-                    </td>
+                    {isVisible('location') && (
+                      <td className="px-4 py-2.5">
+                        {locations.length > 0 ? (
+                          <div className="flex items-center gap-1">
+                            <MapPin size={12} className="flex-shrink-0 text-muted-foreground/40" />
+                            <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+                              {locations.join(', ')}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/30">&mdash;</span>
+                        )}
+                      </td>
+                    )}
 
                     {/* Arrow */}
                     <td className="py-2.5 pr-4">

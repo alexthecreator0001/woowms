@@ -61,6 +61,22 @@ export default function Inventory() {
         </tbody>
       </table>
 
+      <h2>Column Customization</h2>
+      <p>
+        Click the <strong>Columns</strong> button next to the search bar to show or hide table
+        columns. Default columns include Image, Product, SKU, Price, On Hand, Reserved, Available,
+        and Location. Additional columns you can enable:
+      </p>
+      <ul>
+        <li><strong>Type</strong> — Shows "Simple" or "Bundle" badge per product</li>
+        <li><strong>Low Threshold</strong> — The low-stock threshold value for each product</li>
+      </ul>
+      <p>
+        Column preferences are saved to your account and persist across page reloads and devices.
+        At least 2 columns must remain visible. You can also manage columns from
+        Settings &rarr; Table Configuration.
+      </p>
+
       <h2>Quick Filters</h2>
       <p>
         Filter pills at the top let you quickly view: <strong>All</strong>, <strong>In Stock</strong>,

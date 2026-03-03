@@ -10,16 +10,23 @@ const orderColumnDefs: TableColumnDef[] = [
   { id: 'items', label: 'Items' },
   { id: 'total', label: 'Total' },
   { id: 'date', label: 'Date' },
+  { id: 'email', label: 'Email', defaultVisible: false },
+  { id: 'payment', label: 'Payment', defaultVisible: false },
+  { id: 'shipping', label: 'Shipping', defaultVisible: false },
+  { id: 'priority', label: 'Priority', defaultVisible: false },
 ];
 
 const inventoryColumnDefs: TableColumnDef[] = [
   { id: 'image', label: 'Image' },
   { id: 'product', label: 'Product' },
+  { id: 'sku', label: 'SKU' },
   { id: 'price', label: 'Price' },
-  { id: 'inStock', label: 'In Stock' },
+  { id: 'inStock', label: 'On Hand' },
   { id: 'reserved', label: 'Reserved' },
   { id: 'available', label: 'Available' },
   { id: 'location', label: 'Location' },
+  { id: 'type', label: 'Type', defaultVisible: false },
+  { id: 'threshold', label: 'Low Threshold', defaultVisible: false },
 ];
 
 function ColumnList({
