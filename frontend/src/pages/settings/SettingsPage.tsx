@@ -15,6 +15,7 @@ import {
   TruckTrailer,
   Lightning,
   Tag,
+  FileText,
 } from '@phosphor-icons/react';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
@@ -31,6 +32,7 @@ import InventoryDefaultsSection from './InventoryDefaultsSection';
 import UnitsSection from './UnitsSection';
 import ShippingSection from './ShippingSection';
 import TagsSection from './TagsSection';
+import DocumentsSection from './DocumentsSection';
 import RulesSection from './RulesSection';
 
 function getTokenPayload(): TokenPayload | null {
@@ -43,7 +45,7 @@ function getTokenPayload(): TokenPayload | null {
   }
 }
 
-type Section = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger' | 'notifications' | 'orderWorkflow' | 'inventoryDefaults' | 'units' | 'tags' | 'shipping' | 'customerRules';
+type Section = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger' | 'notifications' | 'orderWorkflow' | 'inventoryDefaults' | 'units' | 'tags' | 'documents' | 'shipping' | 'customerRules';
 
 interface SettingsCard {
   id: Section;
@@ -66,6 +68,7 @@ const cards: SettingsCard[] = [
   { id: 'inventoryDefaults', title: 'Inventory defaults', description: 'Low stock threshold and stock sync.', icon: Package, group: 'Warehouse settings', adminOnly: true },
   { id: 'units', title: 'Units & measurements', description: 'Unit system and pallet type defaults.', icon: Ruler, group: 'Warehouse settings', adminOnly: true },
   { id: 'tags', title: 'Tags', description: 'Create and manage order tags.', icon: Tag, group: 'Warehouse settings', adminOnly: true },
+  { id: 'documents', title: 'Documents', description: 'PDF templates for purchase orders and labels.', icon: FileText, group: 'Warehouse settings', adminOnly: true },
   { id: 'customerRules', title: 'Rules', description: 'Automate order actions, customer tags, and free gifts.', icon: Lightning, group: 'Warehouse settings', adminOnly: true },
   { id: 'shipping', title: 'Shipping & Labels', description: 'Shipping provider, carrier mapping, and label printing.', icon: TruckTrailer, group: 'Integrations', adminOnly: true },
   { id: 'woocommerce', title: 'WooCommerce', description: 'Store connections and sync settings.', icon: Storefront, group: 'Integrations' },
@@ -106,6 +109,7 @@ export default function SettingsPage() {
         {active === 'inventoryDefaults' && isAdmin && <InventoryDefaultsSection />}
         {active === 'units' && isAdmin && <UnitsSection />}
         {active === 'tags' && isAdmin && <TagsSection />}
+        {active === 'documents' && isAdmin && <DocumentsSection />}
         {active === 'shipping' && isAdmin && <ShippingSection />}
         {active === 'customerRules' && isAdmin && <RulesSection />}
         {active === 'danger' && isAdmin && <DangerZoneSection />}

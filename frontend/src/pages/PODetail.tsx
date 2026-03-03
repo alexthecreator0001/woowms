@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
-import { generatePoPdf } from '../lib/generatePoPdf';
+import { generatePoPdf, type PoTemplate } from '../lib/generatePoPdf';
 import type { PurchaseOrder, PurchaseOrderItem, Bin } from '../types';
 
 const poStatusConfig: Record<string, { label: string; bg: string; text: string; dot: string }> = {
@@ -44,6 +44,11 @@ export default function PODetail() {
   const [receiveQtys, setReceiveQtys] = useState<Record<number, { qty: number; binId?: number }>>({});
   const [availableBins, setAvailableBins] = useState<Bin[]>([]);
 
+  // Branding for PDF
+  const [pdfCompanyName, setPdfCompanyName] = useState('');
+  const [pdfLogoUrl, setPdfLogoUrl] = useState<string | null>(null);
+  const [pdfTemplate, setPdfTemplate] = useState<PoTemplate>('modern');
+
   useEffect(() => {
     if (!id) return;
     setLoading(true);
@@ -52,6 +57,19 @@ export default function PODetail() {
       .catch(() => navigate('/receiving'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Fetch branding + template preference
+  useEffect(() => {
+    api.get('/auth/me')
+      .then(({ data }) => {
+        setPdfCompanyName(data.data.tenantName || '');
+        if (data.data.logoUrl) setPdfLogoUrl(data.data.logoUrl);
+        if (data.data.poTemplate === 'modern' || data.data.poTemplate === 'classic' || data.data.poTemplate === 'minimal') {
+          setPdfTemplate(data.data.poTemplate);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch active bins when entering receive mode
   useEffect(() => {
@@ -507,7 +525,7 @@ export default function PODetail() {
                 </button>
               )}
               <button
-                onClick={() => generatePoPdf(po)}
+                onClick={() => generatePoPdf(po, { template: pdfTemplate, companyName: pdfCompanyName, logoDataUrl: pdfLogoUrl })}
                 className="flex w-full items-center gap-3 rounded-xl border border-border/40 bg-muted/20 px-4 py-3 text-sm font-medium transition-colors hover:bg-muted/40"
               >
                 <FileDown className="h-4 w-4 text-muted-foreground" />

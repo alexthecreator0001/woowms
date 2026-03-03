@@ -187,12 +187,14 @@ export default function Suppliers() {
             </button>
           ))}
         </div>
-        <TableConfigDropdown columns={supplierColumnDefs} visibleIds={visibleIds} onToggle={toggleColumn} />
         {meta && meta.total > 0 && (
-          <span className="ml-auto text-sm text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             {meta.total} result{meta.total !== 1 ? 's' : ''}
           </span>
         )}
+        <div className="ml-auto">
+          <TableConfigDropdown columns={supplierColumnDefs} visibleIds={visibleIds} onToggle={toggleColumn} />
+        </div>
       </div>
 
       {/* Table */}
@@ -276,15 +278,15 @@ export default function Suppliers() {
                             {(s as any).supplierProducts.slice(0, 3).map((sp: any, idx: number) => {
                               const src = proxyUrl(sp.product?.imageUrl, 64);
                               return src ? (
-                                <img key={idx} src={src} alt="" className="h-7 w-7 rounded-md border-2 border-card object-cover" />
+                                <img key={idx} src={src} alt="" className="h-7 w-7 rounded-md border border-border/40 object-cover" />
                               ) : (
-                                <div key={idx} className="flex h-7 w-7 items-center justify-center rounded-md border-2 border-card bg-muted/50">
+                                <div key={idx} className="flex h-7 w-7 items-center justify-center rounded-md border border-border/40 bg-muted/30">
                                   <Cube size={12} className="text-muted-foreground/30" />
                                 </div>
                               );
                             })}
                             {(s._count?.supplierProducts ?? 0) > 3 && (
-                              <div className="flex h-7 w-7 items-center justify-center rounded-md border-2 border-card bg-muted text-[10px] font-bold text-muted-foreground">
+                              <div className="flex h-7 w-7 items-center justify-center rounded-md border border-border/40 bg-muted text-[10px] font-bold text-muted-foreground">
                                 +{(s._count?.supplierProducts ?? 0) - 3}
                               </div>
                             )}

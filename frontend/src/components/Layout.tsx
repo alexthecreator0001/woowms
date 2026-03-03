@@ -16,7 +16,6 @@ import {
   SignOut,
   CaretLineLeft,
   CaretLineRight,
-  CaretDown,
   Plug,
   MagnifyingGlass,
 } from '@phosphor-icons/react';
@@ -74,12 +73,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [companyName, setCompanyName] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     api.get('/auth/me')
       .then(({ data }) => {
         setCompanyName(data.data.tenantName || '');
+        if (data.data.logoUrl) setLogoUrl(data.data.logoUrl);
       })
       .catch(() => {});
   }, []);
@@ -117,34 +118,37 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           sidebarWidth
         )}
       >
-        {/* Company header — Stripe style (clickable) */}
-        <button
-          type="button"
-          onClick={() => navigate('/settings')}
+        {/* Company header */}
+        <div
           title={collapsed ? (companyName || 'PickNPack') : undefined}
           className={cn(
-            'flex items-center border-b border-[#ebebeb] px-3 py-3 transition-colors hover:bg-[#f5f5f5] w-full',
+            'flex items-center border-b border-[#ebebeb] px-3 py-3',
             collapsed ? 'justify-center' : 'gap-2.5'
           )}
         >
           {collapsed ? (
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-[13px] font-bold text-primary">
-              {initial}
-            </div>
-          ) : (
-            <>
-              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-primary/10 text-[13px] font-bold text-primary">
+            logoUrl ? (
+              <img src={logoUrl} alt="" className="h-8 w-8 rounded-md object-contain" />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-[13px] font-bold text-primary">
                 {initial}
               </div>
-              <div className="flex min-w-0 flex-1 items-center gap-1">
-                <span className="truncate text-[13px] font-semibold text-[#0a0a0a]">
-                  {companyName || 'PickNPack'}
-                </span>
-                <CaretDown size={12} className="flex-shrink-0 text-[#a0a0a0]" />
-              </div>
+            )
+          ) : (
+            <>
+              {logoUrl ? (
+                <img src={logoUrl} alt="" className="h-8 w-8 flex-shrink-0 rounded-md object-contain" />
+              ) : (
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-primary/10 text-[13px] font-bold text-primary">
+                  {initial}
+                </div>
+              )}
+              <span className="truncate text-[13px] font-semibold text-[#0a0a0a]">
+                {companyName || 'PickNPack'}
+              </span>
             </>
           )}
-        </button>
+        </div>
 
         {/* Search trigger */}
         <button

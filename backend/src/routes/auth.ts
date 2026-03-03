@@ -331,9 +331,10 @@ router.get('/me', authenticate, async (req: Request, res: Response, next: NextFu
     });
     const tenant = await prisma.tenant.findUnique({
       where: { id: req.user!.tenantId },
-      select: { name: true },
+      select: { name: true, settings: true },
     });
-    res.json({ data: { ...user, tenantName: tenant?.name || '' } });
+    const settings = (tenant?.settings as Record<string, unknown>) || {};
+    res.json({ data: { ...user, tenantName: tenant?.name || '', logoUrl: (settings.logoUrl as string) || null, poTemplate: (settings.poTemplate as string) || 'modern' } });
   } catch (err) {
     next(err);
   }

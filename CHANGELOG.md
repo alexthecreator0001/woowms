@@ -3,6 +3,18 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.48.0 / 2.37.0] - 2026-03-03
+
+### Added
+- **Custom logo upload** — Upload company logo in Settings > Business. Stored as optimized WebP data URL in tenant settings. Logo displayed in sidebar (replaces letter initial) and on PO PDFs. Max 512KB, auto-resized to 200px.
+- **PO PDF templates** — Three professional PDF designs: Modern (accent bar, bold typography), Classic (bordered boxes, grid table), Minimal (ultra-clean whitespace). Choose template in Settings > Documents. All templates whitelabeled with your company name and logo.
+- **Documents settings** — New Settings section to pick PO PDF template with visual previews of each design.
+
+### Changed
+- **Supplier product images** — Thumbnails now have visible `border-border/40` borders matching orders page style.
+- **Suppliers columns button** — Moved to far-right position (matching Orders page layout).
+- **Sidebar company name** — No longer clickable/navigates to settings. Just displays company name and logo.
+
 ## [3.47.0 / 2.36.0] - 2026-03-03
 
 ### Added
