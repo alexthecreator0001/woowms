@@ -3,6 +3,12 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.52.0] - 2026-03-03
+
+### Added
+- **Business details settings** — New card in Branding settings for company address, email, phone, VAT/Tax ID, and website. All fields saved together via tenant settings.
+- **Company stamp upload** — New card for uploading a company stamp/signature image (max 512KB, resized to 300px PNG). Shows preview with change/remove actions.
+
 ## [2.39.2] - 2026-03-03
 
 ### Fixed

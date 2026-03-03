@@ -1,9 +1,21 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
-import { CircleNotch, Check, UploadSimple, Trash, ImageSquare } from '@phosphor-icons/react';
+import {
+  CircleNotch,
+  Check,
+  UploadSimple,
+  Trash,
+  ImageSquare,
+  Buildings,
+  Envelope,
+  Phone,
+  IdentificationBadge,
+  Globe,
+  Stamp,
+} from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import api from '../../services/api';
 
-const MAX_LOGO_SIZE = 512 * 1024; // 512KB
+const MAX_FILE_SIZE = 512 * 1024; // 512KB
 
 const BRAND_COLORS = [
   { value: '#6366f1', label: 'Indigo' },
@@ -21,21 +33,44 @@ const BRAND_COLORS = [
 ];
 
 export default function BrandingSection() {
+  // --- Company name (saved via /account/branding) ---
   const [companyName, setCompanyName] = useState('');
-  const [logoUrl, setLogoUrl] = useState('');
-  const [brandColor, setBrandColor] = useState('#6366f1');
-  const [defaultPoNote, setDefaultPoNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+
+  // --- Logo ---
+  const [logoUrl, setLogoUrl] = useState('');
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoMsg, setLogoMsg] = useState('');
+  const logoFileRef = useRef<HTMLInputElement>(null);
+
+  // --- Brand color ---
+  const [brandColor, setBrandColor] = useState('#6366f1');
   const [colorSaving, setColorSaving] = useState(false);
   const [colorMsg, setColorMsg] = useState('');
+
+  // --- Default PO note ---
+  const [defaultPoNote, setDefaultPoNote] = useState('');
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteMsg, setNoteMsg] = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
 
+  // --- Business details (all saved together via tenant-settings) ---
+  const [companyAddress, setCompanyAddress] = useState('');
+  const [companyEmail, setCompanyEmail] = useState('');
+  const [companyPhone, setCompanyPhone] = useState('');
+  const [companyVatId, setCompanyVatId] = useState('');
+  const [companyWebsite, setCompanyWebsite] = useState('');
+  const [detailsSaving, setDetailsSaving] = useState(false);
+  const [detailsMsg, setDetailsMsg] = useState('');
+
+  // --- Company stamp ---
+  const [stampUrl, setStampUrl] = useState('');
+  const [stampUploading, setStampUploading] = useState(false);
+  const [stampMsg, setStampMsg] = useState('');
+  const stampFileRef = useRef<HTMLInputElement>(null);
+
+  // --- Load data ---
   useEffect(() => {
     Promise.all([
       api.get('/auth/me'),
@@ -46,9 +81,16 @@ export default function BrandingSection() {
       const s = settingsRes.data.data || {};
       if (s.brandColor) setBrandColor(s.brandColor);
       if (s.defaultPoNote) setDefaultPoNote(s.defaultPoNote);
+      if (s.companyAddress) setCompanyAddress(s.companyAddress);
+      if (s.companyEmail) setCompanyEmail(s.companyEmail);
+      if (s.companyPhone) setCompanyPhone(s.companyPhone);
+      if (s.companyVatId) setCompanyVatId(s.companyVatId);
+      if (s.companyWebsite) setCompanyWebsite(s.companyWebsite);
+      if (s.stampUrl) setStampUrl(s.stampUrl);
     }).catch(() => {});
   }, []);
 
+  // --- Company name handler ---
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
@@ -65,6 +107,7 @@ export default function BrandingSection() {
     }
   };
 
+  // --- Logo handlers ---
   const handleLogoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -72,15 +115,13 @@ export default function BrandingSection() {
       setLogoMsg('Please select an image file');
       return;
     }
-    if (file.size > MAX_LOGO_SIZE) {
+    if (file.size > MAX_FILE_SIZE) {
       setLogoMsg('Logo must be under 512KB');
       return;
     }
-
     setLogoUploading(true);
     setLogoMsg('');
     try {
-      // Resize to max 200px and convert to WebP data URL
       const dataUrl = await resizeImage(file, 200);
       await api.patch('/account/tenant-settings', { logoUrl: dataUrl });
       setLogoUrl(dataUrl);
@@ -90,7 +131,7 @@ export default function BrandingSection() {
       setLogoMsg('Failed to upload logo');
     } finally {
       setLogoUploading(false);
-      if (fileRef.current) fileRef.current.value = '';
+      if (logoFileRef.current) logoFileRef.current.value = '';
     }
   };
 
@@ -108,11 +149,74 @@ export default function BrandingSection() {
     }
   };
 
+  // --- Business details handler ---
+  const handleDetailsSave = async () => {
+    setDetailsSaving(true);
+    setDetailsMsg('');
+    try {
+      await api.patch('/account/tenant-settings', {
+        companyAddress,
+        companyEmail,
+        companyPhone,
+        companyVatId,
+        companyWebsite,
+      });
+      setDetailsMsg('Saved');
+      setTimeout(() => setDetailsMsg(''), 2000);
+    } catch {
+      setDetailsMsg('Failed to save');
+    } finally {
+      setDetailsSaving(false);
+    }
+  };
+
+  // --- Stamp handlers ---
+  const handleStampSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setStampMsg('Please select an image file');
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setStampMsg('Image must be under 512KB');
+      return;
+    }
+    setStampUploading(true);
+    setStampMsg('');
+    try {
+      const dataUrl = await resizeImage(file, 300);
+      await api.patch('/account/tenant-settings', { stampUrl: dataUrl });
+      setStampUrl(dataUrl);
+      setStampMsg('Stamp saved');
+      setTimeout(() => setStampMsg(''), 2000);
+    } catch {
+      setStampMsg('Failed to upload stamp');
+    } finally {
+      setStampUploading(false);
+      if (stampFileRef.current) stampFileRef.current.value = '';
+    }
+  };
+
+  const removeStamp = async () => {
+    setStampUploading(true);
+    try {
+      await api.patch('/account/tenant-settings', { stampUrl: null });
+      setStampUrl('');
+      setStampMsg('Stamp removed');
+      setTimeout(() => setStampMsg(''), 2000);
+    } catch {
+      setStampMsg('Failed to remove stamp');
+    } finally {
+      setStampUploading(false);
+    }
+  };
+
   const initial = (companyName || 'P').charAt(0).toUpperCase();
 
   return (
     <div className="space-y-6">
-      {/* Company name */}
+      {/* ── Company name ── */}
       <div className="rounded-xl border border-border/60 bg-card shadow-sm">
         <div className="border-b border-border/40 px-6 py-4">
           <h3 className="text-sm font-semibold">Company name</h3>
@@ -161,7 +265,125 @@ export default function BrandingSection() {
         </div>
       </div>
 
-      {/* Logo upload */}
+      {/* ── Business details ── */}
+      <div className="rounded-xl border border-border/60 bg-card shadow-sm">
+        <div className="border-b border-border/40 px-6 py-4">
+          <div className="flex items-center gap-2">
+            <Buildings size={16} weight="duotone" className="text-muted-foreground" />
+            <h3 className="text-sm font-semibold">Business details</h3>
+          </div>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Contact information and tax details used on purchase orders and documents.
+          </p>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          {/* Address */}
+          <div>
+            <label htmlFor="companyAddress" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Buildings size={13} />
+              Address
+            </label>
+            <textarea
+              id="companyAddress"
+              value={companyAddress}
+              onChange={(e) => setCompanyAddress(e.target.value)}
+              rows={3}
+              placeholder={"123 Warehouse Blvd\nSuite 200\nNew York, NY 10001"}
+              className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none"
+            />
+          </div>
+
+          {/* Email + Phone row */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="companyEmail" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Envelope size={13} />
+                Email
+              </label>
+              <input
+                id="companyEmail"
+                type="email"
+                value={companyEmail}
+                onChange={(e) => setCompanyEmail(e.target.value)}
+                placeholder="orders@acme.com"
+                className="mt-1 h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            <div>
+              <label htmlFor="companyPhone" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Phone size={13} />
+                Phone
+              </label>
+              <input
+                id="companyPhone"
+                type="tel"
+                value={companyPhone}
+                onChange={(e) => setCompanyPhone(e.target.value)}
+                placeholder="+1 (555) 123-4567"
+                className="mt-1 h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+          </div>
+
+          {/* VAT ID + Website row */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="companyVatId" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <IdentificationBadge size={13} />
+                VAT / Tax ID
+              </label>
+              <input
+                id="companyVatId"
+                type="text"
+                value={companyVatId}
+                onChange={(e) => setCompanyVatId(e.target.value)}
+                placeholder="US123456789"
+                className="mt-1 h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            <div>
+              <label htmlFor="companyWebsite" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Globe size={13} />
+                Website
+              </label>
+              <input
+                id="companyWebsite"
+                type="text"
+                value={companyWebsite}
+                onChange={(e) => setCompanyWebsite(e.target.value)}
+                placeholder="https://acme.com"
+                className="mt-1 h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+          </div>
+
+          {/* Save button */}
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              disabled={detailsSaving}
+              onClick={handleDetailsSave}
+              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              {detailsSaving ? (
+                <CircleNotch size={14} className="animate-spin" />
+              ) : detailsMsg === 'Saved' ? (
+                <>
+                  <Check size={14} />
+                  Saved
+                </>
+              ) : (
+                'Save details'
+              )}
+            </button>
+            {detailsMsg && detailsMsg !== 'Saved' && (
+              <span className="text-xs text-destructive">{detailsMsg}</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Logo upload ── */}
       <div className="rounded-xl border border-border/60 bg-card shadow-sm">
         <div className="border-b border-border/40 px-6 py-4">
           <h3 className="text-sm font-semibold">Company logo</h3>
@@ -184,7 +406,7 @@ export default function BrandingSection() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => fileRef.current?.click()}
+                  onClick={() => logoFileRef.current?.click()}
                   disabled={logoUploading}
                   className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-muted/50 disabled:opacity-50"
                 >
@@ -211,7 +433,7 @@ export default function BrandingSection() {
             </div>
           </div>
           <input
-            ref={fileRef}
+            ref={logoFileRef}
             type="file"
             accept="image/png,image/jpeg,image/svg+xml,image/webp"
             className="hidden"
@@ -220,7 +442,72 @@ export default function BrandingSection() {
         </div>
       </div>
 
-      {/* Brand color */}
+      {/* ── Company stamp ── */}
+      <div className="rounded-xl border border-border/60 bg-card shadow-sm">
+        <div className="border-b border-border/40 px-6 py-4">
+          <div className="flex items-center gap-2">
+            <Stamp size={16} weight="duotone" className="text-muted-foreground" />
+            <h3 className="text-sm font-semibold">Company stamp / signature</h3>
+          </div>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Printed on purchase orders and official documents. Max 512KB, resized to 300px.
+          </p>
+        </div>
+        <div className="px-6 py-5">
+          <div className="flex items-start gap-5">
+            {/* Stamp preview */}
+            <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/10">
+              {stampUrl ? (
+                <img src={stampUrl} alt="Stamp" className="h-16 w-16 rounded-lg object-contain" />
+              ) : (
+                <Stamp size={28} weight="duotone" className="text-muted-foreground/30" />
+              )}
+            </div>
+
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => stampFileRef.current?.click()}
+                  disabled={stampUploading}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-muted/50 disabled:opacity-50"
+                >
+                  {stampUploading ? <CircleNotch size={14} className="animate-spin" /> : <UploadSimple size={14} />}
+                  {stampUrl ? 'Change' : 'Upload'}
+                </button>
+                {stampUrl && (
+                  <button
+                    type="button"
+                    onClick={removeStamp}
+                    disabled={stampUploading}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-200 bg-background px-3 text-sm font-medium text-red-600 shadow-sm transition-colors hover:bg-red-50 disabled:opacity-50"
+                  >
+                    <Trash size={14} />
+                    Remove
+                  </button>
+                )}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Upload a PNG or JPEG of your company stamp or authorized signature.
+              </p>
+              {stampMsg && (
+                <p className={cn('mt-1.5 text-xs', stampMsg.includes('Failed') || stampMsg.includes('must') || stampMsg.includes('Please') ? 'text-destructive' : 'text-emerald-600')}>
+                  {stampMsg}
+                </p>
+              )}
+            </div>
+          </div>
+          <input
+            ref={stampFileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={handleStampSelect}
+          />
+        </div>
+      </div>
+
+      {/* ── Brand color ── */}
       <div className="rounded-xl border border-border/60 bg-card shadow-sm">
         <div className="border-b border-border/40 px-6 py-4">
           <h3 className="text-sm font-semibold">Brand color</h3>
@@ -265,7 +552,7 @@ export default function BrandingSection() {
         </div>
       </div>
 
-      {/* Default PO note */}
+      {/* ── Default PO note ── */}
       <div className="rounded-xl border border-border/60 bg-card shadow-sm">
         <div className="border-b border-border/40 px-6 py-4">
           <h3 className="text-sm font-semibold">Default PO note</h3>
@@ -306,7 +593,7 @@ export default function BrandingSection() {
         </div>
       </div>
 
-      {/* Sidebar preview */}
+      {/* ── Sidebar preview ── */}
       <div className="rounded-xl border border-border/60 bg-card shadow-sm">
         <div className="border-b border-border/40 px-6 py-4">
           <h3 className="text-sm font-semibold">Sidebar preview</h3>
@@ -331,7 +618,7 @@ export default function BrandingSection() {
   );
 }
 
-/** Resize image to maxDim and return a data URL */
+/** Resize image to maxDim and return a PNG data URL */
 function resizeImage(file: File, maxDim: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
