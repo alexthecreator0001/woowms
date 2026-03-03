@@ -205,16 +205,18 @@ export default function Dashboard() {
                 <p className="mt-0.5 text-xs text-muted-foreground">Learn about zones, aisles, racks, and shelf locations.</p>
               </div>
             </Link>
-            <Link
-              to="/docs"
+            <a
+              href="https://docs.picknpack.io"
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-start gap-3 rounded-xl border border-border/60 bg-card p-4 shadow-sm transition-colors hover:border-border hover:bg-muted/30"
             >
               <ChartLineUp size={20} weight="duotone" className="mt-0.5 flex-shrink-0 text-violet-500" />
               <div>
-                <p className="text-sm font-semibold">Help Center</p>
+                <p className="text-sm font-semibold">Documentation</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">Browse all help topics, guides, and documentation.</p>
               </div>
-            </Link>
+            </a>
             <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">

@@ -1,5 +1,5 @@
 # ⚠️ DOCS RULE
-**DOCS RULE**: After every feature addition or change, update the corresponding docs page in `docs-site/src/pages/`. Keep docs in sync with features.
+**DOCS RULE**: After every feature addition or change, update the corresponding docs page in `docs-site/src/pages/`. Keep docs in sync with features. The docs site is hosted at https://docs.picknpack.io — there is NO in-app docs page (the old `/docs` route was removed). All "Help" links in the app point to the external docs site.
 
 ---
 
@@ -61,8 +61,9 @@ cd /var/www/woowms && git pull && cd docs-site && npm install && NODE_OPTIONS=--
    - Patch (x.x.X) for fixes and small changes
    - Minor (x.X.0) for new features
    - Major (X.0.0) for breaking changes
-5. **DESIGN IS #1 PRIORITY**: UI/UX design quality is the top priority. Every frontend change must look polished, modern, and professional. Never ship ugly or default-looking UI.
-6. **SHADCN DESIGN STYLE**: Use Tailwind CSS + shadcn/ui design patterns. Use `@phosphor-icons/react` for icons. Use `cn()` from `src/lib/utils.js` for conditional classes. Follow shadcn HSL color tokens. No inline styles — use Tailwind classes only.
+5. **DOCS SITE**: After every feature addition or change, update the corresponding docs page in `docs-site/src/pages/`. The docs site at https://docs.picknpack.io must always reflect the current state of the app. Treat this the same as the changelog — every change gets a docs update.
+6. **DESIGN IS #1 PRIORITY**: UI/UX design quality is the top priority. Every frontend change must look polished, modern, and professional. Never ship ugly or default-looking UI.
+7. **SHADCN DESIGN STYLE**: Use Tailwind CSS + shadcn/ui design patterns. Use `@phosphor-icons/react` for icons. Use `cn()` from `src/lib/utils.js` for conditional classes. Follow shadcn HSL color tokens. No inline styles — use Tailwind classes only.
 
 ---
 

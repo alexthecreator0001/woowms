@@ -26,7 +26,6 @@ import Suppliers from './pages/Suppliers';
 import SupplierDetail from './pages/SupplierDetail';
 import Settings from './pages/settings/SettingsPage';
 import Plugins from './pages/Plugins';
-import Docs from './pages/Docs';
 import type { TokenPayload } from './types';
 
 function getTokenPayload(): TokenPayload | null {
@@ -156,7 +155,6 @@ export default function App() {
                 <Route path="/suppliers/:id" element={<SupplierDetail />} />
                 <Route path="/plugins" element={<Plugins />} />
                 <Route path="/settings" element={<Settings />} />
-                <Route path="/docs" element={<Docs />} />
               </Routes>
             </Layout>
           </PrivateRoute>

@@ -3,10 +3,15 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [3.34.0 / 2.29.0] - 2026-03-03
+## [3.35.0 / 2.29.0] - 2026-03-03
 
 ### Added
 - **Order Rules engine** — "Customer Tags" in Settings renamed to "Rules" with four rule types: Customer Tag (colored badges), Free Gift (auto-add SKU at price $0), Auto Priority (set order priority 1-3), and Auto Note (append note to order). Sync-time rules (free gift, auto priority, auto note) fire once when new orders arrive from WooCommerce. Customer tags evaluate at view time. Full backward compatibility with existing customerRules data.
+
+### Changed
+- **Docs site is the single help source** — removed the in-app `/docs` Help Center page. All help links (sidebar "Help", dashboard "Documentation") now point to https://docs.picknpack.io
+- **Docs site design improvements** — fixed oversized logo on mobile (now compact icon mark on small screens, full wordmark on desktop), added footer, improved mobile text sizes and responsive padding
+- **CLAUDE.md updated** — docs-site update is now a numbered mandatory rule (rule #5) alongside changelog and version bump
 
 ## [3.33.0 / 2.28.0] - 2026-03-03
 
