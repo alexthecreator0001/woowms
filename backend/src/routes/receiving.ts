@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { pushStockToWoo, shouldPushStock } from '../woocommerce/sync.js';
 import prisma from '../lib/prisma.js';
+import { generatePoPdf, type PoTemplate } from '../lib/poPdf.js';
 
 const router = Router();
 
@@ -125,6 +126,63 @@ router.get('/product-info', async (req: Request, res: Response, next: NextFuncti
     }
 
     res.json({ data: product });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/receiving/:id/pdf — generate PO PDF server-side
+router.get('/:id/pdf', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const poId = await resolvePOId(req.params.id, req.tenantId);
+    if (!poId) return res.status(404).json({ error: true, message: 'PO not found', code: 'NOT_FOUND' });
+
+    const po = await req.prisma!.purchaseOrder.findUnique({
+      where: { id: poId },
+      include: { items: true },
+    });
+    if (!po || po.tenantId !== req.tenantId) {
+      return res.status(404).json({ error: true, message: 'PO not found', code: 'NOT_FOUND' });
+    }
+
+    // Get tenant branding
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: req.tenantId },
+      select: { name: true, settings: true },
+    });
+    const settings = (tenant?.settings as Record<string, unknown>) || {};
+    const template = (['modern', 'classic', 'minimal'].includes(settings.poTemplate as string) ? settings.poTemplate : 'modern') as PoTemplate;
+    const companyName = tenant?.name || '';
+    const logoUrl = (settings.logoUrl as string) || null;
+
+    // Decode logo data URL to buffer
+    let logoBuffer: Buffer | null = null;
+    if (logoUrl && logoUrl.startsWith('data:')) {
+      const match = logoUrl.match(/^data:[^;]+;base64,(.+)$/);
+      if (match) logoBuffer = Buffer.from(match[1], 'base64');
+    }
+
+    const poData = {
+      poNumber: po.poNumber,
+      supplier: po.supplier,
+      status: po.status,
+      createdAt: po.createdAt.toISOString(),
+      expectedDate: po.expectedDate?.toISOString() || null,
+      notes: po.notes,
+      items: po.items.map((i: any) => ({
+        sku: i.sku,
+        productName: i.productName,
+        orderedQty: i.orderedQty,
+        receivedQty: i.receivedQty,
+        unitCost: i.unitCost ? String(i.unitCost) : null,
+      })),
+    };
+
+    const pdfDoc = generatePoPdf(poData, { template, companyName, logoBuffer });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${po.poNumber}.pdf"`);
+    pdfDoc.pipe(res);
   } catch (err) {
     next(err);
   }

@@ -5,7 +5,8 @@ import {
 } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import api from '../../services/api';
-import type { PoTemplate } from '../../lib/generatePoPdf';
+
+type PoTemplate = 'modern' | 'classic' | 'minimal';
 
 const TEMPLATES: { value: PoTemplate; label: string; description: string }[] = [
   { value: 'modern', label: 'Modern', description: 'Clean layout with accent bar and bold typography.' },
@@ -18,17 +19,19 @@ export default function DocumentsSection() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
+  const [companyName, setCompanyName] = useState('');
 
   useEffect(() => {
-    api.get('/account/tenant-settings')
-      .then(({ data }) => {
-        const s = data.data || {};
-        if (s.poTemplate === 'modern' || s.poTemplate === 'classic' || s.poTemplate === 'minimal') {
-          setTemplate(s.poTemplate);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    Promise.all([
+      api.get('/account/tenant-settings'),
+      api.get('/auth/me'),
+    ]).then(([settingsRes, meRes]) => {
+      const s = settingsRes.data.data || {};
+      if (s.poTemplate === 'modern' || s.poTemplate === 'classic' || s.poTemplate === 'minimal') {
+        setTemplate(s.poTemplate);
+      }
+      setCompanyName(meRes.data.data.tenantName || 'Your Company');
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const handleSave = async (val: PoTemplate) => {
@@ -64,7 +67,7 @@ export default function DocumentsSection() {
           </p>
         </div>
         <div className="p-6">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-3">
             {TEMPLATES.map((t) => (
               <button
                 key={t.value}
@@ -72,23 +75,23 @@ export default function DocumentsSection() {
                 onClick={() => handleSave(t.value)}
                 disabled={saving}
                 className={cn(
-                  'relative rounded-xl border-2 p-4 text-left transition-all',
+                  'relative rounded-xl border-2 p-3 text-left transition-all',
                   template === t.value
-                    ? 'border-primary bg-primary/5 shadow-sm'
+                    ? 'border-primary bg-primary/5 shadow-md'
                     : 'border-border/60 hover:border-border hover:bg-muted/20'
                 )}
               >
                 {template === t.value && (
-                  <div className="absolute top-2.5 right-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                  <div className="absolute top-2 right-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
                     <Check size={12} weight="bold" className="text-white" />
                   </div>
                 )}
 
-                {/* Mini PDF preview */}
-                <div className="mb-3 overflow-hidden rounded-lg border border-border/40 bg-white p-2 shadow-sm">
-                  {t.value === 'modern' && <ModernPreview />}
-                  {t.value === 'classic' && <ClassicPreview />}
-                  {t.value === 'minimal' && <MinimalPreview />}
+                {/* Realistic PDF preview */}
+                <div className="mb-3 aspect-[210/297] overflow-hidden rounded-lg border border-border/40 bg-white shadow-sm">
+                  {t.value === 'modern' && <ModernPreview company={companyName} />}
+                  {t.value === 'classic' && <ClassicPreview company={companyName} />}
+                  {t.value === 'minimal' && <MinimalPreview company={companyName} />}
                 </div>
 
                 <p className="text-sm font-semibold">{t.label}</p>
@@ -109,73 +112,190 @@ export default function DocumentsSection() {
   );
 }
 
-/* ─── Mini preview thumbnails ────────────────────────── */
+/* ─── Realistic A4 PDF preview mockups ───────────────── */
 
-function ModernPreview() {
+const sampleRows = [
+  { sku: 'WDG-001', name: 'Widget Pro Max', qty: '24', cost: '$12.50', total: '$300.00' },
+  { sku: 'BLT-042', name: 'Bolt Assembly Kit', qty: '100', cost: '$3.25', total: '$325.00' },
+  { sku: 'GKT-017', name: 'Gasket Ring Set', qty: '50', cost: '$8.90', total: '$445.00' },
+  { sku: 'SPR-088', name: 'Spring Tension Unit', qty: '36', cost: '$5.75', total: '$207.00' },
+];
+
+function ModernPreview({ company }: { company: string }) {
   return (
-    <div className="space-y-1.5">
-      <div className="h-1 w-full rounded-full bg-indigo-500" />
-      <div className="flex items-center justify-between">
-        <div className="h-1.5 w-8 rounded bg-slate-200" />
-        <div className="h-2 w-16 rounded bg-slate-800" />
+    <div className="flex h-full flex-col p-[6%] text-[3.5px] leading-tight">
+      {/* Accent bar */}
+      <div className="mb-[3%] h-[1px] rounded-full bg-indigo-500" />
+
+      {/* Header */}
+      <div className="mb-[3%] flex items-start justify-between">
+        <span className="text-[4px] font-bold text-slate-800">{company}</span>
+        <div className="text-right">
+          <div className="text-[5px] font-bold text-indigo-500">PURCHASE ORDER</div>
+          <div className="text-[3px] text-slate-400">PO-20260301-001</div>
+        </div>
       </div>
-      <div className="h-px bg-slate-100" />
-      <div className="space-y-0.5">
-        <div className="h-2 w-full rounded bg-slate-800" />
-        {[1, 2, 3].map((i) => (
-          <div key={i} className={cn('h-2 w-full rounded', i % 2 === 0 ? 'bg-slate-50' : 'bg-white')} style={{ border: '0.5px solid #f1f5f9' }} />
+
+      {/* Divider */}
+      <div className="mb-[2%] h-px bg-slate-100" />
+
+      {/* Info row */}
+      <div className="mb-[3%] flex gap-[8%]">
+        <div>
+          <div className="text-[2.5px] font-bold text-slate-400">SUPPLIER</div>
+          <div className="text-[3.5px] text-slate-800">Acme Parts Ltd</div>
+        </div>
+        <div>
+          <div className="text-[2.5px] font-bold text-slate-400">DETAILS</div>
+          <div className="text-[3px] text-slate-400">Status: ORDERED</div>
+          <div className="text-[3px] text-slate-400">Created: Mar 1, 2026</div>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="flex-1">
+        <div className="flex rounded-t bg-slate-800 px-[2%] py-[1%] text-[2.5px] font-bold text-white">
+          <span className="w-[15%]">SKU</span>
+          <span className="flex-1">Product</span>
+          <span className="w-[10%] text-center">Ord</span>
+          <span className="w-[15%] text-right">Cost</span>
+          <span className="w-[15%] text-right">Total</span>
+        </div>
+        {sampleRows.map((r, i) => (
+          <div key={i} className={cn('flex px-[2%] py-[1.2%] text-[3px]', i % 2 === 1 ? 'bg-slate-50' : '')}>
+            <span className="w-[15%] text-slate-500">{r.sku}</span>
+            <span className="flex-1 text-slate-800">{r.name}</span>
+            <span className="w-[10%] text-center text-slate-600">{r.qty}</span>
+            <span className="w-[15%] text-right text-slate-600">{r.cost}</span>
+            <span className="w-[15%] text-right text-slate-800">{r.total}</span>
+          </div>
         ))}
       </div>
-      <div className="flex justify-end">
-        <div className="h-2 w-10 rounded bg-slate-100" />
+
+      {/* Total */}
+      <div className="mt-[2%] flex justify-end">
+        <div className="rounded bg-slate-50 px-[3%] py-[1%] text-[3.5px] font-bold text-slate-800">
+          Total $1,277.00
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="mt-auto pt-[3%] text-[2.5px] text-slate-300">
+        Generated Mar 3, 2026
+        <span className="float-right">{company}</span>
       </div>
     </div>
   );
 }
 
-function ClassicPreview() {
+function ClassicPreview({ company }: { company: string }) {
   return (
-    <div className="space-y-1.5">
-      <div className="rounded border border-gray-200 p-1">
-        <div className="flex items-center justify-between">
-          <div className="h-1.5 w-12 rounded bg-gray-300" />
-          <div className="h-1.5 w-8 rounded bg-gray-400" />
+    <div className="flex h-full flex-col p-[6%] text-[3.5px] leading-tight">
+      {/* Header box */}
+      <div className="mb-[3%] flex items-center justify-between rounded border border-gray-200 p-[2.5%]">
+        <div>
+          <div className="text-[5px] font-bold text-gray-800">Purchase Order</div>
+          <div className="text-[3px] text-gray-400">{company}</div>
+        </div>
+        <div className="text-right">
+          <div className="text-[4px] font-bold text-gray-800">PO-20260301-001</div>
+          <div className="text-[2.5px] text-gray-400">Mar 1, 2026</div>
         </div>
       </div>
-      <div className="flex gap-1">
-        <div className="flex-1 rounded border border-gray-200 bg-gray-50 p-1">
-          <div className="h-1 w-6 rounded bg-gray-200" />
+
+      {/* Info boxes */}
+      <div className="mb-[3%] flex gap-[2%]">
+        <div className="flex-1 rounded border border-gray-200 bg-gray-50 p-[2%]">
+          <div className="text-[2px] font-bold text-gray-400">SUPPLIER</div>
+          <div className="mt-[1%] text-[3.5px] text-gray-800">Acme Parts Ltd</div>
         </div>
-        <div className="flex-1 rounded border border-gray-200 bg-gray-50 p-1">
-          <div className="h-1 w-8 rounded bg-gray-200" />
+        <div className="flex-1 rounded border border-gray-200 bg-gray-50 p-[2%]">
+          <div className="text-[2px] font-bold text-gray-400">ORDER DETAILS</div>
+          <div className="mt-[1%] text-[3px] text-gray-700">Status: ORDERED</div>
+          <div className="text-[3px] text-gray-700">Expected: Mar 15, 2026</div>
         </div>
       </div>
-      <div className="space-y-0">
-        <div className="h-2 w-full rounded-t bg-gray-700" />
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-2 w-full border-x border-b border-gray-200 bg-white" />
+
+      {/* Table with grid */}
+      <div className="flex-1">
+        <div className="flex rounded-t bg-gray-700 px-[2%] py-[1%] text-[2.5px] font-bold text-white">
+          <span className="w-[14%]">SKU</span>
+          <span className="flex-1">Product</span>
+          <span className="w-[8%] text-center">Qty</span>
+          <span className="w-[14%] text-right">Unit Cost</span>
+          <span className="w-[14%] text-right">Line Total</span>
+        </div>
+        {sampleRows.map((r, i) => (
+          <div key={i} className={cn('flex border-b border-x border-gray-200 px-[2%] py-[1.2%] text-[3px]', i % 2 === 1 ? 'bg-gray-50' : 'bg-white')}>
+            <span className="w-[14%] text-gray-600">{r.sku}</span>
+            <span className="flex-1 text-gray-800">{r.name}</span>
+            <span className="w-[8%] text-center text-gray-600">{r.qty}</span>
+            <span className="w-[14%] text-right text-gray-600">{r.cost}</span>
+            <span className="w-[14%] text-right text-gray-800">{r.total}</span>
+          </div>
         ))}
+      </div>
+
+      {/* Total */}
+      <div className="mt-[2%]">
+        <div className="border-t border-gray-200 pt-[1%]" />
+        <div className="flex justify-end gap-[4%] text-[3.5px] font-bold text-gray-800">
+          <span>Total:</span>
+          <span>$1,277.00</span>
+        </div>
+      </div>
+
+      {/* Footer line */}
+      <div className="mt-auto border-t border-gray-200 pt-[1%] text-[2.5px] text-gray-300">
+        {company}
+        <span className="float-right">Page 1 · Mar 3, 2026</span>
       </div>
     </div>
   );
 }
 
-function MinimalPreview() {
+function MinimalPreview({ company }: { company: string }) {
   return (
-    <div className="space-y-1.5">
-      <div className="h-1 w-6 rounded bg-neutral-200" />
-      <div className="h-2 w-14 rounded bg-neutral-800" />
-      <div className="h-1 w-20 rounded bg-neutral-100" />
-      <div className="h-px bg-neutral-100" />
-      <div className="space-y-0.5">
-        <div className="h-1.5 w-full rounded bg-neutral-100" />
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-1.5 w-full border-b border-neutral-50 bg-white" />
+    <div className="flex h-full flex-col p-[6%] text-[3.5px] leading-tight">
+      {/* Company */}
+      <div className="text-[3px] text-neutral-400">{company}</div>
+
+      {/* PO number */}
+      <div className="mt-[2%] text-[6px] font-bold text-neutral-900">PO-20260301-001</div>
+      <div className="mt-[1%] text-[3px] text-neutral-400">
+        Acme Parts Ltd &nbsp;·&nbsp; Mar 1, 2026 &nbsp;·&nbsp; ORDERED
+      </div>
+
+      {/* Divider */}
+      <div className="my-[3%] h-px bg-neutral-100" />
+
+      {/* Table */}
+      <div className="flex-1">
+        <div className="flex bg-neutral-100 px-[2%] py-[1%] text-[2.5px] font-bold text-neutral-700">
+          <span className="flex-1">Product</span>
+          <span className="w-[14%]">SKU</span>
+          <span className="w-[8%] text-center">Ord</span>
+          <span className="w-[12%] text-right">Cost</span>
+          <span className="w-[12%] text-right">Total</span>
+        </div>
+        {sampleRows.map((r, i) => (
+          <div key={i} className="flex border-b border-neutral-50 px-[2%] py-[1.2%] text-[3px]">
+            <span className="flex-1 text-neutral-800">{r.name}</span>
+            <span className="w-[14%] text-neutral-400">{r.sku}</span>
+            <span className="w-[8%] text-center text-neutral-600">{r.qty}</span>
+            <span className="w-[12%] text-right text-neutral-600">{r.cost}</span>
+            <span className="w-[12%] text-right text-neutral-800">{r.total}</span>
+          </div>
         ))}
       </div>
-      <div className="flex justify-end">
-        <div className="h-1.5 w-8 rounded bg-neutral-800" />
+
+      {/* Total */}
+      <div className="mt-[2%] text-right text-[3.5px] font-bold text-neutral-900">
+        Total &nbsp;$1,277.00
       </div>
+
+      {/* Footer */}
+      <div className="mt-auto text-[2.5px] text-neutral-200">{company}</div>
     </div>
   );
 }

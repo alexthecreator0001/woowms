@@ -3,6 +3,19 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.49.0 / 2.38.0] - 2026-03-03
+
+### Fixed
+- **Digital product toggle** — Toggle was visually broken due to invalid Tailwind class (`translate-x-4.5`). Fixed with proper arbitrary value classes.
+- **Digital product type display** — Digital products now correctly show "Digital" badge in inventory list (requires migration deploy).
+- **PO PDF generation** — Moved from broken client-side (jsPDF) to reliable server-side generation using PDFKit. PDFs now stream directly from `GET /receiving/:id/pdf`.
+
+### Changed
+- **PDF template previews** — Settings > Documents now shows realistic A4 aspect-ratio previews with actual sample data (SKUs, product names, prices, totals) instead of abstract placeholders.
+
+### Removed
+- **Client-side PDF generation** — Removed `generatePoPdf.ts` (jsPDF/jspdf-autotable). All PDF generation is now server-side via PDFKit.
+
 ## [3.48.0 / 2.37.0] - 2026-03-03
 
 ### Added

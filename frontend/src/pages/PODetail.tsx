@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
-import { generatePoPdf, type PoTemplate } from '../lib/generatePoPdf';
 import type { PurchaseOrder, PurchaseOrderItem, Bin } from '../types';
 
 const poStatusConfig: Record<string, { label: string; bg: string; text: string; dot: string }> = {
@@ -44,10 +43,7 @@ export default function PODetail() {
   const [receiveQtys, setReceiveQtys] = useState<Record<number, { qty: number; binId?: number }>>({});
   const [availableBins, setAvailableBins] = useState<Bin[]>([]);
 
-  // Branding for PDF
-  const [pdfCompanyName, setPdfCompanyName] = useState('');
-  const [pdfLogoUrl, setPdfLogoUrl] = useState<string | null>(null);
-  const [pdfTemplate, setPdfTemplate] = useState<PoTemplate>('modern');
+  const [pdfDownloading, setPdfDownloading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -58,18 +54,23 @@ export default function PODetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // Fetch branding + template preference
-  useEffect(() => {
-    api.get('/auth/me')
-      .then(({ data }) => {
-        setPdfCompanyName(data.data.tenantName || '');
-        if (data.data.logoUrl) setPdfLogoUrl(data.data.logoUrl);
-        if (data.data.poTemplate === 'modern' || data.data.poTemplate === 'classic' || data.data.poTemplate === 'minimal') {
-          setPdfTemplate(data.data.poTemplate);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const handleDownloadPdf = async () => {
+    if (!po) return;
+    setPdfDownloading(true);
+    try {
+      const { data } = await api.get(`/receiving/${po.poNumber}/pdf`, { responseType: 'blob' });
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${po.poNumber}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF download failed:', err);
+    } finally {
+      setPdfDownloading(false);
+    }
+  };
 
   // Fetch active bins when entering receive mode
   useEffect(() => {
@@ -525,10 +526,11 @@ export default function PODetail() {
                 </button>
               )}
               <button
-                onClick={() => generatePoPdf(po, { template: pdfTemplate, companyName: pdfCompanyName, logoDataUrl: pdfLogoUrl })}
-                className="flex w-full items-center gap-3 rounded-xl border border-border/40 bg-muted/20 px-4 py-3 text-sm font-medium transition-colors hover:bg-muted/40"
+                onClick={handleDownloadPdf}
+                disabled={pdfDownloading}
+                className="flex w-full items-center gap-3 rounded-xl border border-border/40 bg-muted/20 px-4 py-3 text-sm font-medium transition-colors hover:bg-muted/40 disabled:opacity-50"
               >
-                <FileDown className="h-4 w-4 text-muted-foreground" />
+                {pdfDownloading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : <FileDown className="h-4 w-4 text-muted-foreground" />}
                 Download PDF
               </button>
               {po.status === 'DRAFT' && (

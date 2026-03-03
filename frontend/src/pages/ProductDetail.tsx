@@ -879,7 +879,7 @@ export default function ProductDetail() {
                 >
                   <span className={cn(
                     'inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform',
-                    product.isDigital ? 'translate-x-4.5' : 'translate-x-0.5'
+                    product.isDigital ? 'translate-x-[18px]' : 'translate-x-[2px]'
                   )} />
                 </button>
               </div>
