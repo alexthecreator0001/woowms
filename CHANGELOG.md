@@ -3,6 +3,12 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.27.1] - 2026-03-03
+
+### Fixed
+- **Orders not opening** — order resolver was treating numeric order numbers (e.g. "12345") as internal DB IDs instead of WooCommerce order numbers. Now tries orderNumber first, falls back to internal ID
+- **Products with numeric SKUs not opening** — product resolver now falls back to SKU lookup when a numeric param doesn't match any internal ID, fixing products with all-digit SKUs
+
 ## [3.31.0 / 2.27.0] - 2026-03-03
 
 ### Changed

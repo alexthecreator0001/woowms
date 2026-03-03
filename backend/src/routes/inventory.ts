@@ -47,14 +47,27 @@ async function getLowStockThreshold(tenantId: number): Promise<number> {
  * Accepts: numeric ID (e.g. "2905") or SKU string (e.g. "WIDGET-01").
  */
 async function resolveProductId(param: string, tenantId: number): Promise<number | null> {
-  const isNumeric = /^\d+$/.test(param);
-  if (isNumeric) return parseInt(param);
-  // Look up by SKU
-  const product = await prisma.product.findFirst({
+  // Non-numeric → always SKU lookup
+  if (!/^\d+$/.test(param)) {
+    const product = await prisma.product.findFirst({
+      where: { sku: param, store: { tenantId } },
+      select: { id: true },
+    });
+    return product?.id ?? null;
+  }
+  // Numeric → try internal ID first, fall back to SKU (some SKUs are all digits)
+  const numId = parseInt(param);
+  const byId = await prisma.product.findUnique({
+    where: { id: numId },
+    select: { id: true, store: { select: { tenantId: true } } },
+  });
+  if (byId && byId.store.tenantId === tenantId) return byId.id;
+  // Fall back to SKU lookup for numeric SKUs
+  const bySku = await prisma.product.findFirst({
     where: { sku: param, store: { tenantId } },
     select: { id: true },
   });
-  return product?.id ?? null;
+  return bySku?.id ?? null;
 }
 
 // GET /api/v1/inventory/stats

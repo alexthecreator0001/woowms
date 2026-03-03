@@ -49,17 +49,18 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const prisma = req.prisma!;
-    // Try numeric ID first (internal), then orderNumber (user-facing URL)
-    const isNumeric = /^\d+$/.test(req.params.id);
-    const order = isNumeric
-      ? await prisma.order.findUnique({
-          where: { id: parseInt(req.params.id) },
-          include: { items: { include: { product: true } }, shipments: true, pickLists: { include: { items: true } }, store: true },
-        })
-      : await prisma.order.findFirst({
-          where: { orderNumber: req.params.id, store: { tenantId: req.tenantId } },
-          include: { items: { include: { product: true } }, shipments: true, pickLists: { include: { items: true } }, store: true },
-        });
+    const includeRels = { items: { include: { product: true } }, shipments: true, pickLists: { include: { items: true } }, store: true };
+    // Try orderNumber first (frontend sends order numbers), fall back to internal ID
+    let order = await prisma.order.findFirst({
+      where: { orderNumber: req.params.id, store: { tenantId: req.tenantId } },
+      include: includeRels,
+    });
+    if (!order && /^\d+$/.test(req.params.id)) {
+      order = await prisma.order.findUnique({
+        where: { id: parseInt(req.params.id) },
+        include: includeRels,
+      });
+    }
 
     if (!order || order.store.tenantId !== req.tenantId) {
       return res.status(404).json({ error: true, message: 'Order not found', code: 'NOT_FOUND' });
@@ -77,11 +78,11 @@ router.patch('/:id/status', async (req: Request, res: Response, next: NextFuncti
     const prisma = req.prisma!;
     const { status } = req.body as { status: string };
 
-    // Verify ownership
-    const isNumeric = /^\d+$/.test(req.params.id);
-    const existing = isNumeric
-      ? await prisma.order.findUnique({ where: { id: parseInt(req.params.id) }, include: { store: true } })
-      : await prisma.order.findFirst({ where: { orderNumber: req.params.id, store: { tenantId: req.tenantId } }, include: { store: true } });
+    // Verify ownership — try orderNumber first, fall back to internal ID
+    let existing = await prisma.order.findFirst({ where: { orderNumber: req.params.id, store: { tenantId: req.tenantId } }, include: { store: true } });
+    if (!existing && /^\d+$/.test(req.params.id)) {
+      existing = await prisma.order.findUnique({ where: { id: parseInt(req.params.id) }, include: { store: true } });
+    }
     if (!existing || existing.store.tenantId !== req.tenantId) {
       return res.status(404).json({ error: true, message: 'Order not found', code: 'NOT_FOUND' });
     }
