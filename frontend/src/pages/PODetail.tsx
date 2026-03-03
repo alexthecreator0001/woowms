@@ -363,7 +363,6 @@ export default function PODetail() {
                     );
                   })}
             </div>
-            </div>
 
             {/* Cost Summary */}
             {totalCost > 0 && (
