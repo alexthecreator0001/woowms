@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   ChartLineUp,
   CurrencyDollar,
@@ -14,6 +14,9 @@ import {
   EyeSlash,
   CreditCard,
   Trophy,
+  ChartBar,
+  MapPin,
+  ListBullets,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import { fmtMoney } from '../lib/currency';
@@ -449,6 +452,40 @@ export default function Analytics() {
     }
   });
   const [showCardConfig, setShowCardConfig] = useState(false);
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const configRef = useRef<HTMLDivElement>(null);
+
+  const SECTION_DEFS = [
+    { key: 'charts', label: 'Charts', Icon: ChartBar },
+    { key: 'breakdowns', label: 'Status / Payments / Products', Icon: ListBullets },
+    { key: 'map', label: 'Order Map', Icon: MapPin },
+  ];
+  const [visibleSections, setVisibleSections] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('analyticsSections');
+      return saved ? JSON.parse(saved) : SECTION_DEFS.map((s) => s.key);
+    } catch {
+      return SECTION_DEFS.map((s) => s.key);
+    }
+  });
+
+  const toggleSection = useCallback((key: string) => {
+    setVisibleSections((prev) => {
+      const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
+      localStorage.setItem('analyticsSections', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  // Close customize dropdown on click outside
+  useEffect(() => {
+    if (!showCardConfig) return;
+    const handler = (e: MouseEvent) => {
+      if (configRef.current && !configRef.current.contains(e.target as Node)) setShowCardConfig(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showCardConfig]);
 
   useEffect(() => {
     setLoading(true);
@@ -501,27 +538,41 @@ export default function Analytics() {
   const sparkOrders = salesOverTime.map((d) => d.orders);
   const sparkAvg = salesOverTime.map((d) => (d.orders > 0 ? d.total / d.orders : 0));
 
-  const cardData: Record<string, { value: string; pct: number; sparkline: number[]; sparkColor: string }> = {
+  const periodLabel = PERIODS.find((p) => p.value === period)?.label || period;
+
+  const cardData: Record<string, { value: string; prevValue: string; rawValue: number; rawPrev: number; pct: number; sparkline: number[]; sparkColor: string }> = {
     totalSales: {
       value: fmtMoney(metrics.totalSales.value, metrics.totalSales.currency || currency),
+      prevValue: fmtMoney(metrics.totalSales.previous, metrics.totalSales.currency || currency),
+      rawValue: metrics.totalSales.value,
+      rawPrev: metrics.totalSales.previous,
       pct: pctChange(metrics.totalSales.value, metrics.totalSales.previous),
       sparkline: sparkSales,
       sparkColor: ICON_COLORS.indigo.spark,
     },
     totalOrders: {
       value: metrics.totalOrders.value.toLocaleString(),
+      prevValue: metrics.totalOrders.previous.toLocaleString(),
+      rawValue: metrics.totalOrders.value,
+      rawPrev: metrics.totalOrders.previous,
       pct: pctChange(metrics.totalOrders.value, metrics.totalOrders.previous),
       sparkline: sparkOrders,
       sparkColor: ICON_COLORS.violet.spark,
     },
     avgOrderValue: {
       value: fmtMoney(metrics.avgOrderValue.value, metrics.avgOrderValue.currency || currency),
+      prevValue: fmtMoney(metrics.avgOrderValue.previous, metrics.avgOrderValue.currency || currency),
+      rawValue: metrics.avgOrderValue.value,
+      rawPrev: metrics.avgOrderValue.previous,
       pct: pctChange(metrics.avgOrderValue.value, metrics.avgOrderValue.previous),
       sparkline: sparkAvg,
       sparkColor: ICON_COLORS.emerald.spark,
     },
     itemsSold: {
       value: metrics.itemsSold.value.toLocaleString(),
+      prevValue: metrics.itemsSold.previous.toLocaleString(),
+      rawValue: metrics.itemsSold.value,
+      rawPrev: metrics.itemsSold.previous,
       pct: pctChange(metrics.itemsSold.value, metrics.itemsSold.previous),
       sparkline: [],
       sparkColor: ICON_COLORS.amber.spark,
@@ -553,7 +604,7 @@ export default function Analytics() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="relative">
+          <div className="relative" ref={configRef}>
             <button
               onClick={() => setShowCardConfig(!showCardConfig)}
               className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
@@ -562,20 +613,47 @@ export default function Analytics() {
               Customize
             </button>
             {showCardConfig && (
-              <div className="absolute right-0 top-full z-50 mt-1 w-52 rounded-xl border border-border/60 bg-card p-2 shadow-lg">
-                {CARD_DEFS.map((c) => {
-                  const on = visibleCards.includes(c.key);
-                  return (
-                    <button
-                      key={c.key}
-                      onClick={() => toggleCard(c.key)}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
-                    >
-                      {on ? <Eye size={14} className="text-primary" /> : <EyeSlash size={14} className="text-muted-foreground" />}
-                      <span className={cn(on ? 'text-foreground' : 'text-muted-foreground')}>{c.title}</span>
-                    </button>
-                  );
-                })}
+              <div className="absolute right-0 top-full z-50 mt-1 w-64 rounded-xl border border-border/60 bg-card shadow-lg">
+                <div className="px-3 py-2 border-b border-border/40">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Metric Cards</p>
+                </div>
+                <div className="p-1.5">
+                  {CARD_DEFS.map((c) => {
+                    const on = visibleCards.includes(c.key);
+                    const Icon = c.Icon;
+                    return (
+                      <button
+                        key={c.key}
+                        onClick={() => toggleCard(c.key)}
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
+                      >
+                        {on ? <Eye size={14} className="text-primary" /> : <EyeSlash size={14} className="text-muted-foreground" />}
+                        <Icon size={14} weight="duotone" className={cn(ICON_COLORS[c.color].text)} />
+                        <span className={cn('text-xs', on ? 'text-foreground' : 'text-muted-foreground')}>{c.title}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="px-3 py-2 border-t border-b border-border/40">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Sections</p>
+                </div>
+                <div className="p-1.5">
+                  {SECTION_DEFS.map((s) => {
+                    const on = visibleSections.includes(s.key);
+                    const SIcon = s.Icon;
+                    return (
+                      <button
+                        key={s.key}
+                        onClick={() => toggleSection(s.key)}
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
+                      >
+                        {on ? <Eye size={14} className="text-primary" /> : <EyeSlash size={14} className="text-muted-foreground" />}
+                        <SIcon size={14} weight="duotone" className="text-muted-foreground" />
+                        <span className={cn('text-xs', on ? 'text-foreground' : 'text-muted-foreground')}>{s.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -604,8 +682,15 @@ export default function Analytics() {
           const Icon = card.Icon;
           const isUp = d.pct > 0;
           const isDown = d.pct < 0;
+          const isHovered = hoveredCard === card.key;
+          const diff = d.rawValue - d.rawPrev;
           return (
-            <div key={card.key} className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+            <div
+              key={card.key}
+              className="relative rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition-shadow hover:shadow-md cursor-default"
+              onMouseEnter={() => setHoveredCard(card.key)}
+              onMouseLeave={() => setHoveredCard(null)}
+            >
               <div className="flex items-center justify-between">
                 <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', ic.bg)}>
                   <Icon size={18} weight="duotone" className={ic.text} />
@@ -630,13 +715,38 @@ export default function Analytics() {
                   <Sparkline data={d.sparkline} color={d.sparkColor} />
                 </div>
               )}
+              {/* Hover tooltip */}
+              {isHovered && (
+                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50 pointer-events-none">
+                  <div className="rounded-lg border border-border/60 bg-card px-3 py-2 shadow-lg text-xs whitespace-nowrap">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Current ({periodLabel})</p>
+                        <p className="font-semibold">{d.value}</p>
+                      </div>
+                      <div className="w-px h-6 bg-border/60" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Previous {periodLabel}</p>
+                        <p className="font-semibold">{d.prevValue}</p>
+                      </div>
+                      <div className="w-px h-6 bg-border/60" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Change</p>
+                        <p className={cn('font-semibold', isUp && 'text-emerald-600', isDown && 'text-rose-600')}>
+                          {diff > 0 ? '+' : ''}{card.isMoney ? fmtMoney(diff, currency) : diff.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
       {/* ── Charts Row: Sales + Orders ───────────────────── */}
-      <div className="grid gap-5 lg:grid-cols-2">
+      {visibleSections.includes('charts') && <div className="grid gap-5 lg:grid-cols-2">
         <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
           <div className="border-b border-border/50 px-5 py-3">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sales Over Time</h3>
@@ -661,10 +771,10 @@ export default function Analytics() {
             )}
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* ── Status + Payments Row ────────────────────────── */}
-      <div className="grid gap-5 lg:grid-cols-3">
+      {visibleSections.includes('breakdowns') && <div className="grid gap-5 lg:grid-cols-3">
         {/* Orders by Status */}
         <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
           <div className="border-b border-border/50 px-5 py-3 flex items-center gap-2">
@@ -717,10 +827,10 @@ export default function Analytics() {
             ))}
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* ── Order Map (full width) ─────────────────────── */}
-      <div className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
+      {visibleSections.includes('map') && <div className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
         <div className="border-b border-border/50 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <GlobeHemisphereWest size={16} weight="duotone" className="text-indigo-600" />
@@ -771,7 +881,7 @@ export default function Analytics() {
             </div>
           </div>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

@@ -3,6 +3,14 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.44.0] - 2026-03-03
+
+### Changed
+- **Map markers smaller** — Reduced marker dot size on world map. Base size is now tiny, scales logarithmically with order count so countries with more orders get larger dots.
+- **Map dots more visible** — Increased opacity of the dotted world map background from 20% to 37% for better visibility.
+- **Stat card tooltips** — Hovering any metric card now shows a tooltip with current value, previous period value, and absolute change amount.
+- **Better Customize dropdown** — Dropdown now has two sections: "Metric Cards" (toggle individual cards) and "Sections" (toggle Charts, Status/Payments/Products, and Order Map). Click outside to close.
+
 ## [3.43.0 / 2.34.0] - 2026-03-03
 
 ### Changed

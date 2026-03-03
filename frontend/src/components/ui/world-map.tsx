@@ -17,7 +17,6 @@ export function WorldMap({ markers = [], markerColor = "#6366f1" }: MapProps) {
   const { svgMap, pinData, viewBox } = useMemo(() => {
     const map = new DottedMap({ height: 100, grid: "diagonal" });
 
-    // Use DottedMap's own projection for correct pin placement
     const pinData = markers.map((m) => {
       const pin = map.getPin({ lat: m.lat, lng: m.lng });
       return { ...m, x: pin.x, y: pin.y };
@@ -25,12 +24,11 @@ export function WorldMap({ markers = [], markerColor = "#6366f1" }: MapProps) {
 
     const svg = map.getSVG({
       radius: 0.22,
-      color: "#d1d5db50",
+      color: "#94a3b860",
       shape: "circle",
       backgroundColor: "transparent",
     });
 
-    // Extract viewBox from the generated SVG so overlay matches exactly
     const vbMatch = svg.match(/viewBox="([^"]+)"/);
     const viewBox = vbMatch ? vbMatch[1] : "0 0 200 100";
 
@@ -58,50 +56,20 @@ export function WorldMap({ markers = [], markerColor = "#6366f1" }: MapProps) {
         className="w-full h-full absolute inset-0 pointer-events-none select-none"
       >
         {pinData.map((pin, i) => {
-          const ratio = Math.sqrt((pin.value || 1) / maxVal);
-          const r = 0.6 + ratio * 0.9;
+          // Small base dot, grows logarithmically with order count
+          const logScale = Math.log2((pin.value || 1) + 1) / Math.log2(maxVal + 1);
+          const r = 0.3 + logScale * 0.7;
           return (
             <g key={`marker-${i}`}>
               {/* Pulsing ring */}
-              <circle
-                cx={pin.x}
-                cy={pin.y}
-                r={r}
-                fill={markerColor}
-                opacity="0.2"
-              >
-                <animate
-                  attributeName="r"
-                  from={String(r)}
-                  to={String(r + 2.5)}
-                  dur="2s"
-                  begin={`${(i * 0.3) % 2}s`}
-                  repeatCount="indefinite"
-                />
-                <animate
-                  attributeName="opacity"
-                  from="0.3"
-                  to="0"
-                  dur="2s"
-                  begin={`${(i * 0.3) % 2}s`}
-                  repeatCount="indefinite"
-                />
+              <circle cx={pin.x} cy={pin.y} r={r} fill={markerColor} opacity="0.15">
+                <animate attributeName="r" from={String(r)} to={String(r + 1.5)} dur="2.5s" begin={`${(i * 0.4) % 2.5}s`} repeatCount="indefinite" />
+                <animate attributeName="opacity" from="0.25" to="0" dur="2.5s" begin={`${(i * 0.4) % 2.5}s`} repeatCount="indefinite" />
               </circle>
               {/* Solid dot */}
-              <circle
-                cx={pin.x}
-                cy={pin.y}
-                r={r}
-                fill={markerColor}
-                opacity="0.65"
-              />
+              <circle cx={pin.x} cy={pin.y} r={r} fill={markerColor} opacity="0.55" />
               {/* Bright center */}
-              <circle
-                cx={pin.x}
-                cy={pin.y}
-                r={Math.max(r * 0.45, 0.3)}
-                fill={markerColor}
-              />
+              <circle cx={pin.x} cy={pin.y} r={Math.max(r * 0.5, 0.15)} fill={markerColor} />
             </g>
           );
         })}
