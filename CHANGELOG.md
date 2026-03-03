@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.32.0] - 2026-03-03
+
+### Changed
+- **Order Detail page redesigned** — enhanced two-column layout with bigger 56px product thumbnails (clickable to inventory), per-item picking progress bars, rich shipment tracking cards with copy-to-clipboard tracking numbers + "Track Package" / "Download Label" buttons, customer avatar with initials + mailto/tel links, embedded Google Maps preview for shipping address, visual vertical timeline with colored dots (emerald/blue/gray), payment summary with method + Paid/COD badge, billing address shown only when different from shipping
+
 ## [3.31.1] - 2026-03-03
 
 ### Fixed

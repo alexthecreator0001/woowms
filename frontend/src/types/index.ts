@@ -237,6 +237,8 @@ export interface Shipment {
   carrier: string | null;
   trackingNumber: string | null;
   trackingUrl: string | null;
+  labelUrl: string | null;
+  weight: string | null;
   status: ShipmentStatus;
   shippedAt: string | null;
   deliveredAt: string | null;
@@ -252,6 +254,7 @@ export interface WooAddress {
   state?: string;
   postcode?: string;
   country?: string;
+  phone?: string;
 }
 
 export interface OrderDetail extends Order {

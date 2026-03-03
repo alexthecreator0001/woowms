@@ -81,16 +81,26 @@ export default function Orders() {
 
       <h2>Order Detail</h2>
       <p>
-        Click any order row to open the full detail page. The two-column layout shows:
+        Click any order row to open the full detail page. The rich two-column layout shows:
       </p>
       <ul>
         <li>
-          <strong>Left column:</strong> Line items with product thumbnails, quantities, picked
-          status badges, line totals, payment summary, shipment tracking, and order notes
+          <strong>Left column:</strong>
+          <ul>
+            <li>Line items with large product thumbnails (clickable — navigates to the product in Inventory), per-item picking progress bars, and a totals row</li>
+            <li>Shipments &amp; Tracking — each shipment shows carrier, status badge, monospace tracking number with copy button, "Track Package" button (links to carrier tracking or ParcelsApp fallback), "Download Label" button if available, weight, and shipped/delivered dates</li>
+            <li>Order notes (shown only if present)</li>
+          </ul>
         </li>
         <li>
-          <strong>Right column:</strong> Customer info, shipping and billing addresses, and
-          an order timeline showing key events
+          <strong>Right column:</strong>
+          <ul>
+            <li>Customer card with avatar initials, email (mailto link), and phone number</li>
+            <li>Shipping address with an embedded Google Maps preview and "Open in Google Maps" link</li>
+            <li>Billing address (shown only when different from shipping)</li>
+            <li>Visual timeline with colored dots — emerald for completed steps, blue for current, gray/dashed for pending (Order Placed &rarr; Synced &rarr; Shipped &rarr; Delivered)</li>
+            <li>Payment summary with method, subtotal, total, and Paid/COD badge</li>
+          </ul>
         </li>
       </ul>
       <p>
