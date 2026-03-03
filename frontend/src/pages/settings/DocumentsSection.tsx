@@ -9,9 +9,9 @@ import api from '../../services/api';
 type PoTemplate = 'modern' | 'classic' | 'minimal';
 
 const TEMPLATES: { value: PoTemplate; label: string; description: string }[] = [
-  { value: 'modern', label: 'Modern', description: 'Clean layout with accent bar and bold typography.' },
-  { value: 'classic', label: 'Classic', description: 'Bordered boxes, grid table, traditional business style.' },
-  { value: 'minimal', label: 'Minimal', description: 'Ultra-clean with thin lines and lots of whitespace.' },
+  { value: 'modern', label: 'Modern', description: 'Accent bar, bold headers, clean info boxes.' },
+  { value: 'classic', label: 'Classic', description: 'Bordered header, grid table, traditional style.' },
+  { value: 'minimal', label: 'Minimal', description: 'Ultra-clean with thin lines, lots of whitespace.' },
 ];
 
 export default function DocumentsSection() {
@@ -63,7 +63,7 @@ export default function DocumentsSection() {
         <div className="border-b border-border/50 px-6 py-4">
           <h3 className="text-base font-semibold">Purchase Order PDF Template</h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Choose a design for generated purchase order PDFs. Your company logo and name are included automatically.
+            Choose a design for generated purchase order PDFs. Includes your logo, supplier info, delivery address, SKUs, and EAN codes.
           </p>
         </div>
         <div className="p-6">
@@ -87,7 +87,6 @@ export default function DocumentsSection() {
                   </div>
                 )}
 
-                {/* Realistic PDF preview */}
                 <div className="mb-3 aspect-[210/297] overflow-hidden rounded-lg border border-border/40 bg-white shadow-sm">
                   {t.value === 'modern' && <ModernPreview company={companyName} />}
                   {t.value === 'classic' && <ClassicPreview company={companyName} />}
@@ -112,141 +111,143 @@ export default function DocumentsSection() {
   );
 }
 
-/* ─── Realistic A4 PDF preview mockups ───────────────── */
+/* ─── Shared preview data ───────────────────────────── */
 
 const sampleRows = [
-  { sku: 'WDG-001', name: 'Widget Pro Max', qty: '24', cost: '$12.50', total: '$300.00' },
-  { sku: 'BLT-042', name: 'Bolt Assembly Kit', qty: '100', cost: '$3.25', total: '$325.00' },
-  { sku: 'GKT-017', name: 'Gasket Ring Set', qty: '50', cost: '$8.90', total: '$445.00' },
-  { sku: 'SPR-088', name: 'Spring Tension Unit', qty: '36', cost: '$5.75', total: '$207.00' },
+  { sku: 'WDG-001', supSku: 'SP-4401', name: 'Widget Pro Max', ean: '8594001234567', qty: '24', cost: '$12.50', total: '$300.00' },
+  { sku: 'BLT-042', supSku: 'SP-7780', name: 'Bolt Assembly Kit', ean: '8594009876543', qty: '100', cost: '$3.25', total: '$325.00' },
+  { sku: 'GKT-017', supSku: 'SP-1122', name: 'Gasket Ring Set', ean: '8594005551234', qty: '50', cost: '$8.90', total: '$445.00' },
 ];
+
+function InfoBox({ title, lines, className }: { title: string; lines: string[]; className?: string }) {
+  return (
+    <div className={cn('flex-1 rounded border border-gray-200 bg-gray-50/70 p-[2%]', className)}>
+      <div className="text-[2px] font-bold uppercase text-gray-400">{title}</div>
+      {lines.map((l, i) => (
+        <div key={i} className="text-[2.8px] text-gray-700 leading-[1.4]">{l}</div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── MODERN ────────────────────────────────────────── */
 
 function ModernPreview({ company }: { company: string }) {
   return (
-    <div className="flex h-full flex-col p-[6%] text-[3.5px] leading-tight">
-      {/* Accent bar */}
-      <div className="mb-[3%] h-[1px] rounded-full bg-indigo-500" />
+    <div className="flex h-full flex-col p-[5%] text-[3px] leading-tight">
+      <div className="mb-[2%] h-[1px] rounded-full bg-indigo-500" />
 
-      {/* Header */}
-      <div className="mb-[3%] flex items-start justify-between">
-        <span className="text-[4px] font-bold text-slate-800">{company}</span>
+      <div className="mb-[2%] flex items-start justify-between">
+        <div className="flex items-center gap-[1.5%]">
+          <div className="h-[8px] w-[8px] rounded-[1px] bg-indigo-100 flex items-center justify-center text-[3px] font-bold text-indigo-500">
+            {company.charAt(0)}
+          </div>
+          <span className="text-[4px] font-bold text-slate-800">{company}</span>
+        </div>
         <div className="text-right">
           <div className="text-[5px] font-bold text-indigo-500">PURCHASE ORDER</div>
-          <div className="text-[3px] text-slate-400">PO-20260301-001</div>
+          <div className="text-[2.5px] text-slate-400">PO-20260301-001</div>
         </div>
       </div>
 
-      {/* Divider */}
       <div className="mb-[2%] h-px bg-slate-100" />
 
-      {/* Info row */}
-      <div className="mb-[3%] flex gap-[8%]">
-        <div>
-          <div className="text-[2.5px] font-bold text-slate-400">SUPPLIER</div>
-          <div className="text-[3.5px] text-slate-800">Acme Parts Ltd</div>
-        </div>
-        <div>
-          <div className="text-[2.5px] font-bold text-slate-400">DETAILS</div>
-          <div className="text-[3px] text-slate-400">Status: ORDERED</div>
-          <div className="text-[3px] text-slate-400">Created: Mar 1, 2026</div>
-        </div>
+      <div className="mb-[2.5%] flex gap-[1.5%]">
+        <InfoBox title="Supplier" lines={['Acme Parts Ltd', 'Priemyselna 42, Bratislava', 'orders@acme.sk']} className="bg-slate-50/70 border-slate-200" />
+        <InfoBox title="Deliver To" lines={['Main Warehouse', 'Skladova 15, Zilina']} className="bg-slate-50/70 border-slate-200" />
+        <InfoBox title="Details" lines={['Status: ORDERED', 'Date: Mar 1, 2026', 'Expected: Mar 15']} className="bg-slate-50/70 border-slate-200" />
       </div>
 
-      {/* Table */}
       <div className="flex-1">
-        <div className="flex rounded-t bg-slate-800 px-[2%] py-[1%] text-[2.5px] font-bold text-white">
-          <span className="w-[15%]">SKU</span>
+        <div className="flex rounded-t bg-slate-800 px-[1.5%] py-[0.8%] text-[2.2px] font-bold text-white">
+          <span className="w-[12%]">SKU</span>
+          <span className="w-[12%]">Supp. SKU</span>
           <span className="flex-1">Product</span>
-          <span className="w-[10%] text-center">Ord</span>
-          <span className="w-[15%] text-right">Cost</span>
-          <span className="w-[15%] text-right">Total</span>
+          <span className="w-[16%]">EAN</span>
+          <span className="w-[7%] text-center">Qty</span>
+          <span className="w-[10%] text-right">Cost</span>
+          <span className="w-[10%] text-right">Total</span>
         </div>
         {sampleRows.map((r, i) => (
-          <div key={i} className={cn('flex px-[2%] py-[1.2%] text-[3px]', i % 2 === 1 ? 'bg-slate-50' : '')}>
-            <span className="w-[15%] text-slate-500">{r.sku}</span>
+          <div key={i} className={cn('flex px-[1.5%] py-[0.8%] text-[2.5px]', i % 2 === 1 ? 'bg-slate-50' : '')}>
+            <span className="w-[12%] text-slate-500">{r.sku}</span>
+            <span className="w-[12%] text-slate-400">{r.supSku}</span>
             <span className="flex-1 text-slate-800">{r.name}</span>
-            <span className="w-[10%] text-center text-slate-600">{r.qty}</span>
-            <span className="w-[15%] text-right text-slate-600">{r.cost}</span>
-            <span className="w-[15%] text-right text-slate-800">{r.total}</span>
+            <span className="w-[16%] text-slate-400">{r.ean}</span>
+            <span className="w-[7%] text-center text-slate-600">{r.qty}</span>
+            <span className="w-[10%] text-right text-slate-600">{r.cost}</span>
+            <span className="w-[10%] text-right text-slate-800">{r.total}</span>
           </div>
         ))}
       </div>
 
-      {/* Total */}
-      <div className="mt-[2%] flex justify-end">
-        <div className="rounded bg-slate-50 px-[3%] py-[1%] text-[3.5px] font-bold text-slate-800">
-          Total $1,277.00
+      <div className="mt-[1.5%] flex justify-end">
+        <div className="rounded bg-slate-50 border border-slate-200 px-[2.5%] py-[0.8%] text-[3px] font-bold text-slate-800">
+          TOTAL &nbsp; $1,070.00
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="mt-auto pt-[3%] text-[2.5px] text-slate-300">
-        Generated Mar 3, 2026
-        <span className="float-right">{company}</span>
+      <div className="mt-auto pt-[2%] border-t border-slate-100 text-[2px] text-slate-300">
+        {company}
+        <span className="float-right">Generated Mar 3, 2026</span>
       </div>
     </div>
   );
 }
 
+/* ─── CLASSIC ───────────────────────────────────────── */
+
 function ClassicPreview({ company }: { company: string }) {
   return (
-    <div className="flex h-full flex-col p-[6%] text-[3.5px] leading-tight">
-      {/* Header box */}
-      <div className="mb-[3%] flex items-center justify-between rounded border border-gray-200 p-[2.5%]">
+    <div className="flex h-full flex-col p-[5%] text-[3px] leading-tight">
+      <div className="mb-[2.5%] flex items-center justify-between rounded border border-gray-200 p-[2%]">
         <div>
           <div className="text-[5px] font-bold text-gray-800">Purchase Order</div>
-          <div className="text-[3px] text-gray-400">{company}</div>
+          <div className="text-[2.5px] text-gray-400">{company}</div>
         </div>
         <div className="text-right">
           <div className="text-[4px] font-bold text-gray-800">PO-20260301-001</div>
-          <div className="text-[2.5px] text-gray-400">Mar 1, 2026</div>
+          <div className="text-[2.2px] text-gray-400">Mar 1, 2026</div>
         </div>
       </div>
 
-      {/* Info boxes */}
-      <div className="mb-[3%] flex gap-[2%]">
-        <div className="flex-1 rounded border border-gray-200 bg-gray-50 p-[2%]">
-          <div className="text-[2px] font-bold text-gray-400">SUPPLIER</div>
-          <div className="mt-[1%] text-[3.5px] text-gray-800">Acme Parts Ltd</div>
-        </div>
-        <div className="flex-1 rounded border border-gray-200 bg-gray-50 p-[2%]">
-          <div className="text-[2px] font-bold text-gray-400">ORDER DETAILS</div>
-          <div className="mt-[1%] text-[3px] text-gray-700">Status: ORDERED</div>
-          <div className="text-[3px] text-gray-700">Expected: Mar 15, 2026</div>
-        </div>
+      <div className="mb-[2.5%] flex gap-[1.5%]">
+        <InfoBox title="Supplier" lines={['Acme Parts Ltd', 'Priemyselna 42, Bratislava', 'orders@acme.sk', '+421 900 111 222']} />
+        <InfoBox title="Deliver To" lines={['Main Warehouse', 'Skladova 15, Zilina']} />
+        <InfoBox title="Order Details" lines={['Status: ORDERED', 'Date: Mar 1, 2026', 'Expected: Mar 15']} />
       </div>
 
-      {/* Table with grid */}
       <div className="flex-1">
-        <div className="flex rounded-t bg-gray-700 px-[2%] py-[1%] text-[2.5px] font-bold text-white">
-          <span className="w-[14%]">SKU</span>
+        <div className="flex rounded-t bg-gray-700 px-[1.5%] py-[0.8%] text-[2.2px] font-bold text-white">
+          <span className="w-[12%]">SKU</span>
+          <span className="w-[12%]">Supp. SKU</span>
           <span className="flex-1">Product</span>
-          <span className="w-[8%] text-center">Qty</span>
-          <span className="w-[14%] text-right">Unit Cost</span>
-          <span className="w-[14%] text-right">Line Total</span>
+          <span className="w-[16%]">EAN</span>
+          <span className="w-[7%] text-center">Qty</span>
+          <span className="w-[10%] text-right">Unit Cost</span>
+          <span className="w-[10%] text-right">Line Total</span>
         </div>
         {sampleRows.map((r, i) => (
-          <div key={i} className={cn('flex border-b border-x border-gray-200 px-[2%] py-[1.2%] text-[3px]', i % 2 === 1 ? 'bg-gray-50' : 'bg-white')}>
-            <span className="w-[14%] text-gray-600">{r.sku}</span>
+          <div key={i} className={cn('flex border-b border-x border-gray-200 px-[1.5%] py-[0.8%] text-[2.5px]', i % 2 === 1 ? 'bg-gray-50' : 'bg-white')}>
+            <span className="w-[12%] text-gray-600">{r.sku}</span>
+            <span className="w-[12%] text-gray-400">{r.supSku}</span>
             <span className="flex-1 text-gray-800">{r.name}</span>
-            <span className="w-[8%] text-center text-gray-600">{r.qty}</span>
-            <span className="w-[14%] text-right text-gray-600">{r.cost}</span>
-            <span className="w-[14%] text-right text-gray-800">{r.total}</span>
+            <span className="w-[16%] text-gray-400">{r.ean}</span>
+            <span className="w-[7%] text-center text-gray-600">{r.qty}</span>
+            <span className="w-[10%] text-right text-gray-600">{r.cost}</span>
+            <span className="w-[10%] text-right text-gray-800">{r.total}</span>
           </div>
         ))}
       </div>
 
-      {/* Total */}
-      <div className="mt-[2%]">
-        <div className="border-t border-gray-200 pt-[1%]" />
-        <div className="flex justify-end gap-[4%] text-[3.5px] font-bold text-gray-800">
+      <div className="mt-[1.5%] border-t border-gray-200 pt-[0.8%]">
+        <div className="flex justify-end gap-[3%] text-[3px] font-bold text-gray-800">
           <span>Total:</span>
-          <span>$1,277.00</span>
+          <span>$1,070.00</span>
         </div>
       </div>
 
-      {/* Footer line */}
-      <div className="mt-auto border-t border-gray-200 pt-[1%] text-[2.5px] text-gray-300">
+      <div className="mt-auto border-t border-gray-200 pt-[0.8%] text-[2px] text-gray-300">
         {company}
         <span className="float-right">Page 1 · Mar 3, 2026</span>
       </div>
@@ -254,48 +255,59 @@ function ClassicPreview({ company }: { company: string }) {
   );
 }
 
+/* ─── MINIMAL ───────────────────────────────────────── */
+
 function MinimalPreview({ company }: { company: string }) {
   return (
-    <div className="flex h-full flex-col p-[6%] text-[3.5px] leading-tight">
-      {/* Company */}
-      <div className="text-[3px] text-neutral-400">{company}</div>
+    <div className="flex h-full flex-col p-[5%] text-[3px] leading-tight">
+      <div className="text-[2.5px] text-neutral-400">{company}</div>
+      <div className="mt-[1.5%] text-[6px] font-bold text-neutral-900">PO-20260301-001</div>
+      <div className="mt-[0.5%] text-[2.5px] text-neutral-400">Mar 1, 2026 &nbsp;·&nbsp; ORDERED &nbsp;·&nbsp; Expected Mar 15</div>
 
-      {/* PO number */}
-      <div className="mt-[2%] text-[6px] font-bold text-neutral-900">PO-20260301-001</div>
-      <div className="mt-[1%] text-[3px] text-neutral-400">
-        Acme Parts Ltd &nbsp;·&nbsp; Mar 1, 2026 &nbsp;·&nbsp; ORDERED
+      <div className="my-[2%] h-px bg-neutral-100" />
+
+      <div className="mb-[2%] flex gap-[8%]">
+        <div>
+          <div className="text-[2px] font-bold text-neutral-400">SUPPLIER</div>
+          <div className="text-[3px] text-neutral-800">Acme Parts Ltd</div>
+          <div className="text-[2.5px] text-neutral-400">Priemyselna 42, Bratislava</div>
+          <div className="text-[2.5px] text-neutral-400">orders@acme.sk</div>
+        </div>
+        <div>
+          <div className="text-[2px] font-bold text-neutral-400">DELIVER TO</div>
+          <div className="text-[3px] text-neutral-800">Main Warehouse</div>
+          <div className="text-[2.5px] text-neutral-400">Skladova 15, Zilina</div>
+        </div>
       </div>
 
-      {/* Divider */}
-      <div className="my-[3%] h-px bg-neutral-100" />
+      <div className="h-px bg-neutral-100 mb-[1%]" />
 
-      {/* Table */}
       <div className="flex-1">
-        <div className="flex bg-neutral-100 px-[2%] py-[1%] text-[2.5px] font-bold text-neutral-700">
+        <div className="flex bg-neutral-100 px-[1.5%] py-[0.8%] text-[2.2px] font-bold text-neutral-700">
           <span className="flex-1">Product</span>
-          <span className="w-[14%]">SKU</span>
-          <span className="w-[8%] text-center">Ord</span>
-          <span className="w-[12%] text-right">Cost</span>
-          <span className="w-[12%] text-right">Total</span>
+          <span className="w-[12%]">SKU</span>
+          <span className="w-[16%]">EAN</span>
+          <span className="w-[7%] text-center">Qty</span>
+          <span className="w-[10%] text-right">Cost</span>
+          <span className="w-[10%] text-right">Total</span>
         </div>
         {sampleRows.map((r, i) => (
-          <div key={i} className="flex border-b border-neutral-50 px-[2%] py-[1.2%] text-[3px]">
+          <div key={i} className="flex border-b border-neutral-50 px-[1.5%] py-[0.8%] text-[2.5px]">
             <span className="flex-1 text-neutral-800">{r.name}</span>
-            <span className="w-[14%] text-neutral-400">{r.sku}</span>
-            <span className="w-[8%] text-center text-neutral-600">{r.qty}</span>
-            <span className="w-[12%] text-right text-neutral-600">{r.cost}</span>
-            <span className="w-[12%] text-right text-neutral-800">{r.total}</span>
+            <span className="w-[12%] text-neutral-400">{r.sku}</span>
+            <span className="w-[16%] text-neutral-400">{r.ean}</span>
+            <span className="w-[7%] text-center text-neutral-600">{r.qty}</span>
+            <span className="w-[10%] text-right text-neutral-600">{r.cost}</span>
+            <span className="w-[10%] text-right text-neutral-800">{r.total}</span>
           </div>
         ))}
       </div>
 
-      {/* Total */}
-      <div className="mt-[2%] text-right text-[3.5px] font-bold text-neutral-900">
-        Total &nbsp;$1,277.00
+      <div className="mt-[1.5%] text-right text-[3px] font-bold text-neutral-900">
+        Total &nbsp; $1,070.00
       </div>
 
-      {/* Footer */}
-      <div className="mt-auto text-[2.5px] text-neutral-200">{company}</div>
+      <div className="mt-auto pt-[1%] text-[2px] text-neutral-200">{company}</div>
     </div>
   );
 }

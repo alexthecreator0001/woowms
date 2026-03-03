@@ -139,17 +139,23 @@ router.get('/:id/pdf', async (req: Request, res: Response, next: NextFunction) =
 
     const po = await req.prisma!.purchaseOrder.findUnique({
       where: { id: poId },
-      include: { items: true },
+      include: { items: true, supplierRef: true },
     });
     if (!po || po.tenantId !== req.tenantId) {
       return res.status(404).json({ error: true, message: 'PO not found', code: 'NOT_FOUND' });
     }
 
-    // Get tenant branding
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: req.tenantId },
-      select: { name: true, settings: true },
-    });
+    // Get tenant branding + default warehouse
+    const [tenant, warehouse] = await Promise.all([
+      prisma.tenant.findUnique({
+        where: { id: req.tenantId },
+        select: { name: true, settings: true },
+      }),
+      prisma.warehouse.findFirst({
+        where: { tenantId: req.tenantId, isDefault: true },
+        select: { name: true, address: true },
+      }),
+    ]);
     const settings = (tenant?.settings as Record<string, unknown>) || {};
     const template = (['modern', 'classic', 'minimal'].includes(settings.poTemplate as string) ? settings.poTemplate : 'modern') as PoTemplate;
     const companyName = tenant?.name || '';
@@ -162,20 +168,68 @@ router.get('/:id/pdf', async (req: Request, res: Response, next: NextFunction) =
       if (match) logoBuffer = Buffer.from(match[1], 'base64');
     }
 
+    // Enrich items with supplier SKU, EAN, and image
+    const allSkus = po.items.map((i: any) => i.sku).filter(Boolean);
+    const products = allSkus.length > 0
+      ? await prisma.product.findMany({
+          where: { sku: { in: allSkus }, store: { tenantId: req.tenantId } },
+          select: { id: true, sku: true, imageUrl: true },
+        })
+      : [];
+    const productMap = new Map(products.map(p => [p.sku, p]));
+    const productIds = products.map(p => p.id);
+
+    // Get supplier SKUs from SupplierProduct
+    const supplierProducts = (po.supplierId && productIds.length > 0)
+      ? await prisma.supplierProduct.findMany({
+          where: { supplierId: po.supplierId, productId: { in: productIds } },
+          select: { productId: true, supplierSku: true },
+        })
+      : [];
+    const supplierSkuMap = new Map(supplierProducts.map(sp => [sp.productId, sp.supplierSku]));
+
+    // Get barcodes (primary or first) for products
+    const barcodes = productIds.length > 0
+      ? await prisma.productBarcode.findMany({
+          where: { productId: { in: productIds } },
+          select: { productId: true, barcode: true, isPrimary: true },
+          orderBy: { isPrimary: 'desc' },
+        })
+      : [];
+    const barcodeMap = new Map<number, string>();
+    for (const bc of barcodes) {
+      if (!barcodeMap.has(bc.productId)) barcodeMap.set(bc.productId, bc.barcode);
+    }
+
+    const supplier = po.supplierRef;
+
     const poData = {
       poNumber: po.poNumber,
-      supplier: po.supplier,
       status: po.status,
       createdAt: po.createdAt.toISOString(),
       expectedDate: po.expectedDate?.toISOString() || null,
       notes: po.notes,
-      items: po.items.map((i: any) => ({
-        sku: i.sku,
-        productName: i.productName,
-        orderedQty: i.orderedQty,
-        receivedQty: i.receivedQty,
-        unitCost: i.unitCost ? String(i.unitCost) : null,
-      })),
+      supplier: {
+        name: supplier?.name || po.supplier,
+        address: supplier?.address || null,
+        email: supplier?.email || null,
+        phone: supplier?.phone || null,
+      },
+      deliveryAddress: warehouse ? `${warehouse.name}${warehouse.address ? ', ' + warehouse.address : ''}` : null,
+      items: po.items.map((i: any) => {
+        const prod = productMap.get(i.sku);
+        const prodId = prod?.id;
+        return {
+          sku: i.sku,
+          productName: i.productName,
+          orderedQty: i.orderedQty,
+          receivedQty: i.receivedQty,
+          unitCost: i.unitCost ? String(i.unitCost) : null,
+          supplierSku: prodId ? (supplierSkuMap.get(prodId) || null) : null,
+          ean: prodId ? (barcodeMap.get(prodId) || null) : null,
+          imageUrl: prod?.imageUrl || null,
+        };
+      }),
     };
 
     const pdfDoc = generatePoPdf(poData, { template, companyName, logoBuffer });
