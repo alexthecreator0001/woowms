@@ -398,6 +398,8 @@ export interface PurchaseOrderItem {
   receivedQty: number;
   unitCost: string | null;
   imageUrl?: string | null;
+  supplierSku?: string | null;
+  ean?: string | null;
 }
 
 export interface PurchaseOrder {

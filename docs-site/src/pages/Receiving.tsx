@@ -84,14 +84,31 @@ export default function Receiving() {
       </p>
       <ul>
         <li>
-          <strong>Left column:</strong> Items table with ordered/received quantities and
-          progress indicators, cost summary with subtotal
+          <strong>Left column:</strong> Items table with product thumbnails, ordered/received
+          quantities, progress indicators, and cost summary with subtotal. Supplier SKU and
+          EAN columns appear automatically when any item has those fields populated.
         </li>
         <li>
-          <strong>Right column:</strong> Status transitions, supplier info, tracking details,
+          <strong>Right column:</strong> Status transitions, supplier info, visual receiving
+          progress bar (color-coded: amber for partial, green for complete), tracking details,
           PDF export, and delete (draft only)
         </li>
       </ul>
+
+      <h3>Product Thumbnails</h3>
+      <p>
+        Each item row in the PO detail items table displays a small 32&times;32 product
+        thumbnail loaded via the image proxy. If a product has no image, a placeholder
+        package icon is shown instead.
+      </p>
+
+      <h3>Receiving Progress Bar</h3>
+      <p>
+        The PO Info card on the right column includes a visual progress bar showing the
+        ratio of received items to ordered items, along with a percentage. The bar is
+        colored amber during partial receiving and turns green when all items are fully
+        received.
+      </p>
 
       <h2>PDF Export</h2>
       <p>

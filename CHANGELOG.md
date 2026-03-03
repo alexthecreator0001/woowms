@@ -3,6 +3,14 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.51.0] - 2026-03-03
+
+### Added
+- **PO detail product images** — Items table now shows product thumbnails (32x32) via image proxy. Falls back to Package icon placeholder when no image available.
+- **Supplier SKU column** — Conditionally shown in PO items table when any item has a supplier SKU.
+- **EAN column** — Conditionally shown in PO items table when any item has an EAN code.
+- **Receiving progress bar** — Visual colored progress bar in PO Info card showing received/ordered ratio with percentage. Green when fully received, amber for partial.
+
 ## [3.50.0 / 2.39.1] - 2026-03-03
 
 ### Fixed

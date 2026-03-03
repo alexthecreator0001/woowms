@@ -161,6 +161,9 @@ export default function PODetail() {
   const totalReceived = items.reduce((sum, i) => sum + i.receivedQty, 0);
   const totalOrdered = items.reduce((sum, i) => sum + i.orderedQty, 0);
   const canReceive = ['ORDERED', 'PARTIALLY_RECEIVED'].includes(po.status);
+  const hasSupplierSku = items.some((i) => i.supplierSku);
+  const hasEan = items.some((i) => i.ean);
+  const progressPct = totalOrdered > 0 ? Math.round((totalReceived / totalOrdered) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -242,14 +245,17 @@ export default function PODetail() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border/40 bg-muted/20">
-                    <th className="px-6 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">SKU</th>
-                    <th className="px-6 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Product</th>
-                    <th className="px-6 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ordered</th>
-                    <th className="px-6 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Received</th>
-                    {receiving && <th className="px-6 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Qty to Receive</th>}
-                    {receiving && <th className="px-6 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Put to Bin</th>}
-                    <th className="px-6 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Unit Cost</th>
-                    <th className="px-6 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Line Total</th>
+                    <th className="w-12 px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground"><span className="sr-only">Image</span></th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">SKU</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Product</th>
+                    {hasSupplierSku && <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Supplier SKU</th>}
+                    {hasEan && <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">EAN</th>}
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ordered</th>
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Received</th>
+                    {receiving && <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Qty to Receive</th>}
+                    {receiving && <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Put to Bin</th>}
+                    <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Unit Cost</th>
+                    <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Line Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
@@ -259,12 +265,51 @@ export default function PODetail() {
                     const remaining = item.orderedQty - item.receivedQty;
                     return (
                       <tr key={item.id} className="border-l-4 border-l-transparent transition-all hover:border-l-amber-500 hover:bg-amber-500/[0.02]">
-                        <td className="px-6 py-3">
+                        <td className="w-12 px-3 py-2">
+                          <div className="flex items-center justify-center">
+                            {item.imageUrl ? (
+                              <img
+                                src={`/api/v1/images/proxy?url=${encodeURIComponent(item.imageUrl)}&w=80`}
+                                alt={item.productName}
+                                className="h-8 w-8 rounded-md border border-border/40 object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                  (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                }}
+                              />
+                            ) : null}
+                            <div className={cn(
+                              'flex h-8 w-8 items-center justify-center rounded-md border border-border/40 bg-muted/30',
+                              item.imageUrl ? 'hidden' : ''
+                            )}>
+                              <Package className="h-4 w-4 text-muted-foreground/60" />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
                           <code className="text-xs text-muted-foreground">{item.sku}</code>
                         </td>
-                        <td className="px-6 py-3 text-sm font-medium">{item.productName}</td>
-                        <td className="px-6 py-3 text-center text-sm font-semibold">{item.orderedQty}</td>
-                        <td className="px-6 py-3 text-center">
+                        <td className="px-4 py-3 text-sm font-medium">{item.productName}</td>
+                        {hasSupplierSku && (
+                          <td className="px-4 py-3">
+                            {item.supplierSku ? (
+                              <code className="text-xs text-muted-foreground">{item.supplierSku}</code>
+                            ) : (
+                              <span className="text-xs text-muted-foreground/40">--</span>
+                            )}
+                          </td>
+                        )}
+                        {hasEan && (
+                          <td className="px-4 py-3">
+                            {item.ean ? (
+                              <code className="text-xs text-muted-foreground">{item.ean}</code>
+                            ) : (
+                              <span className="text-xs text-muted-foreground/40">--</span>
+                            )}
+                          </td>
+                        )}
+                        <td className="px-4 py-3 text-center text-sm font-semibold">{item.orderedQty}</td>
+                        <td className="px-4 py-3 text-center">
                           <span className={cn(
                             'inline-flex items-center gap-1 text-sm font-bold',
                             fullyReceived ? 'text-emerald-600' : item.receivedQty > 0 ? 'text-amber-600' : 'text-muted-foreground'
@@ -274,7 +319,7 @@ export default function PODetail() {
                           </span>
                         </td>
                         {receiving && (
-                          <td className="px-6 py-3 text-center">
+                          <td className="px-4 py-3 text-center">
                             <input
                               type="number"
                               min={0}
@@ -294,7 +339,7 @@ export default function PODetail() {
                           </td>
                         )}
                         {receiving && (
-                          <td className="px-6 py-3 text-center">
+                          <td className="px-4 py-3 text-center">
                             <select
                               value={receiveQtys[item.id]?.binId || ''}
                               onChange={(e) => setReceiveQtys((prev) => ({
@@ -315,10 +360,10 @@ export default function PODetail() {
                             </select>
                           </td>
                         )}
-                        <td className="px-6 py-3 text-right text-sm">
+                        <td className="px-4 py-3 text-right text-sm">
                           {item.unitCost ? `$${parseFloat(item.unitCost).toFixed(2)}` : '—'}
                         </td>
-                        <td className="px-6 py-3 text-right text-sm font-medium">
+                        <td className="px-4 py-3 text-right text-sm font-medium">
                           {lineTotal > 0 ? `$${lineTotal.toFixed(2)}` : '—'}
                         </td>
                       </tr>
@@ -383,11 +428,27 @@ export default function PODetail() {
                   {status.label}
                 </span>
               </div>
-              <div className="flex items-center justify-between py-3.5">
-                <span className="text-sm text-muted-foreground">Progress</span>
-                <span className="text-sm font-medium">
-                  {totalReceived}/{totalOrdered} items
-                </span>
+              <div className="py-3.5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">Progress</span>
+                  <span className="text-sm font-medium">
+                    {totalReceived}/{totalOrdered} items
+                    <span className="ml-1.5 text-xs text-muted-foreground">({progressPct}%)</span>
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted/40">
+                  <div
+                    className={cn(
+                      'h-full rounded-full transition-all duration-500',
+                      progressPct >= 100
+                        ? 'bg-emerald-500'
+                        : progressPct > 0
+                          ? 'bg-amber-500'
+                          : 'bg-muted-foreground/20'
+                    )}
+                    style={{ width: `${Math.min(progressPct, 100)}%` }}
+                  />
+                </div>
               </div>
               {po.expectedDate && (
                 <div className="flex items-center justify-between py-3.5">
