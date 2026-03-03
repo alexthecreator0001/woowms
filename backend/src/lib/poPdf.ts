@@ -440,7 +440,7 @@ function renderModern(ctx: SharedContext): void {
   // ── Order details inline row below boxes ──
   const detailParts: string[] = [
     `Status: ${fmtStatus(po.status)}`,
-    `Date: ${fmtDate(po.createdAt)}`,
+    `Order Date: ${fmtDate(po.createdAt)}`,
   ];
   if (po.expectedDate) detailParts.push(`Expected: ${fmtDate(po.expectedDate)}`);
 
@@ -601,9 +601,9 @@ function renderClassic(ctx: SharedContext): void {
   rightY += 14;
 
   doc.font('Bold').fontSize(9).fillColor('#333333');
-  doc.text('Date:', rightX, rightY, { lineBreak: false });
+  doc.text('Order Date:', rightX, rightY, { lineBreak: false });
   doc.font('Regular').fontSize(9).fillColor('#1a1a1a');
-  doc.text(fmtDate(po.createdAt), rightX + doc.widthOfString('Date:  '), rightY, { lineBreak: false });
+  doc.text(fmtDate(po.createdAt), rightX + doc.widthOfString('Order Date:  '), rightY, { lineBreak: false });
   rightY += 14;
 
   doc.font('Bold').fontSize(9).fillColor('#333333');
@@ -785,7 +785,7 @@ function renderClassic(ctx: SharedContext): void {
 // ═════════════════════════════════════════════════════
 
 function renderMinimal(ctx: SharedContext): void {
-  const { doc, po, opts, items, totalCost } = ctx;
+  const { doc, po, opts, items, totalCost, barcodeBuffer } = ctx;
 
   addNewPage(ctx);
 
@@ -801,11 +801,18 @@ function renderMinimal(ctx: SharedContext): void {
   // ── PO number large and bold ──
   doc.font('Bold').fontSize(26).fillColor('#1a1a1a');
   doc.text(po.poNumber, MARGIN, y, { lineBreak: false });
+
+  // Barcode next to PO number (right side)
+  if (barcodeBuffer) {
+    try {
+      doc.image(barcodeBuffer, PAGE_W - MARGIN - 130, y + 4, { width: 130, height: 24 });
+    } catch { /* skip */ }
+  }
   y += 34;
 
   // ── Date + status inline ──
   doc.font('Regular').fontSize(9).fillColor('#999999');
-  const metaStr = `${fmtDate(po.createdAt)}  \u00B7  ${fmtStatus(po.status)}${po.expectedDate ? '  \u00B7  Expected ' + fmtDate(po.expectedDate) : ''}`;
+  const metaStr = `Order Date: ${fmtDate(po.createdAt)}  \u00B7  ${fmtStatus(po.status)}${po.expectedDate ? '  \u00B7  Expected ' + fmtDate(po.expectedDate) : ''}`;
   doc.text(metaStr, MARGIN, y, { lineBreak: false });
   y += 20;
 

@@ -3,6 +3,14 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.54.1] - 2026-03-03
+
+### Fixed
+- **PO detail page broken layout** — Replaced the 9-column table (images tiny, text wrapping 5+ rows) with a card-based list layout. Each item shows a 40×40 square image, truncated product name, inline SKU/Supplier SKU/EAN metadata, and quantities + cost on the right.
+- **PO PDF "Order Date" label** — All three templates (Modern, Classic, Minimal) now display "Order Date" instead of just "Date" for the PO creation date.
+- **Minimal PO template missing barcode** — Added Code 128 barcode to the minimal template header, matching Modern and Classic templates.
+- **Digital products showing as SIMPLE** — The `isDigital` flag was added to WooCommerce sync but existing products need a re-sync. Trigger a sync from Inventory page after deploying to update all products.
+
 ## [3.54.0] - 2026-03-03
 
 ### Changed

@@ -241,136 +241,128 @@ export default function PODetail() {
                 </div>
               )}
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border/40 bg-muted/20">
-                    <th className="w-12 px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground"><span className="sr-only">Image</span></th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">SKU</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Product</th>
-                    {hasSupplierSku && <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Supplier SKU</th>}
-                    {hasEan && <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">EAN</th>}
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ordered</th>
-                    <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Received</th>
-                    {receiving && <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Qty to Receive</th>}
-                    {receiving && <th className="px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Put to Bin</th>}
-                    <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Unit Cost</th>
-                    <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Line Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/30">
+            <div className="divide-y divide-border/30">
                   {items.map((item: PurchaseOrderItem) => {
                     const fullyReceived = item.receivedQty >= item.orderedQty;
                     const lineTotal = item.unitCost ? parseFloat(item.unitCost) * item.orderedQty : 0;
                     const remaining = item.orderedQty - item.receivedQty;
                     return (
-                      <tr key={item.id} className="border-l-4 border-l-transparent transition-all hover:border-l-amber-500 hover:bg-amber-500/[0.02]">
-                        <td className="w-12 px-3 py-2">
-                          <div className="flex items-center justify-center">
-                            {item.imageUrl ? (
-                              <img
-                                src={`/api/v1/images/proxy?url=${encodeURIComponent(item.imageUrl)}&w=80`}
-                                alt={item.productName}
-                                className="h-8 w-8 rounded-md border border-border/40 object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                  (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                                }}
-                              />
-                            ) : null}
-                            <div className={cn(
-                              'flex h-8 w-8 items-center justify-center rounded-md border border-border/40 bg-muted/30',
-                              item.imageUrl ? 'hidden' : ''
-                            )}>
-                              <Package className="h-4 w-4 text-muted-foreground/60" />
+                      <div key={item.id} className="flex items-start gap-4 px-6 py-4 transition-colors hover:bg-muted/20">
+                        {/* Image — fixed 40x40 square */}
+                        <div className="flex-shrink-0">
+                          {item.imageUrl ? (
+                            <img
+                              src={`/api/v1/images/proxy?url=${encodeURIComponent(item.imageUrl)}&w=80`}
+                              alt={item.productName}
+                              className="h-10 w-10 rounded-lg border border-border/40 object-cover"
+                              onError={(e) => {
+                                const el = e.target as HTMLImageElement;
+                                el.style.display = 'none';
+                                el.nextElementSibling?.classList.remove('hidden');
+                              }}
+                            />
+                          ) : null}
+                          <div className={cn(
+                            'flex h-10 w-10 items-center justify-center rounded-lg border border-border/40 bg-muted/30',
+                            item.imageUrl ? 'hidden' : ''
+                          )}>
+                            <Package className="h-5 w-5 text-muted-foreground/40" />
+                          </div>
+                        </div>
+
+                        {/* Main content */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold leading-snug truncate">{item.productName}</p>
+                              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                <code className="rounded bg-muted/50 px-1.5 py-0.5 text-[11px]">{item.sku}</code>
+                                {item.supplierSku && (
+                                  <span>Sup: <code className="text-[11px]">{item.supplierSku}</code></span>
+                                )}
+                                {item.ean && (
+                                  <span>EAN: <code className="text-[11px]">{item.ean}</code></span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Qty + Cost right side */}
+                            <div className="flex-shrink-0 text-right">
+                              <div className="flex items-center gap-3">
+                                <div className="text-center">
+                                  <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">Ord.</span>
+                                  <p className="text-sm font-bold">{item.orderedQty}</p>
+                                </div>
+                                <div className="text-center">
+                                  <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">Rcvd.</span>
+                                  <p className={cn(
+                                    'text-sm font-bold',
+                                    fullyReceived ? 'text-emerald-600' : item.receivedQty > 0 ? 'text-amber-600' : 'text-muted-foreground'
+                                  )}>
+                                    {fullyReceived && <CheckCircle className="inline h-3.5 w-3.5 mr-0.5" />}
+                                    {item.receivedQty}
+                                  </p>
+                                </div>
+                                {item.unitCost && (
+                                  <div className="text-right pl-2 border-l border-border/40">
+                                    <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">Total</span>
+                                    <p className="text-sm font-semibold">{lineTotal > 0 ? `$${lineTotal.toFixed(2)}` : '—'}</p>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <code className="text-xs text-muted-foreground">{item.sku}</code>
-                        </td>
-                        <td className="px-4 py-3 text-sm font-medium">{item.productName}</td>
-                        {hasSupplierSku && (
-                          <td className="px-4 py-3">
-                            {item.supplierSku ? (
-                              <code className="text-xs text-muted-foreground">{item.supplierSku}</code>
-                            ) : (
-                              <span className="text-xs text-muted-foreground/40">--</span>
-                            )}
-                          </td>
-                        )}
-                        {hasEan && (
-                          <td className="px-4 py-3">
-                            {item.ean ? (
-                              <code className="text-xs text-muted-foreground">{item.ean}</code>
-                            ) : (
-                              <span className="text-xs text-muted-foreground/40">--</span>
-                            )}
-                          </td>
-                        )}
-                        <td className="px-4 py-3 text-center text-sm font-semibold">{item.orderedQty}</td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={cn(
-                            'inline-flex items-center gap-1 text-sm font-bold',
-                            fullyReceived ? 'text-emerald-600' : item.receivedQty > 0 ? 'text-amber-600' : 'text-muted-foreground'
-                          )}>
-                            {fullyReceived && <CheckCircle className="h-3.5 w-3.5" />}
-                            {item.receivedQty}
-                          </span>
-                        </td>
-                        {receiving && (
-                          <td className="px-4 py-3 text-center">
-                            <input
-                              type="number"
-                              min={0}
-                              max={remaining > 0 ? remaining : 0}
-                              value={receiveQtys[item.id]?.qty || ''}
-                              onChange={(e) => setReceiveQtys((prev) => ({
-                                ...prev,
-                                [item.id]: {
-                                  ...prev[item.id],
-                                  qty: Math.min(parseInt(e.target.value) || 0, Math.max(remaining, 0)),
-                                },
-                              }))}
-                              disabled={remaining <= 0}
-                              className="h-8 w-20 rounded-lg border border-border/60 bg-background px-2 text-center text-sm font-medium shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-40"
-                              placeholder={remaining > 0 ? String(remaining) : '0'}
-                            />
-                          </td>
-                        )}
-                        {receiving && (
-                          <td className="px-4 py-3 text-center">
-                            <select
-                              value={receiveQtys[item.id]?.binId || ''}
-                              onChange={(e) => setReceiveQtys((prev) => ({
-                                ...prev,
-                                [item.id]: {
-                                  ...prev[item.id],
-                                  qty: prev[item.id]?.qty || 0,
-                                  binId: e.target.value ? parseInt(e.target.value) : undefined,
-                                },
-                              }))}
-                              disabled={remaining <= 0}
-                              className="h-8 w-36 rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-40"
-                            >
-                              <option value="">No bin</option>
-                              {availableBins.map((bin) => (
-                                <option key={bin.id} value={bin.id}>{bin.label}</option>
-                              ))}
-                            </select>
-                          </td>
-                        )}
-                        <td className="px-4 py-3 text-right text-sm">
-                          {item.unitCost ? `$${parseFloat(item.unitCost).toFixed(2)}` : '—'}
-                        </td>
-                        <td className="px-4 py-3 text-right text-sm font-medium">
-                          {lineTotal > 0 ? `$${lineTotal.toFixed(2)}` : '—'}
-                        </td>
-                      </tr>
+
+                          {/* Receive mode inputs */}
+                          {receiving && (
+                            <div className="mt-3 flex items-center gap-3">
+                              <div>
+                                <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">Qty to Receive</label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={remaining > 0 ? remaining : 0}
+                                  value={receiveQtys[item.id]?.qty || ''}
+                                  onChange={(e) => setReceiveQtys((prev) => ({
+                                    ...prev,
+                                    [item.id]: {
+                                      ...prev[item.id],
+                                      qty: Math.min(parseInt(e.target.value) || 0, Math.max(remaining, 0)),
+                                    },
+                                  }))}
+                                  disabled={remaining <= 0}
+                                  className="mt-0.5 h-8 w-24 rounded-lg border border-border/60 bg-background px-2 text-center text-sm font-medium shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-40"
+                                  placeholder={remaining > 0 ? String(remaining) : '0'}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">Put to Bin</label>
+                                <select
+                                  value={receiveQtys[item.id]?.binId || ''}
+                                  onChange={(e) => setReceiveQtys((prev) => ({
+                                    ...prev,
+                                    [item.id]: {
+                                      ...prev[item.id],
+                                      qty: prev[item.id]?.qty || 0,
+                                      binId: e.target.value ? parseInt(e.target.value) : undefined,
+                                    },
+                                  }))}
+                                  disabled={remaining <= 0}
+                                  className="mt-0.5 h-8 w-40 rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-40"
+                                >
+                                  <option value="">No bin</option>
+                                  {availableBins.map((bin) => (
+                                    <option key={bin.id} value={bin.id}>{bin.label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
+            </div>
             </div>
 
             {/* Cost Summary */}
