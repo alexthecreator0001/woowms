@@ -500,6 +500,48 @@ export default function OrderDetail() {
                   )}
                 </div>
               </div>
+
+              {/* Customer stats */}
+              {order.customerStats && (
+                <div className="mt-3 border-t border-border/40 pt-3">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                      {order.customerStats.orderCount} {order.customerStats.orderCount === 1 ? 'order' : 'orders'}
+                    </span>
+                    <span className="text-[11px] font-medium text-muted-foreground tabular-nums">
+                      {order.currency} {order.customerStats.totalRevenue.toFixed(2)} lifetime
+                    </span>
+                  </div>
+                  {order.customerStats.labels.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {order.customerStats.labels.map((tag, i) => {
+                        const colorMap: Record<string, { bg: string; text: string }> = {
+                          amber:   { bg: 'bg-amber-500/10',   text: 'text-amber-600' },
+                          emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-600' },
+                          violet:  { bg: 'bg-violet-500/10',  text: 'text-violet-600' },
+                          blue:    { bg: 'bg-blue-500/10',    text: 'text-blue-600' },
+                          rose:    { bg: 'bg-rose-500/10',    text: 'text-rose-600' },
+                          orange:  { bg: 'bg-orange-500/10',  text: 'text-orange-600' },
+                          cyan:    { bg: 'bg-cyan-500/10',    text: 'text-cyan-600' },
+                          fuchsia: { bg: 'bg-fuchsia-500/10', text: 'text-fuchsia-600' },
+                        };
+                        const cs = colorMap[tag.color] || colorMap.blue;
+                        return (
+                          <span
+                            key={i}
+                            className={cn(
+                              'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
+                              cs.bg, cs.text
+                            )}
+                          >
+                            {tag.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

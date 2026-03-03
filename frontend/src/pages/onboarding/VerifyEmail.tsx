@@ -126,7 +126,7 @@ export default function VerifyEmail() {
   // Success state
   if (success) {
     return (
-      <div className="grain font-display flex min-h-screen items-center justify-center bg-[#fafafa]">
+      <div className="grain flex min-h-screen items-center justify-center bg-[#fafafa]">
         <div className="text-center">
           <CheckCircle size={48} weight="fill" className="mx-auto mb-4 text-emerald-500" />
           <h1 className="text-[22px] font-extrabold tracking-tight text-[#0a0a0a]">Email verified!</h1>
@@ -138,7 +138,7 @@ export default function VerifyEmail() {
   }
 
   return (
-    <div className="grain font-display relative flex min-h-screen flex-col bg-[#fafafa]">
+    <div className="grain relative flex min-h-screen flex-col bg-[#fafafa]">
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-5 sm:px-10">
         <div className="flex items-center">

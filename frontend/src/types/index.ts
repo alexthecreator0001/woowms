@@ -264,6 +264,11 @@ export interface OrderDetail extends Order {
   priority?: number;
   shipments?: Shipment[];
   pickLists?: PickList[];
+  customerStats?: {
+    orderCount: number;
+    totalRevenue: number;
+    labels: { label: string; color: string }[];
+  };
 }
 
 export interface StockMovement {

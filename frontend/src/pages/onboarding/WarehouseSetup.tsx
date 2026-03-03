@@ -51,7 +51,7 @@ export default function WarehouseSetup() {
   };
 
   return (
-    <div className="grain font-display relative flex min-h-screen flex-col bg-[#fafafa]">
+    <div className="grain relative flex min-h-screen flex-col bg-[#fafafa]">
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-5 sm:px-10">
         <div className="flex items-center">

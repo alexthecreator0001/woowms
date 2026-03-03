@@ -95,7 +95,7 @@ export default function Orders() {
         <li>
           <strong>Right column:</strong>
           <ul>
-            <li>Customer card with avatar initials, email (mailto link), and phone number</li>
+            <li>Customer card with avatar initials, email (mailto link), phone number, lifetime order count, total revenue, and auto-generated customer tags (e.g. "VIP", "Loyal") based on classification rules configured in Settings &rarr; Customer Tags</li>
             <li>Shipping address with an embedded Google Maps preview and "Open in Google Maps" link</li>
             <li>Billing address (shown only when different from shipping)</li>
             <li>Visual timeline with colored dots — emerald for completed steps, blue for current, gray/dashed for pending (Order Placed &rarr; Synced &rarr; Shipped &rarr; Delivered)</li>
@@ -105,6 +105,14 @@ export default function Orders() {
       </ul>
       <p>
         You can change the order status directly from the detail page using the status dropdown.
+      </p>
+
+      <h2>Customer Tags</h2>
+      <p>
+        Admins can define automatic customer classification rules in Settings &rarr; Customer Tags.
+        Each rule checks a customer's lifetime metrics (total revenue or order count) against a
+        threshold and assigns a colored label. These labels appear as badges in the Customer card
+        on each order detail page, helping warehouse staff quickly identify VIP or high-value customers.
       </p>
 
       <h2>Column Customization</h2>

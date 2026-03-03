@@ -125,7 +125,7 @@ export default function StoreConfig() {
   // Loading state
   if (loading) {
     return (
-      <div className="grain font-display flex min-h-screen items-center justify-center bg-[#fafafa]">
+      <div className="grain flex min-h-screen items-center justify-center bg-[#fafafa]">
         <div className="text-center">
           <CircleNotch size={32} className="mx-auto animate-spin text-[#a0a0a0]" />
           <p className="mt-4 text-[14px] text-[#8a8a8a]">Loading store configuration...</p>
@@ -138,7 +138,7 @@ export default function StoreConfig() {
   const enabledShipping = shippingMethods.filter(m => m.enabled);
 
   return (
-    <div className="grain font-display relative flex min-h-screen flex-col bg-[#fafafa]">
+    <div className="grain relative flex min-h-screen flex-col bg-[#fafafa]">
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-5 sm:px-10">
         <div className="flex items-center">

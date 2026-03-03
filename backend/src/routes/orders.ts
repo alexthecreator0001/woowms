@@ -66,7 +66,33 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
       return res.status(404).json({ error: true, message: 'Order not found', code: 'NOT_FOUND' });
     }
 
-    res.json({ data: order });
+    // Customer stats: aggregate order count + total revenue for this customer
+    let customerStats: { orderCount: number; totalRevenue: number; labels: { label: string; color: string }[] } | undefined;
+    if (order.customerEmail) {
+      const agg = await prisma.order.aggregate({
+        where: { customerEmail: order.customerEmail, store: { tenantId: req.tenantId } },
+        _count: { id: true },
+        _sum: { total: true },
+      });
+      const orderCount = agg._count.id;
+      const totalRevenue = agg._sum.total?.toNumber() || 0;
+
+      // Compute labels from tenant customer rules
+      const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId }, select: { settings: true } });
+      const rules = ((tenant?.settings as any)?.customerRules || []) as { condition: string; threshold: number; label: string; color: string }[];
+      const labels: { label: string; color: string }[] = [];
+      for (const rule of rules) {
+        if (rule.condition === 'revenue_gt' && totalRevenue > rule.threshold) {
+          labels.push({ label: rule.label, color: rule.color });
+        } else if (rule.condition === 'orders_gt' && orderCount > rule.threshold) {
+          labels.push({ label: rule.label, color: rule.color });
+        }
+      }
+
+      customerStats = { orderCount, totalRevenue, labels };
+    }
+
+    res.json({ data: { ...order, customerStats } });
   } catch (err) {
     next(err);
   }

@@ -3,6 +3,16 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.33.0 / 2.28.0] - 2026-03-03
+
+### Added
+- **Customer tags on order detail** — order detail Customer card now shows lifetime order count, total revenue, and auto-generated colored badges (e.g. "VIP", "Loyal") based on classification rules
+- **Customer classification rules in Settings** — new admin-only "Customer Tags" settings section where you define rules like "if revenue > $1000 → VIP (amber)" or "if orders > 10 → Loyal (emerald)". Rules are evaluated automatically on every order detail view
+
+### Changed
+- **Consistent font** — removed Plus Jakarta Sans from onboarding pages; Inter is now the sole font across the entire app
+- **Colorful settings groups** — settings overview now uses distinct group colors (blue for Personal, violet for Account, emerald for Warehouse, amber for Integrations) with colored dots on group headers and tinted icon backgrounds
+
 ## [3.32.0] - 2026-03-03
 
 ### Changed

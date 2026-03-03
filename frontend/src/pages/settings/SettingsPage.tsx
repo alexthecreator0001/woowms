@@ -13,6 +13,7 @@ import {
   Package,
   Ruler,
   TruckTrailer,
+  Tag,
 } from '@phosphor-icons/react';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
@@ -28,6 +29,7 @@ import OrderWorkflowSection from './OrderWorkflowSection';
 import InventoryDefaultsSection from './InventoryDefaultsSection';
 import UnitsSection from './UnitsSection';
 import ShippingSection from './ShippingSection';
+import CustomerRulesSection from './CustomerRulesSection';
 
 function getTokenPayload(): TokenPayload | null {
   const token = localStorage.getItem('token');
@@ -39,7 +41,7 @@ function getTokenPayload(): TokenPayload | null {
   }
 }
 
-type Section = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger' | 'notifications' | 'orderWorkflow' | 'inventoryDefaults' | 'units' | 'shipping';
+type Section = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger' | 'notifications' | 'orderWorkflow' | 'inventoryDefaults' | 'units' | 'shipping' | 'customerRules';
 
 interface SettingsCard {
   id: Section;
@@ -61,6 +63,7 @@ const cards: SettingsCard[] = [
   { id: 'orderWorkflow', title: 'Order workflow', description: 'Map WooCommerce statuses to WMS statuses.', icon: ArrowsLeftRight, group: 'Warehouse settings', adminOnly: true },
   { id: 'inventoryDefaults', title: 'Inventory defaults', description: 'Low stock threshold and stock sync.', icon: Package, group: 'Warehouse settings', adminOnly: true },
   { id: 'units', title: 'Units & measurements', description: 'Unit system and pallet type defaults.', icon: Ruler, group: 'Warehouse settings', adminOnly: true },
+  { id: 'customerRules', title: 'Customer tags', description: 'Auto-label customers based on revenue and order count.', icon: Tag, group: 'Warehouse settings', adminOnly: true },
   { id: 'shipping', title: 'Shipping & Labels', description: 'Shipping provider, carrier mapping, and label printing.', icon: TruckTrailer, group: 'Integrations', adminOnly: true },
   { id: 'woocommerce', title: 'WooCommerce', description: 'Store connections and sync settings.', icon: Storefront, group: 'Integrations' },
 ];
@@ -100,10 +103,19 @@ export default function SettingsPage() {
         {active === 'inventoryDefaults' && isAdmin && <InventoryDefaultsSection />}
         {active === 'units' && isAdmin && <UnitsSection />}
         {active === 'shipping' && isAdmin && <ShippingSection />}
+        {active === 'customerRules' && isAdmin && <CustomerRulesSection />}
         {active === 'danger' && isAdmin && <DangerZoneSection />}
       </div>
     );
   }
+
+  // Group color styles
+  const groupStyles: Record<string, { bg: string; icon: string; dot: string }> = {
+    'Personal settings':  { bg: 'bg-blue-500/10',    icon: 'text-blue-500',    dot: 'bg-blue-500' },
+    'Account settings':   { bg: 'bg-violet-500/10',  icon: 'text-violet-500',  dot: 'bg-violet-500' },
+    'Warehouse settings': { bg: 'bg-emerald-500/10', icon: 'text-emerald-500', dot: 'bg-emerald-500' },
+    'Integrations':       { bg: 'bg-amber-500/10',   icon: 'text-amber-500',   dot: 'bg-amber-500' },
+  };
 
   // Settings overview — card grid
   return (
@@ -115,51 +127,57 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {groups.map((group) => (
-        <div key={group}>
-          <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-            {group}
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {visibleCards
-              .filter((c) => c.group === group)
-              .map((card) => {
-                const Icon = card.icon;
-                return (
-                  <button
-                    key={card.id}
-                    type="button"
-                    onClick={() => setActive(card.id)}
-                    className={cn(
-                      'flex items-start gap-3.5 rounded-xl border bg-card p-4 text-left shadow-sm transition-all hover:border-border hover:bg-muted/30 hover:shadow-md',
-                      card.danger ? 'border-red-200/60' : 'border-border/60'
-                    )}
-                  >
-                    <div className={cn(
-                      'mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg',
-                      card.danger ? 'bg-red-500/10' : 'bg-primary/10'
-                    )}>
-                      <Icon
-                        size={18}
-                        weight="duotone"
-                        className={card.danger ? 'text-red-500' : 'text-primary'}
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className={cn('text-sm font-semibold', card.danger && 'text-red-600')}>
-                        {card.title}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
-                        {card.description}
-                      </p>
-                    </div>
-                    <CaretRight size={14} className="mt-1 flex-shrink-0 text-muted-foreground/40" />
-                  </button>
-                );
-              })}
+      {groups.map((group) => {
+        const gs = groupStyles[group] || groupStyles['Personal settings'];
+        return (
+          <div key={group}>
+            <h2 className="mb-3 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+              <span className={cn('h-2 w-2 rounded-full', gs.dot)} />
+              {group}
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {visibleCards
+                .filter((c) => c.group === group)
+                .map((card) => {
+                  const Icon = card.icon;
+                  const iconBg = card.danger ? 'bg-red-500/10' : gs.bg;
+                  const iconColor = card.danger ? 'text-red-500' : gs.icon;
+                  return (
+                    <button
+                      key={card.id}
+                      type="button"
+                      onClick={() => setActive(card.id)}
+                      className={cn(
+                        'flex items-start gap-3.5 rounded-xl border bg-card p-4 text-left shadow-sm transition-all hover:border-border hover:bg-muted/30 hover:shadow-md',
+                        card.danger ? 'border-red-200/60' : 'border-border/60'
+                      )}
+                    >
+                      <div className={cn(
+                        'mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg',
+                        iconBg
+                      )}>
+                        <Icon
+                          size={18}
+                          weight="duotone"
+                          className={iconColor}
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={cn('text-sm font-semibold', card.danger && 'text-red-600')}>
+                          {card.title}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
+                          {card.description}
+                        </p>
+                      </div>
+                      <CaretRight size={14} className="mt-1 flex-shrink-0 text-muted-foreground/40" />
+                    </button>
+                  );
+                })}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
