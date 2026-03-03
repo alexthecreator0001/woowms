@@ -3,6 +3,14 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.50.0 / 2.39.1] - 2026-03-03
+
+### Fixed
+- **PO PDF empty pages** — Rewrote poPdf.ts to use `bufferPages: true` with post-render footer injection. Footer was at y=815 (past A4 boundary of 841.89pt), causing PDFKit to auto-create empty pages. Now footers are written at y=790 after all content is laid out.
+- **PO PDF long product names** — Added `lineBreak: false` to ALL `doc.text()` calls in the table (and throughout). Long names are truncated with ellipsis instead of wrapping into the next row.
+- **PO PDF footer on every page** — Footer now appears on every page with company name (left), generated date (center), and "Page X of Y" (right) using buffered page iteration.
+- **PO PDF table header repeats** — When items table spans multiple pages, the column header row is re-drawn at the top of each new page.
+
 ## [3.50.0 / 2.39.0] - 2026-03-03
 
 ### Added
