@@ -3,6 +3,21 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.50.0 / 2.39.0] - 2026-03-03
+
+### Added
+- **Brand color setting** — Pick an accent color in Settings > Business. Used on PO PDF headers, bars, and highlights. 12 color presets.
+- **Default PO note** — Set a default note (e.g. payment terms, delivery instructions) in Settings > Business. Automatically appended to every PO PDF.
+- **PO barcode** — Scannable Code 128 barcode on every PO PDF for the PO number.
+- **Signature lines** — "Authorized Signature" and "Received By (Supplier)" signature areas on PO PDF.
+- **bwip-js** dependency for barcode generation.
+
+### Fixed
+- **Logo not showing on PDF** — Frontend saved logo as WebP, but PDFKit only supports PNG/JPEG. Now converts via Sharp on the backend. Also changed frontend upload to save as PNG.
+- **PDF text too small** — Rewrote entire PDF with proper readable sizes: title 26pt, body 10.5pt, table 9.5pt, rows 28pt height.
+- **PDF empty pages** — Fixed footer positioning and removed `bufferPages` that created blank pages. Added proper page break logic for long item lists.
+- **Table text overflow** — Added `lineBreak: false` + `ellipsis: true` to prevent text wrapping into adjacent rows.
+
 ## [3.49.0 / 2.38.0] - 2026-03-03
 
 ### Fixed

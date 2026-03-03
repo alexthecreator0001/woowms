@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import bwipjs from 'bwip-js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -43,29 +44,10 @@ interface PdfOptions {
   template: PoTemplate;
   companyName: string;
   logoBuffer: Buffer | null;
+  brandColor: string;
 }
 
-// ─── Colors ───────────────────────────────────────────
-
-const PALETTES = {
-  modern: {
-    primary: '#0f172a', accent: '#6366f1', muted: '#64748b',
-    headerBg: '#0f172a', headerText: '#ffffff', altRow: '#f8fafc', border: '#e2e8f0',
-    boxBg: '#f1f5f9',
-  },
-  classic: {
-    primary: '#1f2937', accent: '#374151', muted: '#6b7280',
-    headerBg: '#374151', headerText: '#ffffff', altRow: '#f9fafb', border: '#d1d5db',
-    boxBg: '#f3f4f6',
-  },
-  minimal: {
-    primary: '#171717', accent: '#404040', muted: '#737373',
-    headerBg: '#f5f5f5', headerText: '#171717', altRow: '#fafafa', border: '#e5e5e5',
-    boxBg: '#fafafa',
-  },
-} as const;
-
-type Palette = typeof PALETTES.modern;
+// ─── Helpers ──────────────────────────────────────────
 
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -79,19 +61,42 @@ function fmtStatus(s: string) {
   return s.replace(/_/g, ' ').toUpperCase();
 }
 
+// Lighten a hex color (mix with white)
+function lighten(hex: string, amount: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const lr = Math.round(r + (255 - r) * amount);
+  const lg = Math.round(g + (255 - g) * amount);
+  const lb = Math.round(b + (255 - b) * amount);
+  return `#${lr.toString(16).padStart(2, '0')}${lg.toString(16).padStart(2, '0')}${lb.toString(16).padStart(2, '0')}`;
+}
+
+async function generateBarcode(text: string): Promise<Buffer> {
+  return bwipjs.toBuffer({
+    bcid: 'code128',
+    text,
+    scale: 3,
+    height: 10,
+    includetext: false,
+  });
+}
+
 // ─── Main ─────────────────────────────────────────────
 
-export function generatePoPdf(po: PoData, opts: PdfOptions): PDFKit.PDFDocument {
-  const doc = new PDFDocument({ size: 'A4', margin: 50 });
+export async function generatePoPdf(po: PoData, opts: PdfOptions): Promise<PDFKit.PDFDocument> {
+  const doc = new PDFDocument({ size: 'A4', margin: 45 });
 
   doc.registerFont('Regular', FONT_REGULAR);
   doc.registerFont('Bold', FONT_BOLD);
   doc.registerFont('Italic', FONT_ITALIC);
 
-  const p = PALETTES[opts.template];
-  const m = 50;
-  const pageW = 595.28;
+  const m = 45;        // margin
+  const pageW = 595.28; // A4 width
   const contentW = pageW - m * 2;
+  const accent = opts.brandColor || '#6366f1';
+  const accentLight = lighten(accent, 0.92);
+  const accentMid = lighten(accent, 0.8);
 
   const items = po.items || [];
   const totalCost = items.reduce((sum, it) => {
@@ -99,111 +104,137 @@ export function generatePoPdf(po: PoData, opts: PdfOptions): PDFKit.PDFDocument 
     return sum + parseFloat(it.unitCost) * it.orderedQty;
   }, 0);
 
-  // ─── Header ──────────────────────────────────────
+  // Generate barcode for PO number
+  let barcodeBuffer: Buffer | null = null;
+  try {
+    barcodeBuffer = await generateBarcode(po.poNumber);
+  } catch { /* skip if barcode fails */ }
 
-  if (opts.template === 'modern') {
-    // Accent bar across top
-    doc.save().rect(0, 0, pageW, 6).fill(p.accent).restore();
-  }
+  // ═══════════════════════════════════════════════════
+  // HEADER
+  // ═══════════════════════════════════════════════════
 
-  let y = opts.template === 'modern' ? 24 : 30;
+  // Top accent bar
+  doc.save().rect(0, 0, pageW, 5).fill(accent).restore();
 
-  // Logo + Company name (left)
+  let y = 22;
+
+  // Logo (left side)
+  let logoEndX = m;
   if (opts.logoBuffer) {
     try {
-      doc.image(opts.logoBuffer, m, y, { height: 36 });
+      doc.image(opts.logoBuffer, m, y, { height: 42 });
+      logoEndX = m + 50;
     } catch { /* skip broken logo */ }
   }
 
-  const companyX = opts.logoBuffer ? m + 44 : m;
+  // Company name below/beside logo
   if (opts.companyName) {
-    doc.font('Bold').fontSize(14).fillColor(p.primary);
-    doc.text(opts.companyName, companyX, y + 4);
+    doc.font('Bold').fontSize(15).fillColor('#1a1a1a');
+    doc.text(opts.companyName, logoEndX, y + 6);
   }
 
-  // PO title (right)
-  doc.font('Bold').fontSize(24).fillColor(p.accent);
+  // PURCHASE ORDER title — right aligned
+  doc.font('Bold').fontSize(26).fillColor(accent);
   doc.text('PURCHASE ORDER', m, y, { width: contentW, align: 'right' });
 
-  y += 30;
-  doc.font('Regular').fontSize(11).fillColor(p.muted);
+  // PO number + barcode
+  y += 32;
+  doc.font('Regular').fontSize(12).fillColor('#555555');
   doc.text(po.poNumber, m, y, { width: contentW, align: 'right' });
 
-  y += 20;
+  // Barcode below PO number
+  if (barcodeBuffer) {
+    y += 16;
+    try {
+      doc.image(barcodeBuffer, pageW - m - 130, y, { width: 130, height: 28 });
+    } catch {}
+    y += 32;
+  } else {
+    y += 18;
+  }
 
   // Divider
-  doc.save().strokeColor(p.border).lineWidth(0.5).moveTo(m, y).lineTo(m + contentW, y).stroke().restore();
-  y += 16;
+  doc.save().strokeColor(accent).lineWidth(1).moveTo(m, y).lineTo(m + contentW, y).stroke().restore();
+  y += 14;
 
-  // ─── Info boxes ──────────────────────────────────
+  // ═══════════════════════════════════════════════════
+  // INFO BOXES
+  // ═══════════════════════════════════════════════════
 
-  const boxPad = 10;
   const gap = 10;
   const boxW = (contentW - gap * 2) / 3;
+  const boxPad = 10;
 
-  // Supplier box
-  const supplierLines: string[] = [po.supplier.name];
+  // Collect lines for each box
+  const supplierLines = [po.supplier.name];
   if (po.supplier.address) supplierLines.push(po.supplier.address);
   if (po.supplier.email) supplierLines.push(po.supplier.email);
   if (po.supplier.phone) supplierLines.push(po.supplier.phone);
 
-  // Delivery box
-  const deliveryLines: string[] = po.deliveryAddress ? [po.deliveryAddress] : ['Not specified'];
+  const deliveryLines = po.deliveryAddress ? po.deliveryAddress.split(', ') : ['Not specified'];
 
-  // Details box
-  const detailLines: string[] = [
+  const detailLines = [
     `Status: ${fmtStatus(po.status)}`,
     `Date: ${fmtDate(po.createdAt)}`,
   ];
   if (po.expectedDate) detailLines.push(`Expected: ${fmtDate(po.expectedDate)}`);
 
-  // Calculate box heights — all same height based on tallest
-  const lineH = 13;
-  const boxHeaderH = 18;
-  const boxContentH = Math.max(supplierLines.length, deliveryLines.length, detailLines.length) * lineH;
-  const boxH = boxHeaderH + boxContentH + boxPad * 2;
+  // Box height: tallest content
+  const lineH = 14;
+  const labelH = 16;
+  const maxLines = Math.max(supplierLines.length, deliveryLines.length, detailLines.length);
+  const boxH = boxPad + labelH + maxLines * lineH + boxPad;
 
-  // Draw the 3 boxes
-  const boxes = [
+  const boxDefs = [
     { x: m, title: 'SUPPLIER', lines: supplierLines },
     { x: m + boxW + gap, title: 'DELIVER TO', lines: deliveryLines },
     { x: m + (boxW + gap) * 2, title: 'ORDER DETAILS', lines: detailLines },
   ];
 
-  for (const box of boxes) {
-    // Background
-    doc.save().rect(box.x, y, boxW, boxH).fill(p.boxBg).restore();
-    // Border
-    doc.save().strokeColor(p.border).lineWidth(0.5).rect(box.x, y, boxW, boxH).stroke().restore();
+  for (const box of boxDefs) {
+    // Accent-tinted background
+    doc.save().rect(box.x, y, boxW, boxH).fill(accentLight).restore();
+    // Left accent stripe
+    doc.save().rect(box.x, y, 3, boxH).fill(accentMid).restore();
+
     // Title
-    doc.font('Bold').fontSize(8).fillColor(p.muted);
-    doc.text(box.title, box.x + boxPad, y + boxPad);
-    // Lines
-    doc.font('Regular').fontSize(10).fillColor(p.primary);
-    let ly = y + boxPad + boxHeaderH;
-    for (const line of box.lines) {
-      doc.text(line, box.x + boxPad, ly, { width: boxW - boxPad * 2 });
+    doc.font('Bold').fontSize(8.5).fillColor(accent);
+    doc.text(box.title, box.x + boxPad + 4, y + boxPad);
+
+    // Content lines
+    doc.font('Regular').fontSize(10.5).fillColor('#1a1a1a');
+    let ly = y + boxPad + labelH;
+    for (let i = 0; i < box.lines.length; i++) {
+      if (i === 0) {
+        doc.font('Bold').fontSize(10.5).fillColor('#1a1a1a');
+      } else {
+        doc.font('Regular').fontSize(9.5).fillColor('#555555');
+      }
+      doc.text(box.lines[i], box.x + boxPad + 4, ly, { width: boxW - boxPad * 2 - 4 });
       ly += lineH;
     }
   }
 
-  y += boxH + 18;
+  y += boxH + 16;
 
-  // ─── Items table ─────────────────────────────────
+  // ═══════════════════════════════════════════════════
+  // ITEMS TABLE
+  // ═══════════════════════════════════════════════════
 
   const hasSupplierSku = items.some(i => i.supplierSku);
   const hasEan = items.some(i => i.ean);
 
-  // Build columns dynamically
+  // Column definitions
   interface Col { label: string; width: number; align: 'left' | 'center' | 'right'; }
   const cols: Col[] = [];
 
-  const qtyW = 40;
+  const qtyW = 38;
   const costW = 60;
   const totalW = 65;
-  const skuW = 68;
-  const supSkuW = hasSupplierSku ? 68 : 0;
-  const eanW = hasEan ? 80 : 0;
+  const skuW = hasSupplierSku ? 60 : 72;
+  const supSkuW = hasSupplierSku ? 60 : 0;
+  const eanW = hasEan ? 78 : 0;
   const productW = contentW - skuW - supSkuW - eanW - qtyW - costW - totalW;
 
   cols.push({ label: 'SKU', width: skuW, align: 'left' });
@@ -214,49 +245,50 @@ export function generatePoPdf(po: PoData, opts: PdfOptions): PDFKit.PDFDocument 
   cols.push({ label: 'Unit Cost', width: costW, align: 'right' });
   cols.push({ label: 'Total', width: totalW, align: 'right' });
 
-  const headerH = 28;
-  const rowH = 26;
-  const tableFontSize = 9;
-  const headerFontSize = 8.5;
-  const pad = 6;
+  const headerH = 30;
+  const rowH = 28;
+  const tableFontSize = 9.5;
+  const headerFontSize = 9;
+  const pad = 7;
   const tableW = cols.reduce((s, c) => s + c.width, 0);
 
-  // Header row
-  doc.save().rect(m, y, tableW, headerH).fill(p.headerBg).restore();
+  // Table header
+  doc.save().rect(m, y, tableW, headerH).fill(accent).restore();
   let x = m;
-  doc.font('Bold').fontSize(headerFontSize).fillColor(p.headerText);
+  doc.font('Bold').fontSize(headerFontSize).fillColor('#ffffff');
   for (const col of cols) {
+    const textY = y + (headerH - headerFontSize) / 2;
     if (col.align === 'center') {
-      doc.text(col.label, x, y + (headerH - headerFontSize) / 2, { width: col.width, align: 'center' });
+      doc.text(col.label, x, textY, { width: col.width, align: 'center' });
     } else if (col.align === 'right') {
-      doc.text(col.label, x, y + (headerH - headerFontSize) / 2, { width: col.width - pad, align: 'right' });
+      doc.text(col.label, x, textY, { width: col.width - pad, align: 'right' });
     } else {
-      doc.text(col.label, x + pad, y + (headerH - headerFontSize) / 2);
+      doc.text(col.label, x + pad, textY);
     }
     x += col.width;
   }
   y += headerH;
 
-  // Data rows
+  // Table rows
   for (let r = 0; r < items.length; r++) {
-    const it = items[r];
-
-    // Check if we need a new page
-    if (y + rowH > 780) {
+    // Page break check
+    if (y + rowH > 760) {
       doc.addPage();
-      y = 50;
+      y = 45;
     }
 
-    // Alternating row bg
-    if (r % 2 === 1) {
-      doc.save().rect(m, y, tableW, rowH).fill(p.altRow).restore();
+    const it = items[r];
+
+    // Alternating rows
+    if (r % 2 === 0) {
+      doc.save().rect(m, y, tableW, rowH).fill(accentLight).restore();
     }
 
     // Bottom border
-    doc.save().strokeColor(p.border).lineWidth(0.3)
+    doc.save().strokeColor(lighten(accent, 0.7)).lineWidth(0.3)
       .moveTo(m, y + rowH).lineTo(m + tableW, y + rowH).stroke().restore();
 
-    // Cell values
+    // Build cell values matching column order
     const cells: string[] = [];
     cells.push(it.sku || '-');
     if (hasSupplierSku) cells.push(it.supplierSku || '-');
@@ -267,56 +299,91 @@ export function generatePoPdf(po: PoData, opts: PdfOptions): PDFKit.PDFDocument 
     cells.push(it.unitCost ? `$${(parseFloat(it.unitCost) * it.orderedQty).toFixed(2)}` : '-');
 
     x = m;
-    doc.font('Regular').fontSize(tableFontSize).fillColor(p.primary);
     for (let c = 0; c < cols.length; c++) {
       const col = cols[c];
       const val = cells[c] || '';
       const textY = y + (rowH - tableFontSize) / 2;
+
+      // Bold for product name, regular for rest
+      const isProductCol = col.label === 'Product';
+      doc.font(isProductCol ? 'Bold' : 'Regular').fontSize(tableFontSize).fillColor('#1a1a1a');
+
       if (col.align === 'center') {
-        doc.text(val, x, textY, { width: col.width, align: 'center' });
+        doc.text(val, x, textY, { width: col.width, align: 'center', lineBreak: false });
       } else if (col.align === 'right') {
-        doc.text(val, x, textY, { width: col.width - pad, align: 'right' });
+        doc.text(val, x, textY, { width: col.width - pad, align: 'right', lineBreak: false });
       } else {
-        doc.text(val, x + pad, textY, { width: col.width - pad * 2, ellipsis: true });
+        doc.text(val, x + pad, textY, { width: col.width - pad * 2, lineBreak: false, ellipsis: true });
       }
       x += col.width;
     }
     y += rowH;
   }
 
-  // ─── Total ───────────────────────────────────────
+  // ═══════════════════════════════════════════════════
+  // TOTAL
+  // ═══════════════════════════════════════════════════
 
-  y += 8;
+  y += 10;
   if (totalCost > 0) {
-    const totalBoxW = 160;
-    const totalBoxH = 30;
+    const totalBoxW = 170;
+    const totalBoxH = 34;
     const tx = m + contentW - totalBoxW;
-    doc.save().rect(tx, y, totalBoxW, totalBoxH).fill(p.boxBg).restore();
-    doc.save().strokeColor(p.border).lineWidth(0.5).rect(tx, y, totalBoxW, totalBoxH).stroke().restore();
-    doc.font('Bold').fontSize(12).fillColor(p.primary);
-    doc.text('TOTAL', tx + 12, y + 8);
-    doc.text(fmtMoney(totalCost), tx + 12, y + 8, { width: totalBoxW - 24, align: 'right' });
-    y += totalBoxH + 12;
+    doc.save().rect(tx, y, totalBoxW, totalBoxH).fill(accent).restore();
+    doc.font('Bold').fontSize(13).fillColor('#ffffff');
+    doc.text('TOTAL', tx + 14, y + 9);
+    doc.text(fmtMoney(totalCost), tx + 14, y + 9, { width: totalBoxW - 28, align: 'right' });
+    y += totalBoxH + 16;
   }
 
-  // ─── Notes ───────────────────────────────────────
+  // ═══════════════════════════════════════════════════
+  // NOTES
+  // ═══════════════════════════════════════════════════
 
   if (po.notes) {
-    if (y + 50 > 780) { doc.addPage(); y = 50; }
-    doc.font('Bold').fontSize(9).fillColor(p.muted).text('NOTES', m, y);
+    if (y + 60 > 760) { doc.addPage(); y = 45; }
+    doc.font('Bold').fontSize(9.5).fillColor(accent).text('NOTES', m, y);
     y += 14;
-    doc.font('Regular').fontSize(10).fillColor(p.primary).text(po.notes, m, y, { width: contentW });
-    y += doc.heightOfString(po.notes, { width: contentW, fontSize: 10 }) + 8;
+    doc.font('Regular').fontSize(10).fillColor('#333333');
+    doc.text(po.notes, m, y, { width: contentW });
+    y += doc.heightOfString(po.notes, { width: contentW, fontSize: 10 }) + 16;
   }
 
-  // ─── Footer ──────────────────────────────────────
+  // ═══════════════════════════════════════════════════
+  // SIGNATURE
+  // ═══════════════════════════════════════════════════
 
-  // Always at bottom of last page
-  const footerY = 810;
-  doc.save().strokeColor(p.border).lineWidth(0.3).moveTo(m, footerY).lineTo(m + contentW, footerY).stroke().restore();
+  if (y + 80 > 760) { doc.addPage(); y = 45; }
+
+  const sigW = (contentW - 40) / 2;
+
+  // Authorized by
+  doc.save().strokeColor('#cccccc').lineWidth(0.5)
+    .moveTo(m, y + 40).lineTo(m + sigW, y + 40).stroke().restore();
+  doc.font('Regular').fontSize(9).fillColor('#888888');
+  doc.text('Authorized Signature', m, y + 44);
+  doc.text('Date: _______________', m, y + 56);
+
+  // Received by
+  doc.save().strokeColor('#cccccc').lineWidth(0.5)
+    .moveTo(m + sigW + 40, y + 40).lineTo(m + contentW, y + 40).stroke().restore();
+  doc.font('Regular').fontSize(9).fillColor('#888888');
+  doc.text('Received By (Supplier)', m + sigW + 40, y + 44);
+  doc.text('Date: _______________', m + sigW + 40, y + 56);
+
+  // ═══════════════════════════════════════════════════
+  // FOOTER — at bottom of current page
+  // ═══════════════════════════════════════════════════
+
+  const footerY = 815;
+  doc.save().strokeColor('#dddddd').lineWidth(0.3)
+    .moveTo(m, footerY - 6).lineTo(m + contentW, footerY - 6).stroke().restore();
   doc.font('Regular').fontSize(7.5).fillColor('#aaaaaa');
-  doc.text(opts.companyName || '', m, footerY + 5);
-  doc.text(`Generated ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, m, footerY + 5, { width: contentW, align: 'right' });
+  doc.text(opts.companyName || '', m, footerY);
+  doc.text(
+    `Generated ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`,
+    m, footerY, { width: contentW, align: 'right' }
+  );
 
   doc.end();
   return doc;

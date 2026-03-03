@@ -5,23 +5,48 @@ import api from '../../services/api';
 
 const MAX_LOGO_SIZE = 512 * 1024; // 512KB
 
+const BRAND_COLORS = [
+  { value: '#6366f1', label: 'Indigo' },
+  { value: '#3b82f6', label: 'Blue' },
+  { value: '#0ea5e9', label: 'Sky' },
+  { value: '#14b8a6', label: 'Teal' },
+  { value: '#22c55e', label: 'Green' },
+  { value: '#f59e0b', label: 'Amber' },
+  { value: '#f97316', label: 'Orange' },
+  { value: '#ef4444', label: 'Red' },
+  { value: '#ec4899', label: 'Pink' },
+  { value: '#a855f7', label: 'Purple' },
+  { value: '#64748b', label: 'Slate' },
+  { value: '#1e293b', label: 'Dark' },
+];
+
 export default function BrandingSection() {
   const [companyName, setCompanyName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  const [brandColor, setBrandColor] = useState('#6366f1');
+  const [defaultPoNote, setDefaultPoNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoMsg, setLogoMsg] = useState('');
+  const [colorSaving, setColorSaving] = useState(false);
+  const [colorMsg, setColorMsg] = useState('');
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteMsg, setNoteMsg] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    api.get('/auth/me')
-      .then(({ data }) => {
-        setCompanyName(data.data.tenantName || '');
-        if (data.data.logoUrl) setLogoUrl(data.data.logoUrl);
-      })
-      .catch(() => {});
+    Promise.all([
+      api.get('/auth/me'),
+      api.get('/account/tenant-settings'),
+    ]).then(([meRes, settingsRes]) => {
+      setCompanyName(meRes.data.data.tenantName || '');
+      if (meRes.data.data.logoUrl) setLogoUrl(meRes.data.data.logoUrl);
+      const s = settingsRes.data.data || {};
+      if (s.brandColor) setBrandColor(s.brandColor);
+      if (s.defaultPoNote) setDefaultPoNote(s.defaultPoNote);
+    }).catch(() => {});
   }, []);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -195,6 +220,92 @@ export default function BrandingSection() {
         </div>
       </div>
 
+      {/* Brand color */}
+      <div className="rounded-xl border border-border/60 bg-card shadow-sm">
+        <div className="border-b border-border/40 px-6 py-4">
+          <h3 className="text-sm font-semibold">Brand color</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Used as accent color on purchase order PDFs (headers, bars, highlights).
+          </p>
+        </div>
+        <div className="px-6 py-5">
+          <div className="flex flex-wrap gap-2">
+            {BRAND_COLORS.map((c) => (
+              <button
+                key={c.value}
+                type="button"
+                disabled={colorSaving}
+                onClick={async () => {
+                  setBrandColor(c.value);
+                  setColorSaving(true);
+                  setColorMsg('');
+                  try {
+                    await api.patch('/account/tenant-settings', { brandColor: c.value });
+                    setColorMsg('Saved');
+                    setTimeout(() => setColorMsg(''), 2000);
+                  } catch { setColorMsg('Failed'); }
+                  finally { setColorSaving(false); }
+                }}
+                className={cn(
+                  'relative h-9 w-9 rounded-full border-2 transition-all',
+                  brandColor === c.value ? 'border-foreground scale-110 shadow-md' : 'border-transparent hover:scale-105'
+                )}
+                style={{ backgroundColor: c.value }}
+                title={c.label}
+              >
+                {brandColor === c.value && (
+                  <Check size={14} weight="bold" className="absolute inset-0 m-auto text-white drop-shadow-sm" />
+                )}
+              </button>
+            ))}
+          </div>
+          {colorMsg && (
+            <p className={cn('mt-2 text-xs', colorMsg === 'Failed' ? 'text-destructive' : 'text-emerald-600')}>{colorMsg}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Default PO note */}
+      <div className="rounded-xl border border-border/60 bg-card shadow-sm">
+        <div className="border-b border-border/40 px-6 py-4">
+          <h3 className="text-sm font-semibold">Default PO note</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            This note is automatically included on every purchase order PDF. E.g. payment terms, delivery instructions.
+          </p>
+        </div>
+        <div className="px-6 py-4">
+          <textarea
+            value={defaultPoNote}
+            onChange={(e) => setDefaultPoNote(e.target.value)}
+            rows={3}
+            placeholder="e.g. Payment within 30 days. Deliver to warehouse gate B."
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none"
+          />
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              disabled={noteSaving}
+              onClick={async () => {
+                setNoteSaving(true);
+                setNoteMsg('');
+                try {
+                  await api.patch('/account/tenant-settings', { defaultPoNote });
+                  setNoteMsg('Saved');
+                  setTimeout(() => setNoteMsg(''), 2000);
+                } catch { setNoteMsg('Failed'); }
+                finally { setNoteSaving(false); }
+              }}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {noteSaving ? <CircleNotch size={12} className="animate-spin" /> : 'Save note'}
+            </button>
+            {noteMsg && (
+              <span className={cn('text-xs', noteMsg === 'Failed' ? 'text-destructive' : 'text-emerald-600')}>{noteMsg}</span>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Sidebar preview */}
       <div className="rounded-xl border border-border/60 bg-card shadow-sm">
         <div className="border-b border-border/40 px-6 py-4">
@@ -237,7 +348,7 @@ function resizeImage(file: File, maxDim: number): Promise<string> {
       const ctx = canvas.getContext('2d');
       if (!ctx) { reject(new Error('Canvas not supported')); return; }
       ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/webp', 0.85));
+      resolve(canvas.toDataURL('image/png'));
     };
     img.onerror = () => reject(new Error('Failed to load image'));
     img.src = URL.createObjectURL(file);

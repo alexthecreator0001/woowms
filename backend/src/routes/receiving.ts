@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { pushStockToWoo, shouldPushStock } from '../woocommerce/sync.js';
 import prisma from '../lib/prisma.js';
 import { generatePoPdf, type PoTemplate } from '../lib/poPdf.js';
+import sharp from 'sharp';
 
 const router = Router();
 
@@ -161,11 +162,15 @@ router.get('/:id/pdf', async (req: Request, res: Response, next: NextFunction) =
     const companyName = tenant?.name || '';
     const logoUrl = (settings.logoUrl as string) || null;
 
-    // Decode logo data URL to buffer
+    // Decode logo data URL to PNG buffer (PDFKit doesn't support WebP)
     let logoBuffer: Buffer | null = null;
     if (logoUrl && logoUrl.startsWith('data:')) {
       const match = logoUrl.match(/^data:[^;]+;base64,(.+)$/);
-      if (match) logoBuffer = Buffer.from(match[1], 'base64');
+      if (match) {
+        try {
+          logoBuffer = await sharp(Buffer.from(match[1], 'base64')).png().toBuffer();
+        } catch { /* skip broken logo */ }
+      }
     }
 
     // Enrich items with supplier SKU, EAN, and image
@@ -203,12 +208,17 @@ router.get('/:id/pdf', async (req: Request, res: Response, next: NextFunction) =
 
     const supplier = po.supplierRef;
 
+    // Merge PO notes with default PO note from settings
+    const defaultPoNote = (settings.defaultPoNote as string) || '';
+    const combinedNotes = [po.notes, defaultPoNote].filter(Boolean).join('\n');
+    const brandColor = (settings.brandColor as string) || '#6366f1';
+
     const poData = {
       poNumber: po.poNumber,
       status: po.status,
       createdAt: po.createdAt.toISOString(),
       expectedDate: po.expectedDate?.toISOString() || null,
-      notes: po.notes,
+      notes: combinedNotes || null,
       supplier: {
         name: supplier?.name || po.supplier,
         address: supplier?.address || null,
@@ -232,7 +242,7 @@ router.get('/:id/pdf', async (req: Request, res: Response, next: NextFunction) =
       }),
     };
 
-    const pdfDoc = generatePoPdf(poData, { template, companyName, logoBuffer });
+    const pdfDoc = await generatePoPdf(poData, { template, companyName, logoBuffer, brandColor });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${po.poNumber}.pdf"`);
