@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -19,6 +19,10 @@ import {
   Link2,
   Pencil,
   MapPin,
+  Send,
+  FileText,
+  Upload,
+  DollarSign,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
@@ -27,8 +31,10 @@ import type { PurchaseOrder, PurchaseOrderItem, Bin } from '../types';
 const poStatusConfig: Record<string, { label: string; bg: string; text: string; dot: string }> = {
   DRAFT: { label: 'Draft', bg: 'bg-gray-500/10', text: 'text-gray-500', dot: 'bg-gray-400' },
   ORDERED: { label: 'Ordered', bg: 'bg-blue-500/10', text: 'text-blue-600', dot: 'bg-blue-500' },
+  SHIPPED: { label: 'Shipped', bg: 'bg-purple-500/10', text: 'text-purple-600', dot: 'bg-purple-500' },
   PARTIALLY_RECEIVED: { label: 'Partial', bg: 'bg-amber-500/10', text: 'text-amber-600', dot: 'bg-amber-400' },
   RECEIVED: { label: 'Received', bg: 'bg-emerald-500/10', text: 'text-emerald-600', dot: 'bg-emerald-500' },
+  RECEIVED_WITH_RESERVATIONS: { label: 'Issues', bg: 'bg-orange-500/10', text: 'text-orange-600', dot: 'bg-orange-500' },
   CANCELLED: { label: 'Cancelled', bg: 'bg-red-500/10', text: 'text-red-600', dot: 'bg-red-500' },
 };
 
@@ -44,6 +50,9 @@ export default function PODetail() {
   const [availableBins, setAvailableBins] = useState<Bin[]>([]);
 
   const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [invoiceUploading, setInvoiceUploading] = useState(false);
+  const invoiceFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -70,6 +79,55 @@ export default function PODetail() {
     } finally {
       setPdfDownloading(false);
     }
+  };
+
+  const handleSendToSupplier = async () => {
+    if (!po) return;
+    const supplierEmail = po.supplierRef?.email;
+    if (!supplierEmail) return;
+    if (!confirm(`Send PO ${po.poNumber} to ${supplierEmail}?`)) return;
+    try {
+      setSending(true);
+      const { data } = await api.post(`/receiving/${po.id}/send-to-supplier`);
+      setPo(data.data);
+    } catch (err) {
+      console.error('Send failed:', err);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleInvoiceUpload = async (file: File) => {
+    if (!po) return;
+    try {
+      setInvoiceUploading(true);
+      const form = new FormData();
+      form.append('file', file);
+      const { data } = await api.post(`/receiving/${po.id}/invoice-upload`, form);
+      setPo(data.data);
+    } catch (err) {
+      console.error('Invoice upload failed:', err);
+    } finally {
+      setInvoiceUploading(false);
+    }
+  };
+
+  const handleInvoiceDelete = async () => {
+    if (!po || !confirm('Remove the uploaded invoice file?')) return;
+    try {
+      const { data } = await api.delete(`/receiving/${po.id}/invoice-file`);
+      setPo(data.data);
+    } catch (err) {
+      console.error('Invoice delete failed:', err);
+    }
+  };
+
+  const handleInvoiceFieldSave = async (field: string, value: string | null) => {
+    if (!po) return;
+    try {
+      const { data } = await api.patch(`/receiving/${po.id}`, { [field]: value });
+      setPo(data.data);
+    } catch { /* ignore */ }
   };
 
   // Fetch active bins when entering receive mode
@@ -160,7 +218,7 @@ export default function PODetail() {
   }, 0);
   const totalReceived = items.reduce((sum, i) => sum + i.receivedQty, 0);
   const totalOrdered = items.reduce((sum, i) => sum + i.orderedQty, 0);
-  const canReceive = ['ORDERED', 'PARTIALLY_RECEIVED'].includes(po.status);
+  const canReceive = ['ORDERED', 'SHIPPED', 'PARTIALLY_RECEIVED'].includes(po.status);
   const hasSupplierSku = items.some((i) => i.supplierSku);
   const hasEan = items.some((i) => i.ean);
   const progressPct = totalOrdered > 0 ? Math.round((totalReceived / totalOrdered) * 100) : 0;
@@ -174,7 +232,7 @@ export default function PODetail() {
           className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Receiving
+          Back to Purchase Orders
         </button>
 
         <div className="flex items-start justify-between gap-4">
@@ -446,7 +504,7 @@ export default function PODetail() {
                   <Calendar className="h-3.5 w-3.5" />
                   Expected
                 </span>
-                {['DRAFT', 'ORDERED'].includes(po.status) ? (
+                {['DRAFT', 'ORDERED', 'SHIPPED'].includes(po.status) ? (
                   <input
                     type="date"
                     defaultValue={po.expectedDate ? new Date(po.expectedDate).toISOString().split('T')[0] : ''}
@@ -490,7 +548,7 @@ export default function PODetail() {
                   {new Date(po.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </span>
               </div>
-              {!['DRAFT', 'ORDERED'].includes(po.status) && po.trackingNumber && (
+              {!['DRAFT', 'ORDERED', 'SHIPPED'].includes(po.status) && po.trackingNumber && (
                 <div className="flex items-center justify-between py-3.5">
                   <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                     <Truck className="h-3.5 w-3.5" />
@@ -508,7 +566,7 @@ export default function PODetail() {
                   </div>
                 </div>
               )}
-              {!['DRAFT', 'ORDERED'].includes(po.status) && po.trackingUrl && (
+              {!['DRAFT', 'ORDERED', 'SHIPPED'].includes(po.status) && po.trackingUrl && (
                 <div className="flex items-center justify-between py-3.5">
                   <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                     <Link2 className="h-3.5 w-3.5" />
@@ -525,7 +583,7 @@ export default function PODetail() {
                   </a>
                 </div>
               )}
-              {['DRAFT', 'ORDERED'].includes(po.status) && (
+              {['DRAFT', 'ORDERED', 'SHIPPED'].includes(po.status) && (
                 <div className="space-y-3 py-3.5">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-muted-foreground">Tracking Number</label>
@@ -586,6 +644,16 @@ export default function PODetail() {
                   Mark as Ordered
                 </button>
               )}
+              {po.status === 'ORDERED' && (
+                <button
+                  onClick={() => updateStatus('SHIPPED')}
+                  disabled={statusUpdating}
+                  className="flex w-full items-center gap-3 rounded-xl border border-border/40 bg-muted/20 px-4 py-3 text-sm font-medium transition-colors hover:bg-purple-500/5 hover:border-purple-500/30 disabled:opacity-50"
+                >
+                  <Truck className="h-4 w-4 text-purple-600" />
+                  Mark as Shipped
+                </button>
+              )}
               {canReceive && !receiving && (
                 <button
                   onClick={() => setReceiving(true)}
@@ -594,6 +662,33 @@ export default function PODetail() {
                   <CheckCircle className="h-4 w-4 text-emerald-600" />
                   Receive Items
                 </button>
+              )}
+              {po.status === 'PARTIALLY_RECEIVED' && (
+                <button
+                  onClick={() => updateStatus('RECEIVED_WITH_RESERVATIONS')}
+                  disabled={statusUpdating}
+                  className="flex w-full items-center gap-3 rounded-xl border border-border/40 bg-muted/20 px-4 py-3 text-sm font-medium transition-colors hover:bg-orange-500/5 hover:border-orange-500/30 disabled:opacity-50"
+                >
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  Mark Received with Issues
+                </button>
+              )}
+              {/* Send to Supplier */}
+              {['ORDERED', 'SHIPPED'].includes(po.status) && (
+                <button
+                  onClick={handleSendToSupplier}
+                  disabled={sending || !po.supplierRef?.email}
+                  title={!po.supplierRef?.email ? 'Supplier has no email address' : undefined}
+                  className="flex w-full items-center gap-3 rounded-xl border border-border/40 bg-muted/20 px-4 py-3 text-sm font-medium transition-colors hover:bg-blue-500/5 hover:border-blue-500/30 disabled:opacity-50"
+                >
+                  {sending ? <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> : <Send className="h-4 w-4 text-blue-600" />}
+                  {po.sentAt ? 'Resend to Supplier' : 'Send to Supplier'}
+                </button>
+              )}
+              {po.sentAt && (
+                <p className="px-4 text-[11px] text-muted-foreground">
+                  Sent {new Date(po.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
               )}
               <button
                 onClick={handleDownloadPdf}
@@ -613,7 +708,7 @@ export default function PODetail() {
                   Delete Purchase Order
                 </button>
               )}
-              {['DRAFT', 'ORDERED', 'PARTIALLY_RECEIVED'].includes(po.status) && (
+              {['DRAFT', 'ORDERED', 'SHIPPED', 'PARTIALLY_RECEIVED'].includes(po.status) && (
                 <button
                   onClick={() => updateStatus('CANCELLED')}
                   disabled={statusUpdating}
@@ -623,6 +718,114 @@ export default function PODetail() {
                   Cancel Order
                 </button>
               )}
+            </div>
+          </div>
+
+          {/* Invoice Card */}
+          <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
+            <div className="border-b border-border/50 px-6 py-4">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                Invoice
+              </h3>
+            </div>
+            <div className="space-y-3 px-6 py-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Invoice Number</label>
+                <input
+                  type="text"
+                  defaultValue={po.invoiceNumber || ''}
+                  onBlur={(e) => {
+                    const val = e.target.value.trim();
+                    if (val !== (po.invoiceNumber || '')) {
+                      handleInvoiceFieldSave('invoiceNumber', val || null);
+                    }
+                  }}
+                  placeholder="INV-001"
+                  className="h-8 w-full rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Invoice Date</label>
+                <input
+                  type="date"
+                  defaultValue={po.invoiceDate ? new Date(po.invoiceDate).toISOString().split('T')[0] : ''}
+                  onBlur={(e) => {
+                    const val = e.target.value;
+                    const current = po.invoiceDate ? new Date(po.invoiceDate).toISOString().split('T')[0] : '';
+                    if (val !== current) {
+                      handleInvoiceFieldSave('invoiceDate', val || null);
+                    }
+                  }}
+                  className="h-8 w-full rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Invoice Amount</label>
+                <div className="relative">
+                  <DollarSign className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    defaultValue={po.invoiceAmount || ''}
+                    onBlur={(e) => {
+                      const val = e.target.value.trim();
+                      const current = po.invoiceAmount || '';
+                      if (val !== current) {
+                        handleInvoiceFieldSave('invoiceAmount', val || null);
+                      }
+                    }}
+                    placeholder="0.00"
+                    className="h-8 w-full rounded-lg border border-border/60 bg-background pl-7 pr-2 text-sm shadow-sm placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Invoice File</label>
+                {po.invoiceFileUrl ? (
+                  <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <a
+                      href={po.invoiceFileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 truncate text-sm font-medium text-primary hover:underline"
+                    >
+                      View Invoice
+                    </a>
+                    <button
+                      onClick={handleInvoiceDelete}
+                      className="rounded p-1 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-600"
+                      title="Remove file"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      ref={invoiceFileRef}
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleInvoiceUpload(file);
+                        e.target.value = '';
+                      }}
+                    />
+                    <button
+                      onClick={() => invoiceFileRef.current?.click()}
+                      disabled={invoiceUploading}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border/60 bg-muted/10 px-3 py-3 text-sm text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground disabled:opacity-50"
+                    >
+                      {invoiceUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      {invoiceUploading ? 'Uploading...' : 'Upload Invoice'}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -203,7 +203,7 @@ export default function POCreate() {
           className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Receiving
+          Back to Purchase Orders
         </button>
 
         <div className="flex items-center gap-4">

@@ -32,7 +32,7 @@ const NAV_SECTIONS = [
     label: 'Logistics',
     items: [
       { to: '/shipping', label: 'Shipping' },
-      { to: '/receiving', label: 'Receiving' },
+      { to: '/receiving', label: 'Purchase Orders' },
       { to: '/suppliers', label: 'Suppliers' },
     ],
   },

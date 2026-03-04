@@ -407,6 +407,12 @@ model PurchaseOrder {
   trackingNumber String?   @map("tracking_number")
   trackingUrl    String?   @map("tracking_url")
 
+  invoiceNumber  String?   @map("invoice_number")
+  invoiceDate    DateTime? @map("invoice_date")
+  invoiceAmount  Decimal?  @db.Decimal(10, 2) @map("invoice_amount")
+  invoiceFileUrl String?   @map("invoice_file_url")
+  sentAt         DateTime? @map("sent_at")
+
   items PurchaseOrderItem[]
 
   @@index([tenantId])
@@ -416,8 +422,10 @@ model PurchaseOrder {
 enum POStatus {
   DRAFT
   ORDERED
+  SHIPPED
   PARTIALLY_RECEIVED
   RECEIVED
+  RECEIVED_WITH_RESERVATIONS
   CANCELLED
 }
 

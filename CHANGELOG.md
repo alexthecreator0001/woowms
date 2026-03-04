@@ -3,6 +3,21 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.55.0 / 2.42.0] - 2026-03-04
+
+### Added
+- **New PO statuses: Shipped & Received with Issues** — Two new purchase order statuses added to the lifecycle. "Shipped" tracks when supplier has dispatched goods. "Received with Issues" marks POs received with discrepancies, damage, or missing items.
+- **Send PO to Supplier via email** — New "Send to Supplier" button on PO detail page (Ordered/Shipped status). Generates PDF server-side and sends it as an email attachment via Resend. Tracks sent date and supports resending.
+- **Invoice tracking on Purchase Orders** — New Invoice card on PO detail page with invoice number, date, amount fields (auto-save on blur) and file upload support (PDF/JPG/PNG/WEBP, max 10MB). Uploaded files can be previewed and deleted.
+- **Mark as Shipped action button** — Available when PO is in Ordered status.
+- **Mark Received with Issues action button** — Available when PO is in Partially Received status.
+
+### Changed
+- **Renamed "Receiving" to "Purchase Orders"** — Sidebar nav label, list page title, detail breadcrumb, create breadcrumb, and docs all updated to "Purchase Orders". Routes remain unchanged (`/receiving`).
+- **Updated PO status transitions** — Ordered can now transition to Shipped. Shipped can transition to Partially Received, Received, Received with Issues, or Cancelled. Partially Received can transition to Received with Issues.
+- **Editable fields extended to Shipped status** — Tracking number, tracking URL, expected date, and notes are now editable for Shipped POs (previously only Draft and Ordered).
+- **Cancel button available for Shipped POs** — Cancel Order action now includes Shipped status.
+
 ## [3.54.2] - 2026-03-03
 
 ### Added

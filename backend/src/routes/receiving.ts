@@ -1,10 +1,47 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import multer from 'multer';
+import { existsSync, mkdirSync, unlinkSync } from 'fs';
+import { resolve, extname } from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { pushStockToWoo, shouldPushStock } from '../woocommerce/sync.js';
+import { sendPurchaseOrderEmail } from '../services/email.js';
 import prisma from '../lib/prisma.js';
 import { generatePoPdf, type PoTemplate } from '../lib/poPdf.js';
 import sharp from 'sharp';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const router = Router();
+
+// ── Multer setup for invoice uploads ────────────────────
+const uploadsDir = resolve(__dirname, '../../uploads/invoices');
+if (!existsSync(uploadsDir)) {
+  mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+    cb(null, `${unique}${extname(file.originalname)}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
+    const ext = extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF, JPG, PNG, and WEBP files are allowed'));
+    }
+  },
+});
 
 async function getTenantSettings(tenantId: number): Promise<Record<string, unknown>> {
   const tenant = await prisma.tenant.findUnique({
@@ -402,7 +439,7 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
       return res.status(404).json({ error: true, message: 'Purchase order not found', code: 'NOT_FOUND' });
     }
 
-    const { supplier, expectedDate, notes, items, trackingNumber, trackingUrl, supplierId } = req.body as {
+    const { supplier, expectedDate, notes, items, trackingNumber, trackingUrl, supplierId, invoiceNumber, invoiceDate, invoiceAmount } = req.body as {
       supplier?: string;
       expectedDate?: string | null;
       notes?: string | null;
@@ -410,21 +447,28 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
       trackingNumber?: string | null;
       trackingUrl?: string | null;
       supplierId?: number | null;
+      invoiceNumber?: string | null;
+      invoiceDate?: string | null;
+      invoiceAmount?: number | null;
     };
 
-    // Split: tracking/expectedDate/notes can be edited for DRAFT and ORDERED,
+    // Split: tracking/expectedDate/notes can be edited for DRAFT, ORDERED, and SHIPPED,
     // supplier/items/supplierId only in DRAFT
     const isDraft = existing.status === 'DRAFT';
-    const canEditDraftOrOrdered = ['DRAFT', 'ORDERED'].includes(existing.status);
+    const canEditDraftOrOrdered = ['DRAFT', 'ORDERED', 'SHIPPED'].includes(existing.status);
+    const canEditInvoice = !['RECEIVED', 'CANCELLED'].includes(existing.status);
 
     if (!isDraft && (supplier !== undefined || items !== undefined || supplierId !== undefined)) {
       return res.status(400).json({ error: true, message: 'Supplier and items can only be edited for DRAFT purchase orders', code: 'INVALID_STATUS' });
     }
     if (!canEditDraftOrOrdered && (expectedDate !== undefined || notes !== undefined)) {
-      return res.status(400).json({ error: true, message: 'Expected date and notes can only be edited for DRAFT or ORDERED POs', code: 'INVALID_STATUS' });
+      return res.status(400).json({ error: true, message: 'Expected date and notes can only be edited for DRAFT, ORDERED, or SHIPPED POs', code: 'INVALID_STATUS' });
     }
     if (!canEditDraftOrOrdered && (trackingNumber !== undefined || trackingUrl !== undefined)) {
-      return res.status(400).json({ error: true, message: 'Tracking can only be edited for DRAFT or ORDERED POs', code: 'INVALID_STATUS' });
+      return res.status(400).json({ error: true, message: 'Tracking can only be edited for DRAFT, ORDERED, or SHIPPED POs', code: 'INVALID_STATUS' });
+    }
+    if (!canEditInvoice && (invoiceNumber !== undefined || invoiceDate !== undefined || invoiceAmount !== undefined)) {
+      return res.status(400).json({ error: true, message: 'Invoice fields cannot be edited for completed or cancelled POs', code: 'INVALID_STATUS' });
     }
 
     // If items provided, replace all items
@@ -441,9 +485,12 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
         ...(trackingNumber !== undefined && { trackingNumber: trackingNumber?.trim() || null }),
         ...(trackingUrl !== undefined && { trackingUrl: trackingUrl?.trim() || null }),
         ...(supplierId !== undefined && { supplierId: supplierId || null }),
+        ...(invoiceNumber !== undefined && { invoiceNumber: invoiceNumber?.trim() || null }),
+        ...(invoiceDate !== undefined && { invoiceDate: invoiceDate ? new Date(invoiceDate) : null }),
+        ...(invoiceAmount !== undefined && { invoiceAmount: invoiceAmount }),
         ...(items && { items: { create: items } }),
       },
-      include: { items: true },
+      include: { items: true, supplierRef: true },
     });
 
     res.json({ data: po });
@@ -471,8 +518,9 @@ router.patch('/:id/status', async (req: Request, res: Response, next: NextFuncti
     // Validate transitions
     const allowed: Record<string, string[]> = {
       DRAFT: ['ORDERED', 'CANCELLED'],
-      ORDERED: ['PARTIALLY_RECEIVED', 'RECEIVED', 'CANCELLED'],
-      PARTIALLY_RECEIVED: ['RECEIVED', 'CANCELLED'],
+      ORDERED: ['SHIPPED', 'PARTIALLY_RECEIVED', 'RECEIVED', 'RECEIVED_WITH_RESERVATIONS', 'CANCELLED'],
+      SHIPPED: ['PARTIALLY_RECEIVED', 'RECEIVED', 'RECEIVED_WITH_RESERVATIONS', 'CANCELLED'],
+      PARTIALLY_RECEIVED: ['RECEIVED', 'RECEIVED_WITH_RESERVATIONS', 'CANCELLED'],
     };
 
     if (!allowed[existing.status]?.includes(status)) {
@@ -486,8 +534,8 @@ router.patch('/:id/status', async (req: Request, res: Response, next: NextFuncti
     const po = await prisma.purchaseOrder.update({
       where: { id: poId },
       data: {
-        status: status as 'DRAFT' | 'ORDERED' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'CANCELLED',
-        ...(status === 'RECEIVED' && { receivedDate: new Date() }),
+        status: status as any,
+        ...((status === 'RECEIVED' || status === 'RECEIVED_WITH_RESERVATIONS') && { receivedDate: new Date() }),
       },
       include: { items: true },
     });
@@ -590,6 +638,246 @@ router.patch('/:id/receive', async (req: Request, res: Response, next: NextFunct
         status: allReceived ? 'RECEIVED' : anyReceived ? 'PARTIALLY_RECEIVED' : po!.status,
         receivedDate: allReceived ? new Date() : null,
       },
+    });
+
+    res.json({ data: po });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/receiving/:id/send-to-supplier — send PO email with PDF attachment
+router.post('/:id/send-to-supplier', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const poId = await resolvePOId(req.params.id, req.tenantId!);
+    if (!poId) return res.status(404).json({ error: true, message: 'Purchase order not found', code: 'NOT_FOUND' });
+
+    const po = await req.prisma!.purchaseOrder.findFirst({
+      where: { id: poId, tenantId: req.tenantId },
+      include: { items: true, supplierRef: true },
+    });
+
+    if (!po) {
+      return res.status(404).json({ error: true, message: 'Purchase order not found', code: 'NOT_FOUND' });
+    }
+
+    if (!po.supplierRef?.email) {
+      return res.status(400).json({ error: true, message: 'Supplier has no email address', code: 'NO_EMAIL' });
+    }
+
+    // Get tenant branding + default warehouse for PDF generation
+    const [tenant, warehouse] = await Promise.all([
+      prisma.tenant.findUnique({
+        where: { id: req.tenantId! },
+        select: { name: true, settings: true },
+      }),
+      prisma.warehouse.findFirst({
+        where: { tenantId: req.tenantId!, isDefault: true },
+        select: { name: true, address: true },
+      }),
+    ]);
+    const settings = (tenant?.settings as Record<string, unknown>) || {};
+    const template = (['modern', 'classic', 'minimal'].includes(settings.poTemplate as string) ? settings.poTemplate : 'modern') as PoTemplate;
+    const companyName = tenant?.name || 'PickNPack';
+
+    // Decode logo/stamp for PDF
+    let logoBuffer: Buffer | null = null;
+    const logoUrl = (settings.logoUrl as string) || null;
+    if (logoUrl && logoUrl.startsWith('data:')) {
+      const match = logoUrl.match(/^data:[^;]+;base64,(.+)$/);
+      if (match) {
+        try { logoBuffer = await sharp(Buffer.from(match[1], 'base64')).png().toBuffer(); } catch { /* skip */ }
+      }
+    }
+    let stampBuffer: Buffer | null = null;
+    const stampUrl = (settings.stampUrl as string) || null;
+    if (stampUrl && stampUrl.startsWith('data:')) {
+      const match = stampUrl.match(/^data:[^;]+;base64,(.+)$/);
+      if (match) {
+        try { stampBuffer = await sharp(Buffer.from(match[1], 'base64')).png().toBuffer(); } catch { /* skip */ }
+      }
+    }
+
+    // Enrich items for PDF
+    const allSkus = po.items.map((i: any) => i.sku).filter(Boolean);
+    const products = allSkus.length > 0
+      ? await prisma.product.findMany({
+          where: { sku: { in: allSkus }, store: { tenantId: req.tenantId! } },
+          select: { id: true, sku: true, imageUrl: true },
+        })
+      : [];
+    const productMap = new Map(products.map(p => [p.sku, p]));
+    const productIds = products.map(p => p.id);
+    const supplierProducts = (po.supplierId && productIds.length > 0)
+      ? await prisma.supplierProduct.findMany({
+          where: { supplierId: po.supplierId, productId: { in: productIds } },
+          select: { productId: true, supplierSku: true },
+        })
+      : [];
+    const supplierSkuMap = new Map(supplierProducts.map(sp => [sp.productId, sp.supplierSku]));
+    const barcodes = productIds.length > 0
+      ? await prisma.productBarcode.findMany({
+          where: { productId: { in: productIds } },
+          select: { productId: true, barcode: true, isPrimary: true },
+          orderBy: { isPrimary: 'desc' },
+        })
+      : [];
+    const barcodeMap = new Map<number, string>();
+    for (const bc of barcodes) {
+      if (!barcodeMap.has(bc.productId)) barcodeMap.set(bc.productId, bc.barcode);
+    }
+
+    const defaultPoNote = (settings.defaultPoNote as string) || '';
+    const combinedNotes = [po.notes, defaultPoNote].filter(Boolean).join('\n');
+
+    const poData = {
+      poNumber: po.poNumber,
+      status: po.status,
+      createdAt: po.createdAt.toISOString(),
+      expectedDate: po.expectedDate?.toISOString() || null,
+      notes: combinedNotes || null,
+      supplier: {
+        name: po.supplierRef?.name || po.supplier,
+        address: po.supplierRef?.address || null,
+        email: po.supplierRef?.email || null,
+        phone: po.supplierRef?.phone || null,
+      },
+      deliveryAddress: warehouse ? `${warehouse.name}${warehouse.address ? ', ' + warehouse.address : ''}` : null,
+      items: po.items.map((i: any) => {
+        const prod = productMap.get(i.sku);
+        const prodId = prod?.id;
+        return {
+          sku: i.sku,
+          productName: i.productName,
+          orderedQty: i.orderedQty,
+          receivedQty: i.receivedQty,
+          unitCost: i.unitCost ? String(i.unitCost) : null,
+          supplierSku: prodId ? (supplierSkuMap.get(prodId) || null) : null,
+          ean: prodId ? (barcodeMap.get(prodId) || null) : null,
+          imageUrl: prod?.imageUrl || null,
+        };
+      }),
+    };
+
+    // Generate PDF as buffer
+    const pdfDoc = await generatePoPdf(poData, {
+      template,
+      companyName,
+      logoBuffer,
+      stampBuffer,
+      brandColor: (settings.brandColor as string) || '#6366f1',
+      companyAddress: (settings.companyAddress as string) || null,
+      companyEmail: (settings.companyEmail as string) || null,
+      companyPhone: (settings.companyPhone as string) || null,
+      companyVatId: (settings.companyVatId as string) || null,
+      companyWebsite: (settings.companyWebsite as string) || null,
+    });
+
+    // Collect PDF stream into buffer
+    const chunks: Buffer[] = [];
+    pdfDoc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    await new Promise<void>((resolve, reject) => {
+      pdfDoc.on('end', resolve);
+      pdfDoc.on('error', reject);
+    });
+    const pdfBuffer = Buffer.concat(chunks);
+
+    await sendPurchaseOrderEmail(
+      po.supplierRef.email,
+      {
+        poNumber: po.poNumber,
+        supplier: po.supplier,
+        expectedDate: po.expectedDate?.toISOString() || null,
+        notes: po.notes,
+        items: po.items.map((i) => ({
+          sku: i.sku,
+          productName: i.productName,
+          orderedQty: i.orderedQty,
+          unitCost: i.unitCost?.toString() || null,
+        })),
+      },
+      pdfBuffer,
+      companyName
+    );
+
+    // Update sentAt
+    const updated = await req.prisma!.purchaseOrder.update({
+      where: { id: poId },
+      data: { sentAt: new Date() },
+      include: { items: true, supplierRef: true },
+    });
+
+    res.json({ data: updated });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/receiving/:id/invoice-upload — upload invoice file
+router.post('/:id/invoice-upload', upload.single('file'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const poId = await resolvePOId(req.params.id, req.tenantId!);
+    if (!poId) return res.status(404).json({ error: true, message: 'Purchase order not found', code: 'NOT_FOUND' });
+
+    const existing = await req.prisma!.purchaseOrder.findFirst({
+      where: { id: poId, tenantId: req.tenantId },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: true, message: 'Purchase order not found', code: 'NOT_FOUND' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: true, message: 'No file uploaded', code: 'VALIDATION_ERROR' });
+    }
+
+    const invoiceFileUrl = `/api/uploads/invoices/${req.file.filename}`;
+
+    // Delete old file if exists
+    if (existing.invoiceFileUrl) {
+      try {
+        const oldPath = resolve(__dirname, '../..', existing.invoiceFileUrl.replace(/^\/api\//, ''));
+        if (existsSync(oldPath)) unlinkSync(oldPath);
+      } catch { /* ignore */ }
+    }
+
+    const po = await req.prisma!.purchaseOrder.update({
+      where: { id: poId },
+      data: { invoiceFileUrl },
+      include: { items: true, supplierRef: true },
+    });
+
+    res.json({ data: po });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/v1/receiving/:id/invoice-file — remove invoice file
+router.delete('/:id/invoice-file', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const poId = await resolvePOId(req.params.id, req.tenantId!);
+    if (!poId) return res.status(404).json({ error: true, message: 'Purchase order not found', code: 'NOT_FOUND' });
+
+    const existing = await req.prisma!.purchaseOrder.findFirst({
+      where: { id: poId, tenantId: req.tenantId },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: true, message: 'Purchase order not found', code: 'NOT_FOUND' });
+    }
+
+    if (existing.invoiceFileUrl) {
+      try {
+        const filePath = resolve(__dirname, '../..', existing.invoiceFileUrl.replace(/^\/api\//, ''));
+        if (existsSync(filePath)) unlinkSync(filePath);
+      } catch { /* ignore */ }
+    }
+
+    const po = await req.prisma!.purchaseOrder.update({
+      where: { id: poId },
+      data: { invoiceFileUrl: null },
+      include: { items: true, supplierRef: true },
     });
 
     res.json({ data: po });

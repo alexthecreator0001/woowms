@@ -57,7 +57,7 @@ const navSections: NavSection[] = [
     label: 'Logistics',
     items: [
       { path: '/shipping', label: 'Shipping', icon: TruckTrailer },
-      { path: '/receiving', label: 'Receiving', icon: Package },
+      { path: '/receiving', label: 'Purchase Orders', icon: Package },
       { path: '/suppliers', label: 'Suppliers', icon: UsersThree },
     ],
   },

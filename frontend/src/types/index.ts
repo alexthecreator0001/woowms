@@ -388,7 +388,7 @@ export interface PluginCatalogItem {
 
 // ─── Purchase Orders ────────────────────────────────
 
-export type POStatus = 'DRAFT' | 'ORDERED' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'CANCELLED';
+export type POStatus = 'DRAFT' | 'ORDERED' | 'SHIPPED' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'RECEIVED_WITH_RESERVATIONS' | 'CANCELLED';
 
 export interface PurchaseOrderItem {
   id: number;
@@ -414,6 +414,11 @@ export interface PurchaseOrder {
   expectedDate: string | null;
   receivedDate: string | null;
   notes: string | null;
+  invoiceNumber: string | null;
+  invoiceDate: string | null;
+  invoiceAmount: string | null;
+  invoiceFileUrl: string | null;
+  sentAt: string | null;
   items?: PurchaseOrderItem[];
   createdAt: string;
 }

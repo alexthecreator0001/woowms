@@ -4,6 +4,8 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import cron from 'node-cron';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 
 import config from './config/index.js';
 import prisma from './lib/prisma.js';
@@ -35,7 +37,13 @@ import { shippoProvider } from './shipping/shippo.js';
 
 registerProvider(shippoProvider);
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const app = express();
+
+// Serve uploaded files (invoices, etc.) — under /api/ so Nginx proxy works
+app.use('/api/uploads', express.static(resolve(__dirname, '..', 'uploads')));
 
 // Middleware — allow main frontend + pack.* subdomain
 const allowedOrigins = [config.frontendUrl];

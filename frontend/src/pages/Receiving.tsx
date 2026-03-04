@@ -18,8 +18,10 @@ import type { PurchaseOrder, PaginationMeta } from '../types';
 const poStatusConfig: Record<string, { label: string; bg: string; text: string; dot: string }> = {
   DRAFT: { label: 'Draft', bg: 'bg-gray-500/10', text: 'text-gray-500', dot: 'bg-gray-400' },
   ORDERED: { label: 'Ordered', bg: 'bg-blue-500/10', text: 'text-blue-600', dot: 'bg-blue-500' },
+  SHIPPED: { label: 'Shipped', bg: 'bg-purple-500/10', text: 'text-purple-600', dot: 'bg-purple-500' },
   PARTIALLY_RECEIVED: { label: 'Partial', bg: 'bg-amber-500/10', text: 'text-amber-600', dot: 'bg-amber-400' },
   RECEIVED: { label: 'Received', bg: 'bg-emerald-500/10', text: 'text-emerald-600', dot: 'bg-emerald-500' },
+  RECEIVED_WITH_RESERVATIONS: { label: 'Issues', bg: 'bg-orange-500/10', text: 'text-orange-600', dot: 'bg-orange-500' },
   CANCELLED: { label: 'Cancelled', bg: 'bg-red-500/10', text: 'text-red-600', dot: 'bg-red-500' },
 };
 
@@ -27,8 +29,10 @@ const filterOptions = [
   { value: '', label: 'All Statuses' },
   { value: 'DRAFT', label: 'Draft' },
   { value: 'ORDERED', label: 'Ordered' },
+  { value: 'SHIPPED', label: 'Shipped' },
   { value: 'PARTIALLY_RECEIVED', label: 'Partially Received' },
   { value: 'RECEIVED', label: 'Received' },
+  { value: 'RECEIVED_WITH_RESERVATIONS', label: 'Received with Issues' },
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
 
@@ -76,7 +80,7 @@ export default function Receiving() {
             <Package size={20} weight="duotone" className="text-amber-600" />
           </div>
           <div>
-            <h2 className="text-xl font-bold tracking-tight">Receiving</h2>
+            <h2 className="text-xl font-bold tracking-tight">Purchase Orders</h2>
             <p className="text-[13px] text-muted-foreground">
               {meta ? `${meta.total} purchase order${meta.total !== 1 ? 's' : ''}` : 'Track inbound shipments and purchase orders.'}
             </p>
