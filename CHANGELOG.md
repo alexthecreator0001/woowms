@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.57.0] - 2026-03-04
+
+### Added
+- **Page navigation in global search** — Cmd+K search now includes a "Pages" section that matches all app pages (Dashboard, Analytics, Orders, Inventory, Locations, Picking, Shipping, Purchase Orders, Create PO, Suppliers, Plugins, Settings) with keyword aliases. Pages appear instantly (client-side filtering) above API results. Works from just 1 character typed.
+
 ## [3.56.0] - 2026-03-04
 
 ### Changed

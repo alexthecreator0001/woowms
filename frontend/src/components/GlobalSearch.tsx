@@ -11,7 +11,16 @@ import {
   ImageSquare,
   ArrowRight,
   Clock,
+  SquaresFour,
+  ChartLineUp,
+  Buildings,
+  ListChecks,
+  TruckTrailer,
+  Package,
+  GearSix,
+  Plug,
 } from '@phosphor-icons/react';
+import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import { proxyUrl } from '../lib/image';
 import api from '../services/api';
@@ -83,6 +92,40 @@ const statusBadge: Record<string, { bg: string; text: string }> = {
   RECEIVED: { bg: 'bg-emerald-500/10', text: 'text-emerald-600' },
 };
 
+interface PageEntry {
+  path: string;
+  label: string;
+  description: string;
+  keywords: string[];
+  icon: PhosphorIcon;
+}
+
+const APP_PAGES: PageEntry[] = [
+  { path: '/', label: 'Dashboard', description: 'Overview & metrics', keywords: ['dashboard', 'home', 'overview', 'main'], icon: SquaresFour },
+  { path: '/analytics', label: 'Analytics', description: 'Charts & reports', keywords: ['analytics', 'reports', 'charts', 'stats', 'statistics'], icon: ChartLineUp },
+  { path: '/orders', label: 'Orders', description: 'Manage orders', keywords: ['orders', 'sales', 'fulfillment'], icon: ShoppingBag },
+  { path: '/inventory', label: 'Inventory', description: 'Products & stock', keywords: ['inventory', 'products', 'stock', 'sku', 'catalog'], icon: Cube },
+  { path: '/warehouse', label: 'Locations', description: 'Warehouses, zones & bins', keywords: ['warehouse', 'locations', 'zones', 'bins', 'storage'], icon: Buildings },
+  { path: '/picking', label: 'Picking', description: 'Pick lists & wave picking', keywords: ['picking', 'pick lists', 'wave', 'pack'], icon: ListChecks },
+  { path: '/shipping', label: 'Shipping', description: 'Labels & tracking', keywords: ['shipping', 'labels', 'tracking', 'carrier', 'shipments'], icon: TruckTrailer },
+  { path: '/receiving', label: 'Purchase Orders', description: 'Inbound stock & POs', keywords: ['purchase orders', 'receiving', 'po', 'inbound', 'purchase'], icon: Package },
+  { path: '/receiving/new', label: 'Create Purchase Order', description: 'New PO', keywords: ['new po', 'create po', 'new purchase order', 'create purchase order', 'add po'], icon: Package },
+  { path: '/suppliers', label: 'Suppliers', description: 'Manage suppliers', keywords: ['suppliers', 'vendors'], icon: UsersThree },
+  { path: '/plugins', label: 'Plugins', description: 'Integrations & extensions', keywords: ['plugins', 'integrations', 'extensions', 'woocommerce', 'connect'], icon: Plug },
+  { path: '/settings', label: 'Settings', description: 'App configuration', keywords: ['settings', 'config', 'configuration', 'preferences', 'branding', 'account'], icon: GearSix },
+];
+
+function filterPages(q: string): PageEntry[] {
+  if (!q || q.length < 1) return [];
+  const lower = q.toLowerCase();
+  return APP_PAGES.filter(
+    (p) =>
+      p.label.toLowerCase().includes(lower) ||
+      p.description.toLowerCase().includes(lower) ||
+      p.keywords.some((k) => k.includes(lower))
+  );
+}
+
 export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
@@ -103,11 +146,16 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
     }
   }, [open]);
 
+  // Matching pages (instant, client-side)
+  const matchedPages = filterPages(query);
+
   // Debounced search
   useEffect(() => {
     if (!query || query.length < 2) {
       setResults(null);
-      resultItemsRef.current = [];
+      // Build page-only nav items when query is 1 char
+      const pageItems = filterPages(query);
+      resultItemsRef.current = pageItems.map((p) => ({ type: 'page', slug: p.path }));
       return;
     }
 
@@ -118,8 +166,10 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
         setResults(data.data);
         setActiveIndex(-1);
 
-        // Build flat list of navigable items using natural identifiers
+        // Build flat list of navigable items — pages first, then API results
         const items: Array<{ type: string; slug: string }> = [];
+        const pageItems = filterPages(query);
+        pageItems.forEach((p) => items.push({ type: 'page', slug: p.path }));
         data.data.orders?.forEach((o: { orderNumber: string }) => items.push({ type: 'order', slug: o.orderNumber }));
         data.data.products?.forEach((p: { id: number; sku?: string }) => items.push({ type: 'product', slug: p.sku || String(p.id) }));
         data.data.purchaseOrders?.forEach((po: { poNumber: string }) => items.push({ type: 'po', slug: po.poNumber }));
@@ -138,6 +188,10 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
   const navigateTo = useCallback((type: string, slug: string) => {
     if (query.length >= 2) addRecent(query);
     onClose();
+    if (type === 'page') {
+      navigate(slug);
+      return;
+    }
     const paths: Record<string, string> = {
       order: `/orders/${slug}`,
       product: `/inventory/${slug}`,
@@ -175,8 +229,9 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
 
   if (!open) return null;
 
-  const hasResults = results && (results.orders.length > 0 || results.products.length > 0 || results.purchaseOrders.length > 0 || results.suppliers.length > 0);
-  const noResults = results && !hasResults && query.length >= 2;
+  const hasApiResults = results && (results.orders.length > 0 || results.products.length > 0 || results.purchaseOrders.length > 0 || results.suppliers.length > 0);
+  const hasResults = hasApiResults || matchedPages.length > 0;
+  const noResults = !hasResults && query.length >= 2;
 
   return (
     <div
@@ -193,7 +248,7 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search orders, products, POs, suppliers..."
+            placeholder="Search pages, orders, products, suppliers..."
             className="h-12 flex-1 bg-transparent text-sm font-medium placeholder:text-muted-foreground/40 focus:outline-none"
           />
           {loading && <CircleNotch size={16} className="animate-spin text-muted-foreground" />}
@@ -230,11 +285,37 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
           {/* Search Results */}
           {hasResults && (
             <div className="p-2">
+              {/* Pages */}
+              {matchedPages.length > 0 && (
+                <div className="mb-1">
+                  <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Pages</p>
+                  {matchedPages.map((page) => {
+                    const idx = getItemIndex('page', page.path);
+                    const Icon = page.icon;
+                    return (
+                      <button
+                        key={page.path}
+                        onClick={() => navigateTo('page', page.path)}
+                        className={cn(
+                          'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                          idx === activeIndex ? 'bg-primary/8' : 'hover:bg-muted/40'
+                        )}
+                      >
+                        <Icon size={16} weight="duotone" className="flex-shrink-0 text-muted-foreground/50" />
+                        <span className="font-medium">{page.label}</span>
+                        <span className="text-muted-foreground/50">{page.description}</span>
+                        <ArrowRight size={12} className="ml-auto flex-shrink-0 text-muted-foreground/30" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
               {/* Orders */}
-              {results!.orders.length > 0 && (
+              {results?.orders && results.orders.length > 0 && (
                 <div className="mb-1">
                   <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Orders</p>
-                  {results!.orders.map((order) => {
+                  {results?.orders.map((order) => {
                     const idx = getItemIndex('order', order.orderNumber);
                     const badge = statusBadge[order.status] || statusBadge.PENDING;
                     return (
@@ -260,10 +341,10 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
               )}
 
               {/* Products */}
-              {results!.products.length > 0 && (
+              {results?.products && results.products.length > 0 && (
                 <div className="mb-1">
                   <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Products</p>
-                  {results!.products.map((product) => {
+                  {results?.products.map((product) => {
                     const slug = product.sku || String(product.id);
                     const idx = getItemIndex('product', slug);
                     const avail = product.stockQty - product.reservedQty;
@@ -303,10 +384,10 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
               )}
 
               {/* Purchase Orders */}
-              {results!.purchaseOrders.length > 0 && (
+              {results?.purchaseOrders && results.purchaseOrders.length > 0 && (
                 <div className="mb-1">
                   <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Purchase Orders</p>
-                  {results!.purchaseOrders.map((po) => {
+                  {results?.purchaseOrders.map((po) => {
                     const idx = getItemIndex('po', po.poNumber);
                     const badge = statusBadge[po.status] || statusBadge.DRAFT;
                     return (
@@ -332,10 +413,10 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
               )}
 
               {/* Suppliers */}
-              {results!.suppliers.length > 0 && (
+              {results?.suppliers && results.suppliers.length > 0 && (
                 <div className="mb-1">
                   <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Suppliers</p>
-                  {results!.suppliers.map((supplier) => {
+                  {results?.suppliers.map((supplier) => {
                     const idx = getItemIndex('supplier', String(supplier.id));
                     return (
                       <button
@@ -364,7 +445,7 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
               <MagnifyingGlass size={24} className="mx-auto text-muted-foreground/20" />
               <p className="mt-3 text-sm font-medium text-muted-foreground">No results found</p>
               <p className="mt-1 text-xs text-muted-foreground/50">
-                Try searching by order number, product name, SKU, barcode, tracking number, or supplier name
+                Try searching by page name, order number, product name, SKU, barcode, tracking number, or supplier
               </p>
             </div>
           )}
@@ -373,7 +454,7 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
           {!query && recentSearches.length === 0 && (
             <div className="px-4 py-8 text-center">
               <p className="text-xs text-muted-foreground/50">
-                Search across orders, products, purchase orders, and suppliers
+                Search pages, orders, products, purchase orders, and suppliers
               </p>
             </div>
           )}

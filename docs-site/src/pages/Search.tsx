@@ -23,6 +23,10 @@ export default function Search() {
         </thead>
         <tbody>
           <tr>
+            <td className="font-medium text-surface-800">Pages</td>
+            <td>All app pages (Dashboard, Orders, Inventory, Settings, etc.) — instant, client-side matching with keyword aliases</td>
+          </tr>
+          <tr>
             <td className="font-medium text-surface-800">Orders</td>
             <td>Order number, customer name, customer email, tracking number</td>
           </tr>
@@ -51,7 +55,11 @@ export default function Search() {
           select, Esc to close
         </li>
         <li>
-          <strong>Category grouping</strong> — Results are grouped by type (Orders, Products, etc.)
+          <strong>Page navigation</strong> — Type a page name like &quot;settings&quot;, &quot;inventory&quot;, or &quot;dashboard&quot;
+          to jump directly to any page. Pages match from just 1 character and appear instantly above data results.
+        </li>
+        <li>
+          <strong>Category grouping</strong> — Results are grouped by type (Pages, Orders, Products, etc.)
           for easy scanning
         </li>
         <li>
