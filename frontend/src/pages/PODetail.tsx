@@ -17,9 +17,8 @@ import {
   Copy,
   ExternalLink,
   Link2,
-  Pencil,
-  MapPin,
   Send,
+  MoreHorizontal,
   FileText,
   Upload,
   DollarSign,
@@ -53,6 +52,8 @@ export default function PODetail() {
   const [sending, setSending] = useState(false);
   const [invoiceUploading, setInvoiceUploading] = useState(false);
   const invoiceFileRef = useRef<HTMLInputElement>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -149,6 +150,18 @@ export default function PODetail() {
       .catch(() => setAvailableBins([]));
   }, [receiving]);
 
+  // Click-outside handler for more dropdown
+  useEffect(() => {
+    if (!moreOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [moreOpen]);
+
   const updateStatus = useCallback(async (newStatus: string) => {
     if (!po) return;
     try {
@@ -235,7 +248,7 @@ export default function PODetail() {
           Back to Purchase Orders
         </button>
 
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10">
               <PackageOpen className="h-6 w-6 text-amber-600" />
@@ -252,6 +265,175 @@ export default function PODetail() {
                 {po.supplier} &middot; Created {new Date(po.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
               </p>
             </div>
+          </div>
+
+          {/* Action Buttons */}
+          {receiving ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleReceive}
+                disabled={statusUpdating}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {statusUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save
+              </button>
+              <button
+                onClick={() => { setReceiving(false); setReceiveQtys({}); setAvailableBins([]); }}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Primary status transition */}
+              {po.status === 'DRAFT' && (
+                <button
+                  onClick={() => updateStatus('ORDERED')}
+                  disabled={statusUpdating}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {statusUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
+                  Mark as Ordered
+                </button>
+              )}
+              {po.status === 'ORDERED' && (
+                <button
+                  onClick={() => updateStatus('SHIPPED')}
+                  disabled={statusUpdating}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-purple-600 px-4 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
+                >
+                  {statusUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
+                  Mark as Shipped
+                </button>
+              )}
+              {canReceive && (
+                <button
+                  onClick={() => setReceiving(true)}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  Receive Items
+                </button>
+              )}
+              {po.status === 'PARTIALLY_RECEIVED' && (
+                <button
+                  onClick={() => updateStatus('RECEIVED_WITH_RESERVATIONS')}
+                  disabled={statusUpdating}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-orange-500/30 px-4 text-sm font-medium text-orange-600 transition-colors hover:bg-orange-500/10 disabled:opacity-50"
+                >
+                  {statusUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertTriangle className="h-4 w-4" />}
+                  Received with Issues
+                </button>
+              )}
+
+              {/* Send to Supplier */}
+              {['ORDERED', 'SHIPPED'].includes(po.status) && (
+                <button
+                  onClick={handleSendToSupplier}
+                  disabled={sending || !po.supplierRef?.email}
+                  title={!po.supplierRef?.email ? 'Supplier has no email address' : po.sentAt ? `Sent ${new Date(po.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : 'Send PO to supplier via email'}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:opacity-50"
+                >
+                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {po.sentAt ? 'Resend' : 'Send'}
+                </button>
+              )}
+
+              {/* Download PDF — icon only */}
+              <button
+                onClick={handleDownloadPdf}
+                disabled={pdfDownloading}
+                title="Download PDF"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:opacity-50"
+              >
+                {pdfDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+              </button>
+
+              {/* More dropdown — Cancel / Delete */}
+              {['DRAFT', 'ORDERED', 'SHIPPED', 'PARTIALLY_RECEIVED'].includes(po.status) && (
+                <div ref={moreRef} className="relative">
+                  <button
+                    onClick={() => setMoreOpen(!moreOpen)}
+                    className={cn(
+                      'inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground',
+                      moreOpen && 'bg-muted/60 text-foreground'
+                    )}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                  {moreOpen && (
+                    <div className="absolute right-0 top-full z-50 mt-1 w-52 rounded-xl border border-border/60 bg-popover p-1 shadow-lg">
+                      <button
+                        onClick={() => { setMoreOpen(false); updateStatus('CANCELLED'); }}
+                        disabled={statusUpdating}
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:opacity-50"
+                      >
+                        <X className="h-4 w-4" />
+                        Cancel Order
+                      </button>
+                      {po.status === 'DRAFT' && (
+                        <button
+                          onClick={() => { setMoreOpen(false); handleDelete(); }}
+                          disabled={deleting}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete Purchase Order
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Summary Stat Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border/50 rounded-xl border border-border/60 bg-card shadow-sm">
+        <div className="flex items-center gap-3 px-5 py-3.5">
+          <Package className="h-[18px] w-[18px] text-blue-500" />
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Items</p>
+            <p className="text-lg font-bold tracking-tight">{items.length}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 px-5 py-3.5">
+          <DollarSign className="h-[18px] w-[18px] text-emerald-500" />
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Total Cost</p>
+            <p className="text-lg font-bold tracking-tight">{totalCost > 0 ? `$${totalCost.toFixed(2)}` : '—'}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 px-5 py-3.5">
+          <CheckCircle className="h-[18px] w-[18px] text-amber-500" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Received</p>
+            <p className="text-lg font-bold tracking-tight">{totalReceived}/{totalOrdered} <span className="text-xs font-medium text-muted-foreground">({progressPct}%)</span></p>
+            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted/40">
+              <div
+                className={cn(
+                  'h-full rounded-full transition-all duration-500',
+                  progressPct >= 100 ? 'bg-emerald-500' : progressPct > 0 ? 'bg-amber-500' : 'bg-muted-foreground/20'
+                )}
+                style={{ width: `${Math.min(progressPct, 100)}%` }}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 px-5 py-3.5">
+          <Calendar className="h-[18px] w-[18px] text-violet-500" />
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Expected</p>
+            <p className="text-lg font-bold tracking-tight">
+              {po.expectedDate
+                ? new Date(po.expectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                : '—'}
+            </p>
           </div>
         </div>
       </div>
@@ -270,15 +452,6 @@ export default function PODetail() {
                   {items.length}
                 </span>
               </h3>
-              {canReceive && !receiving && (
-                <button
-                  onClick={() => setReceiving(true)}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white transition-colors hover:bg-emerald-700"
-                >
-                  <Truck className="h-3.5 w-3.5" />
-                  Receive Items
-                </button>
-              )}
               {receiving && (
                 <div className="flex items-center gap-2">
                   <button
@@ -477,28 +650,6 @@ export default function PODetail() {
                   {status.label}
                 </span>
               </div>
-              <div className="py-3.5">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">Progress</span>
-                  <span className="text-sm font-medium">
-                    {totalReceived}/{totalOrdered} items
-                    <span className="ml-1.5 text-xs text-muted-foreground">({progressPct}%)</span>
-                  </span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted/40">
-                  <div
-                    className={cn(
-                      'h-full rounded-full transition-all duration-500',
-                      progressPct >= 100
-                        ? 'bg-emerald-500'
-                        : progressPct > 0
-                          ? 'bg-amber-500'
-                          : 'bg-muted-foreground/20'
-                    )}
-                    style={{ width: `${Math.min(progressPct, 100)}%` }}
-                  />
-                </div>
-              </div>
               <div className="flex items-center justify-between py-3.5">
                 <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Calendar className="h-3.5 w-3.5" />
@@ -624,99 +775,6 @@ export default function PODetail() {
                     />
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Actions Card */}
-          <div className="rounded-2xl border border-border/60 bg-card shadow-sm">
-            <div className="border-b border-border/50 px-6 py-4">
-              <h3 className="text-sm font-semibold">Actions</h3>
-            </div>
-            <div className="space-y-2 p-4">
-              {po.status === 'DRAFT' && (
-                <button
-                  onClick={() => updateStatus('ORDERED')}
-                  disabled={statusUpdating}
-                  className="flex w-full items-center gap-3 rounded-xl border border-border/40 bg-muted/20 px-4 py-3 text-sm font-medium transition-colors hover:bg-blue-500/5 hover:border-blue-500/30 disabled:opacity-50"
-                >
-                  <Truck className="h-4 w-4 text-blue-600" />
-                  Mark as Ordered
-                </button>
-              )}
-              {po.status === 'ORDERED' && (
-                <button
-                  onClick={() => updateStatus('SHIPPED')}
-                  disabled={statusUpdating}
-                  className="flex w-full items-center gap-3 rounded-xl border border-border/40 bg-muted/20 px-4 py-3 text-sm font-medium transition-colors hover:bg-purple-500/5 hover:border-purple-500/30 disabled:opacity-50"
-                >
-                  <Truck className="h-4 w-4 text-purple-600" />
-                  Mark as Shipped
-                </button>
-              )}
-              {canReceive && !receiving && (
-                <button
-                  onClick={() => setReceiving(true)}
-                  className="flex w-full items-center gap-3 rounded-xl border border-border/40 bg-muted/20 px-4 py-3 text-sm font-medium transition-colors hover:bg-emerald-500/5 hover:border-emerald-500/30"
-                >
-                  <CheckCircle className="h-4 w-4 text-emerald-600" />
-                  Receive Items
-                </button>
-              )}
-              {po.status === 'PARTIALLY_RECEIVED' && (
-                <button
-                  onClick={() => updateStatus('RECEIVED_WITH_RESERVATIONS')}
-                  disabled={statusUpdating}
-                  className="flex w-full items-center gap-3 rounded-xl border border-border/40 bg-muted/20 px-4 py-3 text-sm font-medium transition-colors hover:bg-orange-500/5 hover:border-orange-500/30 disabled:opacity-50"
-                >
-                  <AlertTriangle className="h-4 w-4 text-orange-600" />
-                  Mark Received with Issues
-                </button>
-              )}
-              {/* Send to Supplier */}
-              {['ORDERED', 'SHIPPED'].includes(po.status) && (
-                <button
-                  onClick={handleSendToSupplier}
-                  disabled={sending || !po.supplierRef?.email}
-                  title={!po.supplierRef?.email ? 'Supplier has no email address' : undefined}
-                  className="flex w-full items-center gap-3 rounded-xl border border-border/40 bg-muted/20 px-4 py-3 text-sm font-medium transition-colors hover:bg-blue-500/5 hover:border-blue-500/30 disabled:opacity-50"
-                >
-                  {sending ? <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> : <Send className="h-4 w-4 text-blue-600" />}
-                  {po.sentAt ? 'Resend to Supplier' : 'Send to Supplier'}
-                </button>
-              )}
-              {po.sentAt && (
-                <p className="px-4 text-[11px] text-muted-foreground">
-                  Sent {new Date(po.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </p>
-              )}
-              <button
-                onClick={handleDownloadPdf}
-                disabled={pdfDownloading}
-                className="flex w-full items-center gap-3 rounded-xl border border-border/40 bg-muted/20 px-4 py-3 text-sm font-medium transition-colors hover:bg-muted/40 disabled:opacity-50"
-              >
-                {pdfDownloading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : <FileDown className="h-4 w-4 text-muted-foreground" />}
-                Download PDF
-              </button>
-              {po.status === 'DRAFT' && (
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="flex w-full items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-500/10 disabled:opacity-50"
-                >
-                  {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                  Delete Purchase Order
-                </button>
-              )}
-              {['DRAFT', 'ORDERED', 'SHIPPED', 'PARTIALLY_RECEIVED'].includes(po.status) && (
-                <button
-                  onClick={() => updateStatus('CANCELLED')}
-                  disabled={statusUpdating}
-                  className="flex w-full items-center gap-3 rounded-xl border border-border/40 bg-muted/20 px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-red-500/5 hover:text-red-600 hover:border-red-500/20 disabled:opacity-50"
-                >
-                  <AlertTriangle className="h-4 w-4" />
-                  Cancel Order
-                </button>
               )}
             </div>
           </div>

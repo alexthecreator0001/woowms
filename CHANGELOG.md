@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.56.0] - 2026-03-04
+
+### Changed
+- **PO detail page layout overhaul** — Moved all action buttons (status transitions, Send, PDF, Cancel/Delete) into the page header for immediate access without scrolling. Added a 4-column summary stat strip showing item count, total cost, received progress with bar, and expected date. Removed the separate Actions card from the sidebar. Right sidebar now contains only PO Info and Invoice cards. Destructive actions (Cancel Order, Delete) moved to a "More" dropdown menu. Receive mode shows Save/Cancel in both header and items card. Responsive: stat strip collapses to 2×2 grid on mobile, header buttons wrap.
+
 ## [3.55.0 / 2.42.0] - 2026-03-04
 
 ### Added

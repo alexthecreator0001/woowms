@@ -81,7 +81,7 @@ export default function Receiving() {
         and attaches it to the email.
       </p>
       <ul>
-        <li>Click <strong>Send to Supplier</strong> in the Actions card</li>
+        <li>Click <strong>Send</strong> in the header action bar</li>
         <li>The supplier must have an email address configured (the button is disabled if no email is set)</li>
         <li>The email includes a summary of the PO and the PDF as an attachment</li>
         <li>After sending, the sent date is recorded and shown on the PO</li>
@@ -124,34 +124,54 @@ export default function Receiving() {
 
       <h2>PO Detail Page</h2>
       <p>
-        The PO detail page uses a two-column layout:
+        The PO detail page features a header with inline actions, a summary stat strip,
+        and a two-column layout:
+      </p>
+
+      <h3>Header &amp; Actions</h3>
+      <p>
+        All primary actions are accessible directly in the page header &mdash; no scrolling
+        required. The header shows the PO number, status badge, supplier name, and action buttons:
       </p>
       <ul>
+        <li><strong>Status transitions</strong> &mdash; Mark as Ordered, Mark as Shipped, Receive Items, or Mark Received with Issues (shown based on current status)</li>
+        <li><strong>Send / Resend</strong> &mdash; Send the PO to the supplier via email (Ordered/Shipped status only)</li>
+        <li><strong>Download PDF</strong> &mdash; Icon button to export the PO as PDF</li>
+        <li><strong>More menu (&hellip;)</strong> &mdash; Cancel Order and Delete Purchase Order (destructive actions tucked away in a dropdown)</li>
+      </ul>
+      <p>
+        When in <strong>receive mode</strong>, the header buttons are replaced with Save and Cancel actions.
+      </p>
+
+      <h3>Summary Stat Strip</h3>
+      <p>
+        Below the header, a 4-column stat strip provides at-a-glance metrics:
+      </p>
+      <ul>
+        <li><strong>Items</strong> &mdash; Total number of line items</li>
+        <li><strong>Total Cost</strong> &mdash; Sum of all item costs</li>
+        <li><strong>Received</strong> &mdash; Received/ordered count with percentage and progress bar</li>
+        <li><strong>Expected</strong> &mdash; Expected arrival date</li>
+      </ul>
+
+      <h3>Two-Column Layout</h3>
+      <ul>
         <li>
-          <strong>Left column:</strong> Items table with product thumbnails, ordered/received
+          <strong>Left column:</strong> Items list with product thumbnails, ordered/received
           quantities, progress indicators, and cost summary with subtotal. Supplier SKU and
           EAN columns appear automatically when any item has those fields populated.
         </li>
         <li>
-          <strong>Right column:</strong> PO info (supplier, status, progress bar, dates, tracking),
-          Actions (status transitions, send to supplier, PDF export, delete/cancel),
+          <strong>Right column:</strong> PO info (supplier, status, dates, tracking)
           and Invoice tracking (number, date, amount, file upload).
         </li>
       </ul>
 
       <h3>Product Thumbnails</h3>
       <p>
-        Each item row in the PO detail items table displays a small 32&times;32 product
+        Each item row in the PO detail items list displays a small 40&times;40 product
         thumbnail loaded via the image proxy. If a product has no image, a placeholder
         package icon is shown instead.
-      </p>
-
-      <h3>Receiving Progress Bar</h3>
-      <p>
-        The PO Info card on the right column includes a visual progress bar showing the
-        ratio of received items to ordered items, along with a percentage. The bar is
-        colored amber during partial receiving and turns green when all items are fully
-        received.
       </p>
 
       <h2>PDF Export</h2>
