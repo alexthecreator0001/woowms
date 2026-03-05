@@ -36,8 +36,18 @@ export default function GenerateBinsModal({
       setRacks(2);
       setShelves(4);
       setPositions(3);
-      setBinSize('MEDIUM');
       setError(null);
+      // Load default bin size from tenant settings
+      api.get('/account/tenant-settings')
+        .then(({ data }) => {
+          const s = data.data || {};
+          if (s.binDefaultSize && Object.keys(BIN_SIZE_LABELS).includes(s.binDefaultSize)) {
+            setBinSize(s.binDefaultSize);
+          } else {
+            setBinSize('MEDIUM');
+          }
+        })
+        .catch(() => setBinSize('MEDIUM'));
     }
   }, [open]);
 

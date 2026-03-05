@@ -3,6 +3,7 @@ import { X, Printer } from '@phosphor-icons/react';
 import { jsPDF } from 'jspdf';
 import bwipjs from 'bwip-js';
 import { cn } from '../../lib/utils';
+import api from '../../services/api';
 
 interface PrintLabelsModalProps {
   open: boolean;
@@ -113,11 +114,28 @@ export default function PrintLabelsModal({
 }: PrintLabelsModalProps) {
   const [labelSize, setLabelSize] = useState<LabelSize>('sheet-medium');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [showWarehouse, setShowWarehouse] = useState(true);
+  const [showBreakdownOverride, setShowBreakdownOverride] = useState(true);
 
   useEffect(() => {
     if (open) {
-      setLabelSize('sheet-medium');
       setSelectedIds(new Set(bins.map((b) => b.id)));
+      // Load saved defaults from tenant settings
+      api.get('/account/tenant-settings')
+        .then(({ data }) => {
+          const s = data.data || {};
+          const validSizes: LabelSize[] = ['zebra-4x6', 'zebra-2x1', 'sheet-small', 'sheet-medium', 'sheet-large'];
+          if (validSizes.includes(s.binLabelDefaultSize)) {
+            setLabelSize(s.binLabelDefaultSize);
+          } else {
+            setLabelSize('sheet-medium');
+          }
+          if (typeof s.binLabelShowWarehouse === 'boolean') setShowWarehouse(s.binLabelShowWarehouse);
+          if (typeof s.binLabelShowBreakdown === 'boolean') setShowBreakdownOverride(s.binLabelShowBreakdown);
+        })
+        .catch(() => {
+          setLabelSize('sheet-medium');
+        });
     }
   }, [open, bins]);
 
@@ -183,7 +201,7 @@ export default function PrintLabelsModal({
       labelW = 4; labelH = 6;
       marginLeft = 0; marginTop = 0;
       fontLocation = 28; fontZone = 12; fontBreakdown = 10;
-      barcodeH = 0.6; showBreakdown = true;
+      barcodeH = 0.6; showBreakdown = showBreakdownOverride;
     } else if (labelSize === 'zebra-2x1') {
       doc = new jsPDF({ orientation: 'landscape', unit: 'in', format: [1, 2] });
       cols = 1; rows = 1;
@@ -204,7 +222,7 @@ export default function PrintLabelsModal({
       labelW = 4; labelH = 2;
       marginLeft = 0.16; marginTop = 0.5;
       fontLocation = 16; fontZone = 8; fontBreakdown = 6;
-      barcodeH = 0.35; showBreakdown = true;
+      barcodeH = 0.35; showBreakdown = showBreakdownOverride;
     } else {
       // sheet-large
       doc = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' });
@@ -212,7 +230,7 @@ export default function PrintLabelsModal({
       labelW = 4; labelH = 3.33;
       marginLeft = 0.25; marginTop = 0.25;
       fontLocation = 22; fontZone = 10; fontBreakdown = 8;
-      barcodeH = 0.5; showBreakdown = true;
+      barcodeH = 0.5; showBreakdown = showBreakdownOverride;
     }
 
     const perPage = cols * rows;
@@ -279,7 +297,8 @@ export default function PrintLabelsModal({
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(fontZone);
         doc.setTextColor(100, 100, 100);
-        doc.text(`${zoneName} — ${warehouseName}`, centerX, cursorY, { align: 'center' });
+        const zoneLineL = showWarehouse ? `${zoneName} — ${warehouseName}` : zoneName;
+        doc.text(zoneLineL, centerX, cursorY, { align: 'center' });
         cursorY += 0.35;
 
         // Breakdown
@@ -312,7 +331,8 @@ export default function PrintLabelsModal({
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(fontZone);
         doc.setTextColor(120, 120, 120);
-        doc.text(`${zoneName}`, centerX, cursorY + 0.06, { align: 'center' });
+        const zoneLineS = showWarehouse ? `${zoneName} — ${warehouseName}` : zoneName;
+        doc.text(zoneLineS, centerX, cursorY + 0.06, { align: 'center' });
       } else {
         // Sheet labels
         const topPad = labelH * 0.1;
@@ -337,7 +357,8 @@ export default function PrintLabelsModal({
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(fontZone);
         doc.setTextColor(100, 100, 100);
-        doc.text(`${zoneName} — ${warehouseName}`, centerX, cursorY + fontZone / 72, { align: 'center' });
+        const zoneLineSh = showWarehouse ? `${zoneName} — ${warehouseName}` : zoneName;
+        doc.text(zoneLineSh, centerX, cursorY + fontZone / 72, { align: 'center' });
         cursorY += fontZone / 72 + labelH * 0.06;
 
         // Breakdown

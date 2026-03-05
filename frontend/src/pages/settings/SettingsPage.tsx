@@ -17,6 +17,7 @@ import {
   Tag,
   FileText,
   DeviceMobile,
+  Barcode,
 } from '@phosphor-icons/react';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
@@ -36,6 +37,7 @@ import TagsSection from './TagsSection';
 import DocumentsSection from './DocumentsSection';
 import RulesSection from './RulesSection';
 import MobileAppSection from './MobileAppSection';
+import BinsSection from './BinsSection';
 
 function getTokenPayload(): TokenPayload | null {
   const token = localStorage.getItem('token');
@@ -47,7 +49,7 @@ function getTokenPayload(): TokenPayload | null {
   }
 }
 
-type Section = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger' | 'notifications' | 'orderWorkflow' | 'inventoryDefaults' | 'units' | 'tags' | 'documents' | 'shipping' | 'customerRules' | 'mobileApp';
+type Section = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger' | 'notifications' | 'orderWorkflow' | 'inventoryDefaults' | 'units' | 'bins' | 'tags' | 'documents' | 'shipping' | 'customerRules' | 'mobileApp';
 
 interface SettingsCard {
   id: Section;
@@ -69,6 +71,7 @@ const cards: SettingsCard[] = [
   { id: 'orderWorkflow', title: 'Order workflow', description: 'Map WooCommerce statuses to WMS statuses.', icon: ArrowsLeftRight, group: 'Warehouse settings', adminOnly: true },
   { id: 'inventoryDefaults', title: 'Inventory defaults', description: 'Low stock threshold and stock sync.', icon: Package, group: 'Warehouse settings', adminOnly: true },
   { id: 'units', title: 'Units & measurements', description: 'Unit system and pallet type defaults.', icon: Ruler, group: 'Warehouse settings', adminOnly: true },
+  { id: 'bins', title: 'Bins & Labels', description: 'Default bin size, label printing, and bin properties.', icon: Barcode, group: 'Warehouse settings', adminOnly: true },
   { id: 'tags', title: 'Tags', description: 'Create and manage order tags.', icon: Tag, group: 'Warehouse settings', adminOnly: true },
   { id: 'documents', title: 'Documents', description: 'Document templates, branding colors, and stamps.', icon: FileText, group: 'Warehouse settings', adminOnly: true },
   { id: 'customerRules', title: 'Rules', description: 'Automate order actions, customer tags, and free gifts.', icon: Lightning, group: 'Warehouse settings', adminOnly: true },
@@ -111,6 +114,7 @@ export default function SettingsPage() {
         {active === 'orderWorkflow' && isAdmin && <OrderWorkflowSection />}
         {active === 'inventoryDefaults' && isAdmin && <InventoryDefaultsSection />}
         {active === 'units' && isAdmin && <UnitsSection />}
+        {active === 'bins' && isAdmin && <BinsSection />}
         {active === 'tags' && isAdmin && <TagsSection />}
         {active === 'documents' && isAdmin && <DocumentsSection />}
         {active === 'shipping' && isAdmin && <ShippingSection />}

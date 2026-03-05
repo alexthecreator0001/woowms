@@ -69,6 +69,33 @@ export default function WarehouseLabels() {
           process much faster since workers can scan or read the bin code directly.
         </p>
       </div>
+
+      <h2>Label &amp; Bin Settings</h2>
+      <p>
+        Configure default label and bin behavior in <strong>Settings &rarr; Bins &amp; Labels</strong>.
+        These settings are remembered and applied automatically.
+      </p>
+
+      <h3>Label Printing Defaults</h3>
+      <ul>
+        <li><strong>Default label size</strong> &mdash; pre-selects your preferred size when opening the print dialog</li>
+        <li><strong>Show warehouse name</strong> &mdash; include or hide the warehouse name on each label</li>
+        <li><strong>Show location breakdown</strong> &mdash; show or hide the parsed breakdown text (e.g., "Aisle A &middot; Rack 01 &middot; Shelf 02 &middot; Pos 03")</li>
+      </ul>
+
+      <h3>Default Bin Properties</h3>
+      <ul>
+        <li><strong>Default size</strong> &mdash; Small (25), Medium (50), Large (100), or X-Large (200) capacity</li>
+        <li><strong>Pickable</strong> &mdash; whether new bins are available for order picking by default</li>
+        <li><strong>Sellable</strong> &mdash; whether stock in new bins counts toward available inventory by default</li>
+      </ul>
+
+      <div className="doc-callout">
+        <p>
+          <strong>Note:</strong> These are global defaults. You can override the label size each
+          time you print, and you can edit individual bin properties after creation.
+        </p>
+      </div>
     </article>
   );
 }
