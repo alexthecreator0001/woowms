@@ -72,6 +72,25 @@ export default function Picking() {
         <li>Individual item checkboxes with pick/unpick toggle</li>
       </ul>
 
+      <h2>Pick Bin Labels</h2>
+      <p>
+        Print static labels for your physical pick bins (totes, carts, or containers) that
+        pickers carry around the warehouse. Click <strong>Print Bin Labels</strong> in the
+        Picking page header to open the label generator.
+      </p>
+      <p>Configure:</p>
+      <ul>
+        <li><strong>Prefix</strong> &mdash; e.g. BIN, TOTE, CART (up to 6 characters)</li>
+        <li><strong>Start number</strong> &mdash; first label number (e.g. 1 for BIN-001)</li>
+        <li><strong>Count</strong> &mdash; how many labels to generate (up to 200)</li>
+        <li><strong>Label size</strong> &mdash; Zebra 4&times;6", Zebra 2&times;1", Medium (10/page), or Large (6/page)</li>
+      </ul>
+      <p>
+        Each label includes a <strong>Code 128 barcode</strong>, the bin code in large bold text,
+        a &ldquo;PICK BIN&rdquo; header, and a violet accent stripe. Labels are one-time prints &mdash;
+        stick them on your bins and reuse them.
+      </p>
+
       <div className="doc-callout">
         <p>
           <strong>Coming soon:</strong> Wave picking — batch multiple orders into a single

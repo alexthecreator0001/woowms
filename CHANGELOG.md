@@ -16,6 +16,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Login API returns mobile settings** — `POST /api/v1/auth/login` response now includes `mobileSettings` object so the Android app gets all configuration in a single request on login.
 - **Dedicated mobile settings endpoints** — `GET /api/v1/account/mobile-settings` (any authenticated user) and `PATCH /api/v1/account/mobile-settings` (admin only) for reading and updating mobile app settings.
 - **Bins & Labels settings page** — New settings section under Warehouse settings for configuring bin label printing defaults (label size, show/hide warehouse name, show/hide location breakdown) and default bin properties (size, pickable, sellable flags). Saved preferences are automatically applied when opening the Print Labels dialog and when generating new bins.
+- **Pick bin label printing** — Print static labels for physical pick bins/totes from the Picking page. Configurable prefix (BIN, TOTE, CART), numbering range, and 4 label sizes. Each label has a Code 128 barcode, bold bin code, and violet accent stripe.
 
 ## [3.57.0] - 2026-03-04
 
