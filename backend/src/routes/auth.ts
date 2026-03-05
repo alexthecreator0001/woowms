@@ -121,6 +121,38 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
   }
 });
 
+// Default mobile app settings — returned when tenant has no overrides
+const DEFAULT_MOBILE_SETTINGS = {
+  // ── Admin-enforced (workflow) ──
+  pickingMode: 'single' as const,       // single | batch
+  maxBatchSize: 10,                      // 1–50 (only used in batch mode)
+  useBins: true,                         // show bin locations to pickers
+  requireBarcodeScan: false,             // must scan barcode to confirm pick
+  allowPartialPicks: true,              // allow picking less than full qty
+  allowSkipItems: true,                 // skip items and come back later
+  autoAssignNextList: false,            // auto-assign next pick list on completion
+  showProductImages: true,              // show product images on pick items
+  showProductWeight: false,             // show weight info on pick items
+  showCustomerInfo: false,              // show customer name on pick list
+  priorityBasedQueue: true,             // sort pick queue by priority first
+  requirePhotoOnDamage: false,          // require photo for damaged/short items
+  enableReceivingOnMobile: false,       // enable PO receiving on mobile
+  enableInventoryCount: false,          // enable cycle counts on mobile
+  pickConfirmation: 'scan_or_tap' as const, // scan_only | tap_only | scan_or_tap
+  // ── User-overridable (defaults set by admin) ──
+  defaultSortOrder: 'bin_location' as const, // bin_location | sku | product_name
+  soundOnScan: true,
+  vibrationOnScan: true,
+  autoAdvanceToNext: true,              // auto-move to next item after pick
+  theme: 'system' as const,            // system | light | dark
+  fontSize: 'medium' as const,         // small | medium | large
+};
+
+function getMobileSettings(tenantSettings: Record<string, unknown>): typeof DEFAULT_MOBILE_SETTINGS {
+  const saved = (tenantSettings.mobileApp as Record<string, unknown>) || {};
+  return { ...DEFAULT_MOBILE_SETTINGS, ...saved };
+}
+
 // POST /api/v1/auth/login
 router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -138,6 +170,14 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
 
     const token = generateToken(user, user.tenantId);
 
+    // Fetch tenant settings to include mobile config
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: user.tenantId },
+      select: { settings: true },
+    });
+    const tenantSettings = (tenant?.settings as Record<string, unknown>) || {};
+    const mobileSettings = getMobileSettings(tenantSettings);
+
     res.json({
       data: {
         token,
@@ -149,6 +189,7 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
           emailVerified: user.emailVerified,
           onboardingCompleted: user.onboardingCompleted,
         },
+        mobileSettings,
       },
     });
   } catch (err) {

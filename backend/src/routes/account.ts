@@ -229,6 +229,74 @@ router.patch('/tenant-settings', authorize('ADMIN'), async (req: Request, res: R
   }
 });
 
+// GET /api/v1/account/mobile-settings — get mobile app settings (any authenticated user)
+router.get('/mobile-settings', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: req.user!.tenantId },
+      select: { settings: true },
+    });
+    const settings = (tenant?.settings as Record<string, unknown>) || {};
+    const mobileApp = settings.mobileApp || {};
+    const defaults = {
+      pickingMode: 'single',
+      maxBatchSize: 10,
+      useBins: true,
+      requireBarcodeScan: false,
+      allowPartialPicks: true,
+      allowSkipItems: true,
+      autoAssignNextList: false,
+      showProductImages: true,
+      showProductWeight: false,
+      showCustomerInfo: false,
+      priorityBasedQueue: true,
+      requirePhotoOnDamage: false,
+      enableReceivingOnMobile: false,
+      enableInventoryCount: false,
+      pickConfirmation: 'scan_or_tap',
+      defaultSortOrder: 'bin_location',
+      soundOnScan: true,
+      vibrationOnScan: true,
+      autoAdvanceToNext: true,
+      theme: 'system',
+      fontSize: 'medium',
+    };
+    res.json({ data: { ...defaults, ...(mobileApp as Record<string, unknown>) } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/v1/account/mobile-settings — update mobile app settings (admin only)
+router.patch('/mobile-settings', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const updates = req.body;
+    if (!updates || typeof updates !== 'object') {
+      return res.status(400).json({ error: true, message: 'Request body must be an object', code: 'VALIDATION_ERROR' });
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: req.user!.tenantId },
+      select: { settings: true },
+    });
+
+    const existing = (tenant?.settings as Record<string, unknown>) || {};
+    const existingMobile = (existing.mobileApp as Record<string, unknown>) || {};
+    const merged = { ...existing, mobileApp: { ...existingMobile, ...updates } };
+
+    const updated = await prisma.tenant.update({
+      where: { id: req.user!.tenantId },
+      data: { settings: merged },
+      select: { settings: true },
+    });
+
+    const finalSettings = (updated.settings as Record<string, unknown>) || {};
+    res.json({ data: finalSettings.mobileApp });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // PATCH /api/v1/account/branding — update company/tenant name (admin only)
 router.patch('/branding', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
   try {

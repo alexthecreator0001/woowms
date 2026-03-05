@@ -29,6 +29,147 @@ export default function MobileApp() {
         instantly with the PickNPack backend.
       </p>
 
+      <h2>Admin Settings (Web Dashboard)</h2>
+      <p>
+        Admins configure how the mobile app behaves for all users from the web dashboard under{' '}
+        <strong>Settings &rarr; Mobile App</strong>. These settings are delivered to the Android app
+        automatically on login — no extra API call needed.
+      </p>
+
+      <h3>Admin-Enforced Settings</h3>
+      <table className="doc-table">
+        <thead>
+          <tr>
+            <th>Setting</th>
+            <th>Options</th>
+            <th>Default</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className="font-medium text-surface-800">Picking mode</td>
+            <td>Single order / Batch (multi-order)</td>
+            <td>Single</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Max batch size</td>
+            <td>2–50 orders per batch</td>
+            <td>10</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Pick confirmation</td>
+            <td>Barcode scan only / Manual tap only / Both</td>
+            <td>Both (scan or tap)</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Show bin locations</td>
+            <td>On / Off</td>
+            <td>On</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Require barcode scan to start</td>
+            <td>On / Off</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Allow partial picks</td>
+            <td>On / Off</td>
+            <td>On</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Allow skipping items</td>
+            <td>On / Off</td>
+            <td>On</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Auto-assign next pick list</td>
+            <td>On / Off</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Priority-based queue</td>
+            <td>On / Off</td>
+            <td>On</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Require photo on damage</td>
+            <td>On / Off</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Show product images</td>
+            <td>On / Off</td>
+            <td>On</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Show product weight</td>
+            <td>On / Off</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Show customer info</td>
+            <td>On / Off</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Enable Receiving module</td>
+            <td>On / Off</td>
+            <td>Off</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Enable Inventory Counts</td>
+            <td>On / Off</td>
+            <td>Off</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>User-Overridable Defaults</h3>
+      <p>
+        Admin sets the defaults, but individual pickers can change these on their device:
+      </p>
+      <table className="doc-table">
+        <thead>
+          <tr>
+            <th>Setting</th>
+            <th>Options</th>
+            <th>Default</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className="font-medium text-surface-800">Item sort order</td>
+            <td>By bin location / By SKU / By product name</td>
+            <td>Bin location</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Sound on scan</td>
+            <td>On / Off</td>
+            <td>On</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Vibration on scan</td>
+            <td>On / Off</td>
+            <td>On</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Auto-advance to next item</td>
+            <td>On / Off</td>
+            <td>On</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Theme</td>
+            <td>System / Light / Dark</td>
+            <td>System</td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">Font size</td>
+            <td>Small / Medium / Large</td>
+            <td>Medium</td>
+          </tr>
+        </tbody>
+      </table>
+
       <h2>Core Features</h2>
       <ul>
         <li><strong>Pick list queue</strong> — View all pending and in-progress pick lists assigned to you</li>
@@ -74,7 +215,7 @@ export default function MobileApp() {
       </table>
 
       <h2>API Endpoints Used</h2>
-      <p>The app communicates with three main endpoints on the PickNPack backend:</p>
+      <p>The app communicates with these endpoints on the PickNPack backend:</p>
       <table className="doc-table">
         <thead>
           <tr>
@@ -87,7 +228,12 @@ export default function MobileApp() {
           <tr>
             <td className="font-medium text-surface-800">POST</td>
             <td><code>/api/v1/auth/login</code></td>
-            <td>Authenticate and receive JWT token</td>
+            <td>Authenticate, receive JWT token and <code>mobileSettings</code></td>
+          </tr>
+          <tr>
+            <td className="font-medium text-surface-800">GET</td>
+            <td><code>/api/v1/account/mobile-settings</code></td>
+            <td>Refresh mobile settings (e.g. on app resume)</td>
           </tr>
           <tr>
             <td className="font-medium text-surface-800">GET</td>
@@ -105,7 +251,7 @@ export default function MobileApp() {
       <h2>Picking Workflow</h2>
       <p>The picking flow on the mobile app follows these steps:</p>
       <ul>
-        <li><strong>1. Login</strong> — Picker enters email and password. App stores the JWT token.</li>
+        <li><strong>1. Login</strong> — Picker enters email and password. App stores the JWT token and mobile settings.</li>
         <li><strong>2. View queue</strong> — App fetches pick lists with status PENDING or IN_PROGRESS.</li>
         <li><strong>3. Start picking</strong> — Picker taps a pick list to see all items sorted by bin location.</li>
         <li><strong>4. Navigate to bin</strong> — Each item shows the bin label (e.g. <code>A-01-03-02</code>) so the picker knows where to go.</li>
@@ -122,7 +268,7 @@ export default function MobileApp() {
       </p>
       <p>
         Pickers need at least the <strong>PICKER</strong> role to access picking endpoints. Roles are managed
-        in the PickNPack web dashboard under Settings → Team.
+        in the PickNPack web dashboard under Settings &rarr; Team.
       </p>
 
       <h2>Pick List Statuses</h2>

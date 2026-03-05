@@ -16,6 +16,7 @@ import {
   Lightning,
   Tag,
   FileText,
+  DeviceMobile,
 } from '@phosphor-icons/react';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
@@ -34,6 +35,7 @@ import ShippingSection from './ShippingSection';
 import TagsSection from './TagsSection';
 import DocumentsSection from './DocumentsSection';
 import RulesSection from './RulesSection';
+import MobileAppSection from './MobileAppSection';
 
 function getTokenPayload(): TokenPayload | null {
   const token = localStorage.getItem('token');
@@ -45,7 +47,7 @@ function getTokenPayload(): TokenPayload | null {
   }
 }
 
-type Section = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger' | 'notifications' | 'orderWorkflow' | 'inventoryDefaults' | 'units' | 'tags' | 'documents' | 'shipping' | 'customerRules';
+type Section = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger' | 'notifications' | 'orderWorkflow' | 'inventoryDefaults' | 'units' | 'tags' | 'documents' | 'shipping' | 'customerRules' | 'mobileApp';
 
 interface SettingsCard {
   id: Section;
@@ -70,6 +72,7 @@ const cards: SettingsCard[] = [
   { id: 'tags', title: 'Tags', description: 'Create and manage order tags.', icon: Tag, group: 'Warehouse settings', adminOnly: true },
   { id: 'documents', title: 'Documents', description: 'Document templates, branding colors, and stamps.', icon: FileText, group: 'Warehouse settings', adminOnly: true },
   { id: 'customerRules', title: 'Rules', description: 'Automate order actions, customer tags, and free gifts.', icon: Lightning, group: 'Warehouse settings', adminOnly: true },
+  { id: 'mobileApp', title: 'Mobile App', description: 'Picking mode, barcode rules, and mobile modules.', icon: DeviceMobile, group: 'Warehouse settings', adminOnly: true },
   { id: 'shipping', title: 'Shipping & Labels', description: 'Shipping provider, carrier mapping, and label printing.', icon: TruckTrailer, group: 'Integrations', adminOnly: true },
   { id: 'woocommerce', title: 'WooCommerce', description: 'Store connections and sync settings.', icon: Storefront, group: 'Integrations' },
 ];
@@ -112,6 +115,7 @@ export default function SettingsPage() {
         {active === 'documents' && isAdmin && <DocumentsSection />}
         {active === 'shipping' && isAdmin && <ShippingSection />}
         {active === 'customerRules' && isAdmin && <RulesSection />}
+        {active === 'mobileApp' && isAdmin && <MobileAppSection />}
         {active === 'danger' && isAdmin && <DangerZoneSection />}
       </div>
     );

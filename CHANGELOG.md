@@ -3,6 +3,19 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.58.0 / 2.43.0] - 2026-03-05
+
+### Added
+- **Mobile App Settings page** — New admin settings section under Settings > Warehouse > Mobile App. Admins can configure how the Android mobile app behaves for all pickers in the organization.
+- **Picking mode** — Choose between single-order or batch picking mode, with configurable max batch size.
+- **Pick confirmation method** — Set to barcode scan only, manual tap only, or flexible (both).
+- **Workflow controls** — Toggle bin locations, partial picks, item skipping, auto-assign next pick list, priority-based queue, and require photo on damage/shortage.
+- **Display options** — Toggle product images, weight, and customer info visibility on the mobile app.
+- **Mobile modules** — Enable/disable PO Receiving and Inventory Counts on mobile.
+- **User-overridable defaults** — Admin sets defaults for sort order, theme, font size, sound/vibration on scan, and auto-advance. Individual pickers can override these on their device.
+- **Login API returns mobile settings** — `POST /api/v1/auth/login` response now includes `mobileSettings` object so the Android app gets all configuration in a single request on login.
+- **Dedicated mobile settings endpoints** — `GET /api/v1/account/mobile-settings` (any authenticated user) and `PATCH /api/v1/account/mobile-settings` (admin only) for reading and updating mobile app settings.
+
 ## [3.57.0] - 2026-03-04
 
 ### Added
