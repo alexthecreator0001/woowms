@@ -17,9 +17,8 @@ import {
   ClipboardText,
   SpeakerHigh,
   Vibrate,
-  Sun,
-  TextAa,
 } from '@phosphor-icons/react';
+import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import api from '../../services/api';
 
@@ -82,7 +81,7 @@ function Toggle({
   onChange: (v: boolean) => void;
   label: string;
   description: string;
-  icon?: React.ComponentType<{ size?: number; weight?: string; className?: string }>;
+  icon?: PhosphorIcon;
 }) {
   return (
     <button
