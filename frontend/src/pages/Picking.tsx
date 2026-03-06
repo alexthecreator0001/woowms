@@ -7,11 +7,9 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Printer } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
 import type { PickList } from '../types';
-import PrintPickBinLabels from '../components/picking/PrintPickBinLabels';
 
 const pickStatusConfig: Record<string, { label: string; bg: string; text: string; icon: LucideIcon }> = {
   PENDING: { label: 'Pending', bg: 'bg-amber-500/10', text: 'text-amber-600', icon: Clock },
@@ -22,7 +20,6 @@ const pickStatusConfig: Record<string, { label: string; bg: string; text: string
 export default function Picking() {
   const [pickLists, setPickLists] = useState<PickList[]>([]);
   const [loading, setLoading] = useState(true);
-  const [printBinsOpen, setPrintBinsOpen] = useState(false);
 
   useEffect(() => {
     api.get('/picking')
@@ -43,16 +40,6 @@ export default function Picking() {
           <p className="mt-0.5 text-sm text-muted-foreground">
             Manage pick lists and track picking progress.
           </p>
-        </div>
-        <div className="ml-auto">
-          <button
-            type="button"
-            onClick={() => setPrintBinsOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          >
-            <Printer size={16} weight="bold" />
-            Print Bin Labels
-          </button>
         </div>
       </div>
 
@@ -150,7 +137,6 @@ export default function Picking() {
         </div>
       )}
 
-      <PrintPickBinLabels open={printBinsOpen} onClose={() => setPrintBinsOpen(false)} />
     </div>
   );
 }

@@ -4,11 +4,13 @@ import {
   CircleNotch,
   CaretDown,
   Info,
+  Printer,
 } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
 import api from '../../services/api';
 import type { BinSize } from '../../types';
 import { BIN_SIZE_LABELS } from '../../types';
+import PrintPickBinLabels from '../../components/picking/PrintPickBinLabels';
 
 type LabelSize = 'zebra-4x6' | 'zebra-2x1' | 'sheet-small' | 'sheet-medium' | 'sheet-large';
 
@@ -30,6 +32,9 @@ export default function BinsSection() {
   const [defaultBinSize, setDefaultBinSize] = useState<BinSize>('MEDIUM');
   const [defaultPickable, setDefaultPickable] = useState(true);
   const [defaultSellable, setDefaultSellable] = useState(true);
+
+  // Pick bin labels modal
+  const [printPickBinsOpen, setPrintPickBinsOpen] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -179,7 +184,30 @@ export default function BinsSection() {
         </div>
       </div>
 
-      {/* Card 2: Default Bin Properties */}
+      {/* Card 2: Pick Bin Labels */}
+      <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
+        <div className="border-b border-border/50 px-6 py-4">
+          <h3 className="text-base font-semibold">Pick Bin Labels</h3>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Print static labels for the physical bins/totes that pickers carry around the warehouse.
+          </p>
+        </div>
+        <div className="p-6">
+          <button
+            type="button"
+            onClick={() => setPrintPickBinsOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-background px-4 py-2.5 text-sm font-medium shadow-sm transition-all hover:bg-muted/60"
+          >
+            <Printer size={16} weight="bold" />
+            Print Pick Bin Labels
+          </button>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Generate PDF labels with barcodes for your pick bins. Configure prefix (BIN, TOTE, CART), numbering range, and label size.
+          </p>
+        </div>
+      </div>
+
+      {/* Card 3: Default Bin Properties */}
       <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
         <div className="border-b border-border/50 px-6 py-4">
           <h3 className="text-base font-semibold">Default Bin Properties</h3>
@@ -284,6 +312,8 @@ export default function BinsSection() {
           Save
         </button>
       </div>
+
+      <PrintPickBinLabels open={printPickBinsOpen} onClose={() => setPrintPickBinsOpen(false)} />
     </div>
   );
 }
