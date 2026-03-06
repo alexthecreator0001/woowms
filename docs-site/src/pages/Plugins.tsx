@@ -13,7 +13,56 @@ export default function Plugins() {
         (available or coming soon), and install/uninstall button.
       </p>
 
-      <h2>Available Plugins</h2>
+      <h2>Shipping Plugins</h2>
+      <p>
+        Shipping plugins connect PickNPack to shipping label providers. Only one shipping plugin
+        can be installed at a time. When installed, the packing station's "Print Label & Ship"
+        button will generate labels through the connected provider.
+      </p>
+
+      <h3>Shippo</h3>
+      <p>
+        Connect your Shippo account to generate shipping labels and track shipments directly
+        from PickNPack. Shippo supports USPS, UPS, FedEx, DHL, and 80+ other carriers.
+      </p>
+      <ul>
+        <li>Click <strong>Install</strong> on the Shippo card in the Plugins page</li>
+        <li>Enter your Shippo API token (found in your Shippo dashboard under API settings)</li>
+        <li>Click <strong>Connect</strong> — your key is validated and encrypted</li>
+        <li>Go to <strong>Settings &rarr; Shipping</strong> to map your WooCommerce shipping methods to Shippo carriers</li>
+      </ul>
+
+      <h3>EasyPost</h3>
+      <p>
+        Connect your EasyPost account for multi-carrier shipping labels and tracking. EasyPost
+        supports USPS, UPS, FedEx, DHL, and many regional carriers with competitive rates.
+      </p>
+      <ul>
+        <li>Click <strong>Install</strong> on the EasyPost card in the Plugins page</li>
+        <li>Enter your EasyPost API key (found in your EasyPost dashboard)</li>
+        <li>Click <strong>Connect</strong> — your key is validated and encrypted</li>
+        <li>Go to <strong>Settings &rarr; Shipping</strong> to map your WooCommerce shipping methods to EasyPost carriers</li>
+      </ul>
+
+      <div className="doc-callout">
+        <p>
+          <strong>One at a time:</strong> Only one shipping plugin can be active. To switch providers,
+          uninstall the current one first, then install the new one.
+        </p>
+      </div>
+
+      <h3>Managing Shipping Plugins</h3>
+      <p>
+        After installing a shipping plugin, click <strong>Configure</strong> on its card to:
+      </p>
+      <ul>
+        <li>View connection status</li>
+        <li>Update your API key without reinstalling</li>
+        <li>Navigate to Settings &rarr; Shipping for carrier mapping</li>
+        <li>Uninstall the plugin (clears your API key and disconnects)</li>
+      </ul>
+
+      <h2>Automation Plugins</h2>
 
       <h3>Zapier</h3>
       <p>
@@ -44,12 +93,6 @@ export default function Plugins() {
         </p>
       </div>
 
-      <h3>Plugin Settings</h3>
-      <p>
-        Each plugin has configurable settings. For Zapier, toggle which event types you want to
-        send: order notifications, low stock alerts, and shipping updates.
-      </p>
-
       <h2>Coming Soon</h2>
       <table className="doc-table">
         <thead>
@@ -66,10 +109,6 @@ export default function Plugins() {
           <tr>
             <td className="font-medium text-surface-800">QuickBooks</td>
             <td>Sync inventory costs and PO data with QuickBooks accounting</td>
-          </tr>
-          <tr>
-            <td className="font-medium text-surface-800">ShipStation</td>
-            <td>Automated shipping label generation and carrier rate shopping</td>
           </tr>
         </tbody>
       </table>

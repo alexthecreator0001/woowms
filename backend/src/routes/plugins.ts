@@ -2,6 +2,8 @@ import { Router, Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { authorize } from '../middleware/auth.js';
 import prisma from '../lib/prisma.js';
+import { getProvider } from '../shipping/registry.js';
+import { encrypt } from '../lib/crypto.js';
 
 // ─── Plugin catalog (hardcoded) ────────────────────
 
@@ -14,6 +16,28 @@ const PLUGIN_CATALOG = [
     icon: 'zapier',
     requiresApiKey: true,
     status: 'available' as const,
+  },
+  {
+    key: 'shippo',
+    name: 'Shippo',
+    description: 'Connect your Shippo account to generate shipping labels and track shipments.',
+    category: 'Shipping',
+    icon: 'shippo',
+    requiresApiKey: false,
+    status: 'available' as const,
+    apiKeyMode: 'user_provided' as const,
+    providerName: 'shippo',
+  },
+  {
+    key: 'easypost',
+    name: 'EasyPost',
+    description: 'Connect your EasyPost account for multi-carrier shipping labels and tracking.',
+    category: 'Shipping',
+    icon: 'easypost',
+    requiresApiKey: false,
+    status: 'available' as const,
+    apiKeyMode: 'user_provided' as const,
+    providerName: 'easypost',
   },
   {
     key: 'slack',
@@ -30,15 +54,6 @@ const PLUGIN_CATALOG = [
     description: 'Sync orders and inventory with QuickBooks for seamless accounting.',
     category: 'Accounting',
     icon: 'quickbooks',
-    requiresApiKey: false,
-    status: 'coming_soon' as const,
-  },
-  {
-    key: 'shipstation',
-    name: 'ShipStation',
-    description: 'Streamline shipping with multi-carrier rate comparison and label printing.',
-    category: 'Shipping',
-    icon: 'shipstation',
     requiresApiKey: false,
     status: 'coming_soon' as const,
   },
@@ -132,6 +147,40 @@ router.post('/:key/install', authorize('ADMIN', 'MANAGER'), async (req: Request,
       return res.status(409).json({ error: true, message: 'Plugin already installed', code: 'ALREADY_INSTALLED' });
     }
 
+    // Shipping plugin: validate user-provided API key + enforce single shipping plugin
+    if ((catalogItem as any).apiKeyMode === 'user_provided') {
+      const shippingKeys = PLUGIN_CATALOG
+        .filter((p) => (p as any).apiKeyMode === 'user_provided' && p.key !== key)
+        .map((p) => p.key);
+      const existingShipping = await req.prisma!.tenantPlugin.findFirst({
+        where: { pluginKey: { in: shippingKeys } },
+      });
+      if (existingShipping) {
+        return res.status(409).json({ error: true, message: 'Another shipping plugin is already installed. Uninstall it first.', code: 'SHIPPING_CONFLICT' });
+      }
+
+      const { apiKey: userApiKey } = req.body;
+      if (!userApiKey) {
+        return res.status(400).json({ error: true, message: 'API key is required for shipping plugins', code: 'VALIDATION_ERROR' });
+      }
+
+      const provider = getProvider((catalogItem as any).providerName);
+      if (!provider) {
+        return res.status(500).json({ error: true, message: 'Shipping provider not registered', code: 'PROVIDER_ERROR' });
+      }
+
+      const valid = await provider.validateCredentials(userApiKey);
+      if (!valid) {
+        return res.status(400).json({ error: true, message: 'Invalid API key. Please check your key and try again.', code: 'INVALID_API_KEY' });
+      }
+
+      // Bridge: save to Store shipping fields
+      await req.prisma!.store.updateMany({
+        where: { tenantId: req.tenantId },
+        data: { shippingProvider: (catalogItem as any).providerName, shippingApiKey: encrypt(userApiKey) },
+      });
+    }
+
     let apiKeyPlaintext: string | null = null;
     let apiKeyHash: string | null = null;
     let apiKeyPrefix: string | null = null;
@@ -158,7 +207,7 @@ router.post('/:key/install', authorize('ADMIN', 'MANAGER'), async (req: Request,
         installed: true,
         isEnabled: true,
         apiKeyPrefix,
-        apiKey: apiKeyPlaintext, // Only returned on install
+        apiKey: apiKeyPlaintext, // Only returned on install (Zapier)
         settings: {},
         installedAt: (plugin as any).installedAt,
       },
@@ -177,8 +226,58 @@ router.post('/:key/uninstall', authorize('ADMIN', 'MANAGER'), async (req: Reques
       return res.status(404).json({ error: true, message: 'Plugin not installed', code: 'NOT_INSTALLED' });
     }
 
+    // Shipping plugin: clear Store shipping fields
+    const catalogItem = PLUGIN_CATALOG.find((p) => p.key === key);
+    if ((catalogItem as any)?.apiKeyMode === 'user_provided') {
+      await req.prisma!.store.updateMany({
+        where: { tenantId: req.tenantId },
+        data: { shippingProvider: null, shippingApiKey: null },
+      });
+    }
+
     await req.prisma!.tenantPlugin.delete({ where: { id: (existing as any).id } });
     res.json({ data: { success: true } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /:key/update-api-key — update API key for shipping plugins
+router.post('/:key/update-api-key', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { key } = req.params;
+    const { apiKey: newApiKey } = req.body;
+    const catalogEntry = PLUGIN_CATALOG.find((p) => p.key === key);
+
+    if (!(catalogEntry as any)?.providerName) {
+      return res.status(400).json({ error: true, message: 'Not a shipping plugin', code: 'NOT_SHIPPING' });
+    }
+
+    const existing = await req.prisma!.tenantPlugin.findFirst({ where: { pluginKey: key } });
+    if (!existing) {
+      return res.status(404).json({ error: true, message: 'Plugin not installed', code: 'NOT_INSTALLED' });
+    }
+
+    if (!newApiKey) {
+      return res.status(400).json({ error: true, message: 'API key is required', code: 'VALIDATION_ERROR' });
+    }
+
+    const provider = getProvider((catalogEntry as any).providerName);
+    if (!provider) {
+      return res.status(500).json({ error: true, message: 'Shipping provider not registered', code: 'PROVIDER_ERROR' });
+    }
+
+    const valid = await provider.validateCredentials(newApiKey);
+    if (!valid) {
+      return res.status(400).json({ error: true, message: 'Invalid API key', code: 'INVALID_API_KEY' });
+    }
+
+    await req.prisma!.store.updateMany({
+      where: { tenantId: req.tenantId },
+      data: { shippingApiKey: encrypt(newApiKey) },
+    });
+
+    res.json({ data: { connected: true } });
   } catch (err) {
     next(err);
   }

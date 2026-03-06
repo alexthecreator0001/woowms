@@ -384,6 +384,8 @@ export interface PluginCatalogItem {
   apiKey?: string | null;
   settings?: Record<string, unknown>;
   installedAt?: string;
+  apiKeyMode?: 'user_provided';
+  providerName?: string;
 }
 
 // ─── Purchase Orders ────────────────────────────────

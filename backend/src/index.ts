@@ -34,8 +34,10 @@ import packingRoutes from './routes/packing.js';
 import shippingConfigRoutes from './shipping/routes.js';
 import { registerProvider } from './shipping/registry.js';
 import { shippoProvider } from './shipping/shippo.js';
+import { easypostProvider } from './shipping/easypost.js';
 
 registerProvider(shippoProvider);
+registerProvider(easypostProvider);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

@@ -5,10 +5,13 @@ import {
   ArrowsClockwise,
   PlugsConnected,
   Warning,
+  Plug,
+  ArrowSquareOut,
 } from '@phosphor-icons/react';
 import { Truck, ArrowRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import api from '../../services/api';
+import { useNavigate } from 'react-router-dom';
 
 interface ShippingMethod {
   methodId: string;
@@ -30,21 +33,16 @@ interface Carrier {
   name: string;
 }
 
-const PROVIDERS = [
-  { value: '', label: 'None' },
-  { value: 'shippo', label: 'Shippo' },
-  { value: 'shipstation', label: 'ShipStation API' },
-  { value: 'sendcloud', label: 'SendCloud' },
-];
+const PROVIDER_LABELS: Record<string, string> = {
+  shippo: 'Shippo',
+  easypost: 'EasyPost',
+};
 
 export default function ShippingSection() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [provider, setProvider] = useState('');
-  const [apiKey, setApiKey] = useState('');
   const [connected, setConnected] = useState(false);
-  const [hasStoredKey, setHasStoredKey] = useState(false);
-  const [validating, setValidating] = useState(false);
-  const [validateMsg, setValidateMsg] = useState('');
 
   const [wooMethods, setWooMethods] = useState<ShippingMethod[]>([]);
   const [mappings, setMappings] = useState<MappingRow[]>([]);
@@ -64,7 +62,6 @@ export default function ShippingSection() {
           if (store.shippingProvider) {
             setProvider(store.shippingProvider);
             setConnected(true);
-            setHasStoredKey(!!store.hasShippingApiKey);
           }
         }
 
@@ -92,41 +89,6 @@ export default function ShippingSection() {
     }
     load();
   }, []);
-
-  const handleValidate = async () => {
-    if (!provider || !apiKey) return;
-    setValidating(true);
-    setValidateMsg('');
-    try {
-      const { data } = await api.post('/shipping-config/validate', { provider, apiKey });
-      if (data.data.valid) {
-        // Save the provider + key
-        await api.patch('/shipping-config/store', { shippingProvider: provider, shippingApiKey: apiKey });
-        setConnected(true);
-        setHasStoredKey(true);
-        setValidateMsg('Connected successfully');
-        setApiKey('');
-        // Fetch carriers
-        const { data: carriersRes } = await api.get('/shipping-config/carriers');
-        setCarriers(carriersRes.data || []);
-      } else {
-        setValidateMsg('Invalid API key');
-      }
-    } catch {
-      setValidateMsg('Connection failed');
-    } finally {
-      setValidating(false);
-      setTimeout(() => setValidateMsg(''), 4000);
-    }
-  };
-
-  const handleDisconnect = async () => {
-    await api.patch('/shipping-config/store', { shippingProvider: null, shippingApiKey: null });
-    setProvider('');
-    setConnected(false);
-    setHasStoredKey(false);
-    setCarriers([]);
-  };
 
   const handleFetchWooMethods = async () => {
     setFetchingWoo(true);
@@ -181,107 +143,53 @@ export default function ShippingSection() {
 
   return (
     <div className="space-y-6">
-      {/* Card 1: Shipping Provider */}
+      {/* Card 1: Shipping Provider Status */}
       <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
         <div className="border-b border-border/50 px-6 py-4">
           <h3 className="text-base font-semibold">Shipping Provider</h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Connect a shipping label provider to generate labels directly from the app.
+            Your shipping provider is managed through the Plugins page.
           </p>
         </div>
-        <div className="p-6 space-y-4">
+        <div className="p-6">
           {connected ? (
-            <>
-              <div className="flex items-center justify-between rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
-                    <PlugsConnected className="h-4 w-4 text-emerald-600" weight="duotone" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-emerald-700">
-                      {PROVIDERS.find((p) => p.value === provider)?.label || provider}
-                    </p>
-                    <p className="text-xs text-emerald-600/70">Connected</p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleDisconnect}
-                  className="text-xs font-medium text-muted-foreground hover:text-destructive transition-colors"
-                >
-                  Disconnect
-                </button>
-              </div>
-              {/* Update API key section */}
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">API Key</label>
-                  <input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder={hasStoredKey ? 'API key saved (enter new to update)' : 'Enter your API key'}
-                    className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-                <div className="flex items-end gap-3">
-                  <button
-                    onClick={handleValidate}
-                    disabled={!apiKey || validating}
-                    className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-background px-4 py-2 text-sm font-medium shadow-sm transition-all hover:bg-muted/60 disabled:opacity-50"
-                  >
-                    {validating ? <CircleNotch className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" weight="bold" />}
-                    Update Key
-                  </button>
-                  {validateMsg && (
-                    <span className={cn('text-xs font-medium', validateMsg.includes('success') ? 'text-emerald-600' : 'text-destructive')}>
-                      {validateMsg}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Provider</label>
-                  <select
-                    value={provider}
-                    onChange={(e) => setProvider(e.target.value)}
-                    className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm"
-                  >
-                    {PROVIDERS.map((p) => (
-                      <option key={p.value} value={p.value}>{p.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">API Key</label>
-                  <input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Enter your API key"
-                    className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-              </div>
+            <div className="flex items-center justify-between rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
               <div className="flex items-center gap-3">
-                <button
-                  onClick={handleValidate}
-                  disabled={!provider || !apiKey || validating}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {validating ? <CircleNotch className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" weight="bold" />}
-                  Test & Connect
-                </button>
-                {validateMsg && (
-                  <span className={cn('text-xs font-medium', validateMsg.includes('success') ? 'text-emerald-600' : 'text-destructive')}>
-                    {validateMsg}
-                  </span>
-                )}
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+                  <PlugsConnected className="h-4 w-4 text-emerald-600" weight="duotone" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-emerald-700">
+                    {PROVIDER_LABELS[provider] || provider}
+                  </p>
+                  <p className="text-xs text-emerald-600/70">Connected via plugin</p>
+                </div>
               </div>
-            </>
+              <button
+                onClick={() => navigate('/plugins')}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <ArrowSquareOut className="h-3.5 w-3.5" />
+                Manage in Plugins
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-6 text-center">
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50">
+                <Plug className="h-5 w-5 text-muted-foreground/50" weight="duotone" />
+              </div>
+              <p className="text-sm font-medium text-foreground">No shipping provider connected</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Install Shippo or EasyPost from the Plugins page to enable label generation.
+              </p>
+              <button
+                onClick={() => navigate('/plugins')}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
+              >
+                <ArrowSquareOut className="h-3.5 w-3.5" />
+                Go to Plugins
+              </button>
+            </div>
           )}
         </div>
       </div>

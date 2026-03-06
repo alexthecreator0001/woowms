@@ -3,6 +3,20 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.60.0 / 2.45.0] - 2026-03-06
+
+### Added
+- **Shippo plugin** — Install Shippo as a plugin from the Plugins page. Enter your Shippo API key to connect, then map WooCommerce shipping methods to Shippo carriers in Settings > Shipping. Labels are generated automatically from the packing station.
+- **EasyPost plugin** — Install EasyPost as a plugin from the Plugins page. Supports multi-carrier shipping labels and tracking via the EasyPost API. Same install flow as Shippo — enter your API key, validate, and connect.
+- **EasyPost shipping provider** — New backend provider implementation for EasyPost (carrier accounts, services, label creation via the EasyPost v2 API).
+- **Shipping plugin install modal** — Shipping plugins show a dedicated connect modal that validates the API key before installation, instead of the instant-install flow used by other plugins.
+- **Update API key route** — New `POST /api/v1/plugins/:key/update-api-key` endpoint lets admins update their shipping provider API key without reinstalling the plugin.
+- **Single shipping plugin enforcement** — Only one shipping plugin can be installed at a time. Installing a second one returns a conflict error.
+
+### Changed
+- **Settings > Shipping** — Replaced the manual provider dropdown and API key input with a plugin-aware status card. Shows connected provider status with a link to the Plugins page for management. Carrier mapping section is unchanged.
+- **Plugin catalog** — Removed ShipStation (coming soon) placeholder. Added Shippo and EasyPost as available shipping plugins with user-provided API key mode.
+
 ## [3.59.0 / 2.44.0] - 2026-03-06
 
 ### Added
