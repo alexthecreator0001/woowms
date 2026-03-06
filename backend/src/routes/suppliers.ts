@@ -1,8 +1,91 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import multer from 'multer';
+import { parse } from 'csv-parse/sync';
 import { authorize } from '../middleware/auth.js';
 import prisma from '../lib/prisma.js';
+import { buildCsv, sendCsv } from '../lib/csv.js';
 
 const router = Router();
+const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+
+// GET /api/v1/suppliers/export — CSV export
+router.get('/export', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const suppliers = await req.prisma!.supplier.findMany({
+      where: { tenantId: req.tenantId },
+      orderBy: { name: 'asc' },
+    });
+
+    const headers = ['Name', 'Email', 'Phone', 'Address', 'Website', 'Active', 'Notes'];
+    const rows = suppliers.map((s) => [
+      s.name,
+      s.email || '',
+      s.phone || '',
+      s.address || '',
+      s.website || '',
+      s.isActive ? 'Yes' : 'No',
+      s.notes || '',
+    ]);
+
+    sendCsv(res, 'suppliers-export.csv', buildCsv(headers, rows));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/suppliers/import — CSV import for bulk creating suppliers
+router.post('/import', authorize('ADMIN', 'MANAGER'), csvUpload.single('file'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: true, message: 'No file uploaded', code: 'VALIDATION_ERROR' });
+    }
+
+    const records = parse(req.file.buffer, { columns: true, skip_empty_lines: true, trim: true, bom: true }) as Record<string, string>[];
+    let imported = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+
+    for (let i = 0; i < records.length; i++) {
+      const row = records[i];
+      const name = row['Name']?.trim();
+
+      if (!name) {
+        errors.push(`Row ${i + 2}: Missing Name`);
+        skipped++;
+        continue;
+      }
+
+      // Check for duplicate name
+      const existing = await req.prisma!.supplier.findFirst({
+        where: { name: { equals: name, mode: 'insensitive' }, tenantId: req.tenantId },
+      });
+
+      if (existing) {
+        errors.push(`Row ${i + 2}: Supplier "${name}" already exists`);
+        skipped++;
+        continue;
+      }
+
+      await req.prisma!.supplier.create({
+        data: {
+          tenantId: req.tenantId!,
+          name,
+          email: row['Email']?.trim() || null,
+          phone: row['Phone']?.trim() || null,
+          address: row['Address']?.trim() || null,
+          website: row['Website']?.trim() || null,
+          notes: row['Notes']?.trim() || null,
+        },
+      });
+
+      imported++;
+    }
+
+    res.json({ data: { imported, skipped, errors } });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // GET /api/v1/suppliers — list suppliers with search, pagination, isActive filter
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {

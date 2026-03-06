@@ -142,6 +142,25 @@ export default function Inventory() {
         global Cmd+K search to find products by barcode.
       </p>
 
+      <h2>CSV Export &amp; Import</h2>
+      <p>
+        PickNPack supports bulk inventory operations via CSV files.
+      </p>
+
+      <h3>Export CSV</h3>
+      <p>
+        Click the <strong>Export</strong> button to download a CSV file containing your
+        entire inventory with stock data, bin locations, and thresholds.
+      </p>
+
+      <h3>Import CSV</h3>
+      <p>
+        Click the <strong>Import</strong> button to bulk-update stock levels by uploading
+        a CSV file. Required columns: <strong>SKU</strong> and <strong>Stock Qty</strong>.
+        Optionally include <strong>Low Stock Threshold</strong> to update alert thresholds.
+        Each row is matched by SKU — unrecognized SKUs are skipped and reported.
+      </p>
+
       <h2>Bundles</h2>
       <p>
         Mark a product as a bundle to define component products and their quantities. The

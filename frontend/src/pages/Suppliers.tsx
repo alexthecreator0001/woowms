@@ -14,12 +14,15 @@ import {
   Phone,
   GlobeSimple,
   Cube,
+  DownloadSimple,
+  UploadSimple,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
-import api from '../services/api';
+import api, { downloadCsv } from '../services/api';
 import { proxyUrl } from '../lib/image';
 import Pagination from '../components/Pagination';
 import TableConfigDropdown from '../components/TableConfigDropdown';
+import CsvImportModal from '../components/CsvImportModal';
 import { useTableConfig } from '../hooks/useTableConfig';
 import type { Supplier, PaginationMeta, TableColumnDef } from '../types';
 
@@ -51,6 +54,7 @@ export default function Suppliers() {
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState('');
   const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', website: '', notes: '' });
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const loadStats = useCallback(async () => {
     try {
@@ -126,13 +130,29 @@ export default function Suppliers() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-        >
-          <Plus size={14} weight="bold" />
-          Add Supplier
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => downloadCsv('/suppliers/export', 'suppliers-export.csv')}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-card px-3.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
+          >
+            <DownloadSimple size={15} weight="bold" />
+            Export
+          </button>
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-card px-3.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
+          >
+            <UploadSimple size={15} weight="bold" />
+            Import
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+          >
+            <Plus size={14} weight="bold" />
+            Add Supplier
+          </button>
+        </div>
       </div>
 
       {/* Stat Strip */}
@@ -460,6 +480,18 @@ export default function Suppliers() {
           </div>
         </div>
       )}
+
+      <CsvImportModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        title="Import Suppliers"
+        description="Upload a CSV to bulk-create suppliers. Duplicates (by name) will be skipped."
+        endpoint="/suppliers/import"
+        requiredColumns={['Name']}
+        optionalColumns={['Email', 'Phone', 'Address', 'Website', 'Notes']}
+        templateFilename="suppliers-import-template.csv"
+        onSuccess={() => { loadSuppliers(); loadStats(); }}
+      />
     </div>
   );
 }

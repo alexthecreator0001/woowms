@@ -213,6 +213,24 @@ export default function Receiving() {
         can be updated inline from the PO detail page.
       </p>
 
+      <h2>CSV Export &amp; Import</h2>
+      <p>
+        PickNPack supports bulk purchase order operations via CSV files.
+      </p>
+
+      <h3>Export CSV</h3>
+      <p>
+        Click the <strong>Export</strong> button to download all purchase orders as a CSV file.
+      </p>
+
+      <h3>Import CSV</h3>
+      <p>
+        Click the <strong>Import</strong> button to bulk-create purchase orders from a CSV.
+        Required columns: <strong>Supplier Name</strong>, <strong>SKU</strong>, and <strong>Quantity</strong>.
+        Optional: <strong>Expected Date</strong>, <strong>Notes</strong>.
+        Rows are automatically grouped by supplier — one PO is created per unique supplier in the file.
+      </p>
+
       <h2>Search & Filters</h2>
       <p>
         The purchase orders list page supports searching by PO number or supplier name, filtering by

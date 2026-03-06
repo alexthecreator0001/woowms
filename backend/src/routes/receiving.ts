@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
+import { parse } from 'csv-parse/sync';
 import { existsSync, mkdirSync, unlinkSync } from 'fs';
 import { resolve, extname } from 'path';
 import { fileURLToPath } from 'url';
@@ -7,8 +8,11 @@ import { dirname } from 'path';
 import { pushStockToWoo, shouldPushStock } from '../woocommerce/sync.js';
 import { sendPurchaseOrderEmail } from '../services/email.js';
 import prisma from '../lib/prisma.js';
+import { buildCsv, sendCsv } from '../lib/csv.js';
 import { generatePoPdf, type PoTemplate } from '../lib/poPdf.js';
 import sharp from 'sharp';
+
+const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -77,6 +81,143 @@ interface CreatePOItem {
   orderedQty: number;
   unitCost?: number;
 }
+
+// GET /api/v1/receiving/export — CSV export
+router.get('/export', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const purchaseOrders = await req.prisma!.purchaseOrder.findMany({
+      where: { tenantId: req.tenantId },
+      include: { items: true, supplierRef: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const headers = ['PO #', 'Status', 'Supplier', 'Items Count', 'Total Qty', 'Received Qty', 'Expected Date', 'Created At', 'Notes'];
+    const rows = purchaseOrders.map((po) => {
+      const items = po.items || [];
+      const totalQty = items.reduce((s, i) => s + i.orderedQty, 0);
+      const receivedQty = items.reduce((s, i) => s + i.receivedQty, 0);
+      return [
+        po.poNumber,
+        po.status,
+        po.supplierRef?.name || po.supplier || '',
+        items.length,
+        totalQty,
+        receivedQty,
+        po.expectedDate ? new Date(po.expectedDate).toISOString().split('T')[0] : '',
+        new Date(po.createdAt).toISOString().split('T')[0],
+        po.notes || '',
+      ];
+    });
+
+    sendCsv(res, 'purchase-orders-export.csv', buildCsv(headers, rows));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/receiving/import — CSV import for creating POs
+router.post('/import', csvUpload.single('file'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: true, message: 'No file uploaded', code: 'VALIDATION_ERROR' });
+    }
+
+    const records = parse(req.file.buffer, { columns: true, skip_empty_lines: true, trim: true, bom: true }) as Record<string, string>[];
+    let imported = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+
+    // Group rows by supplier
+    const supplierGroups = new Map<string, { sku: string; qty: number; expectedDate?: string; notes?: string; rowNum: number }[]>();
+
+    for (let i = 0; i < records.length; i++) {
+      const row = records[i];
+      const supplierName = row['Supplier Name']?.trim();
+      const sku = row['SKU']?.trim();
+      const qtyRaw = row['Quantity']?.trim();
+
+      if (!supplierName) {
+        errors.push(`Row ${i + 2}: Missing Supplier Name`);
+        skipped++;
+        continue;
+      }
+      if (!sku) {
+        errors.push(`Row ${i + 2}: Missing SKU`);
+        skipped++;
+        continue;
+      }
+      if (!qtyRaw || isNaN(Number(qtyRaw)) || parseInt(qtyRaw) <= 0) {
+        errors.push(`Row ${i + 2}: Invalid Quantity for SKU "${sku}"`);
+        skipped++;
+        continue;
+      }
+
+      const group = supplierGroups.get(supplierName) || [];
+      group.push({
+        sku,
+        qty: parseInt(qtyRaw),
+        expectedDate: row['Expected Date']?.trim(),
+        notes: row['Notes']?.trim(),
+        rowNum: i + 2,
+      });
+      supplierGroups.set(supplierName, group);
+    }
+
+    // Create one PO per supplier
+    for (const [supplierName, items] of supplierGroups) {
+      const supplier = await req.prisma!.supplier.findFirst({
+        where: { name: { equals: supplierName, mode: 'insensitive' }, tenantId: req.tenantId },
+      });
+
+      if (!supplier) {
+        for (const item of items) {
+          errors.push(`Row ${item.rowNum}: Supplier "${supplierName}" not found`);
+          skipped++;
+        }
+        continue;
+      }
+
+      // Look up products by SKU
+      const poItems: { sku: string; productName: string; orderedQty: number }[] = [];
+      for (const item of items) {
+        const product = await req.prisma!.product.findFirst({
+          where: { sku: item.sku, store: { tenantId: req.tenantId } },
+        });
+        if (!product) {
+          errors.push(`Row ${item.rowNum}: SKU "${item.sku}" not found`);
+          skipped++;
+          continue;
+        }
+        poItems.push({ sku: item.sku, productName: product.name, orderedQty: item.qty });
+      }
+
+      if (poItems.length === 0) continue;
+
+      // Generate PO number
+      const count = await req.prisma!.purchaseOrder.count({ where: { tenantId: req.tenantId } });
+      const poNumber = `PO-${new Date().getFullYear()}-${String(count + 1).padStart(3, '0')}`;
+
+      const firstItem = items[0];
+      await req.prisma!.purchaseOrder.create({
+        data: {
+          tenantId: req.tenantId!,
+          poNumber,
+          supplier: supplierName,
+          supplierId: supplier.id,
+          expectedDate: firstItem.expectedDate ? new Date(firstItem.expectedDate) : null,
+          notes: firstItem.notes || null,
+          items: { create: poItems },
+        },
+      });
+
+      imported += poItems.length;
+    }
+
+    res.json({ data: { imported, skipped, errors } });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // GET /api/v1/receiving — list POs with pagination, status filter, search
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {

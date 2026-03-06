@@ -11,12 +11,13 @@ import {
   Package,
   Truck,
   Cube,
+  DownloadSimple,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import { proxyUrl } from '../lib/image';
 import { fmtMoney } from '../lib/currency';
 import { getStatusStyle, fetchAllStatuses, type StatusDef } from '../lib/statuses';
-import api from '../services/api';
+import api, { downloadCsv } from '../services/api';
 import Pagination from '../components/Pagination';
 import TableConfigDropdown from '../components/TableConfigDropdown';
 import { useTableConfig } from '../hooks/useTableConfig';
@@ -111,6 +112,13 @@ export default function Orders() {
             </p>
           </div>
         </div>
+        <button
+          onClick={() => downloadCsv(`/orders/export${filter ? `?status=${filter}` : ''}`, 'orders-export.csv')}
+          className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-card px-3.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
+        >
+          <DownloadSimple size={15} weight="bold" />
+          Export CSV
+        </button>
       </div>
 
       {/* Stat Strip */}

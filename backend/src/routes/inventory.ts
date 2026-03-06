@@ -1,7 +1,12 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import multer from 'multer';
+import { parse } from 'csv-parse/sync';
 import { authorize } from '../middleware/auth.js';
 import { syncProducts, pushStockToWoo, pushProductToWoo, shouldPushStock } from '../woocommerce/sync.js';
 import prisma from '../lib/prisma.js';
+import { buildCsv, sendCsv } from '../lib/csv.js';
+
+const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 const router = Router();
 
@@ -188,6 +193,98 @@ router.get('/filter-counts', async (req: Request, res: Response, next: NextFunct
     ]);
 
     res.json({ data: { total, outOfStock, lowStock, inStock: total - outOfStock - lowStock } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/v1/inventory/export — CSV export
+router.get('/export', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prismaClient = req.prisma!;
+    const products = await prismaClient.product.findMany({
+      where: { store: { tenantId: req.tenantId } },
+      include: {
+        stockLocations: { include: { bin: { include: { zone: { include: { warehouse: true } } } } } },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    const headers = ['SKU', 'Product Name', 'Type', 'Stock Qty', 'Reserved', 'Free to Sell', 'Low Stock Threshold', 'Bin Location', 'Zone', 'Warehouse'];
+    const rows = products.map((p) => {
+      const bins = p.stockLocations?.map((sl: any) => sl.bin?.label).filter(Boolean) || [];
+      const zones = p.stockLocations?.map((sl: any) => sl.bin?.zone?.name).filter(Boolean) || [];
+      const warehouses = p.stockLocations?.map((sl: any) => sl.bin?.zone?.warehouse?.name).filter(Boolean) || [];
+      const type = p.isBundle ? 'Bundle' : p.isDigital ? 'Digital' : 'Simple';
+      return [
+        p.sku || '',
+        p.name,
+        type,
+        p.stockQty,
+        p.reservedQty,
+        p.stockQty - p.reservedQty,
+        p.lowStockThreshold,
+        [...new Set(bins)].join(', '),
+        [...new Set(zones)].join(', '),
+        [...new Set(warehouses)].join(', '),
+      ];
+    });
+
+    sendCsv(res, 'inventory-export.csv', buildCsv(headers, rows));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/v1/inventory/import — CSV import for stock adjustments
+router.post('/import', csvUpload.single('file'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: true, message: 'No file uploaded', code: 'VALIDATION_ERROR' });
+    }
+
+    const records = parse(req.file.buffer, { columns: true, skip_empty_lines: true, trim: true, bom: true }) as Record<string, string>[];
+    let imported = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+
+    for (let i = 0; i < records.length; i++) {
+      const row = records[i];
+      const sku = row['SKU']?.trim();
+      const stockQtyRaw = row['Stock Qty']?.trim();
+
+      if (!sku) {
+        errors.push(`Row ${i + 2}: Missing SKU`);
+        skipped++;
+        continue;
+      }
+      if (!stockQtyRaw || isNaN(Number(stockQtyRaw))) {
+        errors.push(`Row ${i + 2}: Invalid Stock Qty for SKU "${sku}"`);
+        skipped++;
+        continue;
+      }
+
+      const product = await req.prisma!.product.findFirst({
+        where: { sku, store: { tenantId: req.tenantId } },
+      });
+
+      if (!product) {
+        errors.push(`Row ${i + 2}: SKU "${sku}" not found`);
+        skipped++;
+        continue;
+      }
+
+      const data: Record<string, unknown> = { stockQty: parseInt(stockQtyRaw) };
+      const thresholdRaw = row['Low Stock Threshold']?.trim();
+      if (thresholdRaw && !isNaN(Number(thresholdRaw))) {
+        data.lowStockThreshold = parseInt(thresholdRaw);
+      }
+
+      await req.prisma!.product.update({ where: { id: product.id }, data });
+      imported++;
+    }
+
+    res.json({ data: { imported, skipped, errors } });
   } catch (err) {
     next(err);
   }

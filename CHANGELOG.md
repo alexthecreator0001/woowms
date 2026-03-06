@@ -3,6 +3,13 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.59.0 / 2.44.0] - 2026-03-06
+
+### Added
+- **CSV Export** — Export data as CSV files from Inventory, Orders, Purchase Orders, and Suppliers pages. Orders export respects the active status filter.
+- **CSV Import** — Bulk-import data via CSV upload for Inventory (update stock by SKU), Suppliers (create new suppliers), and Purchase Orders (create POs grouped by supplier). Includes drag-and-drop upload, downloadable CSV templates, and detailed import result reporting with error details.
+- **Reusable CsvImportModal component** — Shared modal with file drop zone, column reference, template download, and result display.
+
 ## [3.58.0 / 2.43.0] - 2026-03-05
 
 ### Added

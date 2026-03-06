@@ -16,13 +16,16 @@ import {
   CaretDown as CaretDownIcon,
   X,
   Info,
+  DownloadSimple,
+  UploadSimple,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import { fmtMoney } from '../lib/currency';
 import { proxyUrl } from '../lib/image';
-import api from '../services/api';
+import api, { downloadCsv } from '../services/api';
 import Pagination from '../components/Pagination';
 import TableConfigDropdown from '../components/TableConfigDropdown';
+import CsvImportModal from '../components/CsvImportModal';
 import { useTableConfig } from '../hooks/useTableConfig';
 import type { Product, PaginationMeta, TableColumnDef } from '../types';
 
@@ -78,6 +81,7 @@ export default function Inventory() {
   const [syncProgress, setSyncProgress] = useState(0);
   const [syncPhase, setSyncPhase] = useState('');
   const [syncBgNotice, setSyncBgNotice] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const loadFilterCounts = useCallback(async () => {
     try {
@@ -220,6 +224,20 @@ export default function Inventory() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => downloadCsv('/inventory/export', 'inventory-export.csv')}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-card px-3.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
+          >
+            <DownloadSimple size={15} weight="bold" />
+            Export
+          </button>
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-card px-3.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
+          >
+            <UploadSimple size={15} weight="bold" />
+            Import
+          </button>
           <button
             onClick={() => { setShowSyncModal(true); setSyncResult(null); }}
             className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
@@ -680,6 +698,18 @@ export default function Inventory() {
           </div>
         </div>
       )}
+
+      <CsvImportModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        title="Import Inventory"
+        description="Upload a CSV file to bulk-update stock quantities. Each row matches by SKU."
+        endpoint="/inventory/import"
+        requiredColumns={['SKU', 'Stock Qty']}
+        optionalColumns={['Low Stock Threshold']}
+        templateFilename="inventory-import-template.csv"
+        onSuccess={() => { loadProducts(); loadFilterCounts(); }}
+      />
     </div>
   );
 }

@@ -148,6 +148,14 @@ export default function Orders() {
         order notes synced from WooCommerce.
       </p>
 
+      <h2>CSV Export</h2>
+      <p>
+        Click the <strong>Export CSV</strong> button to download your orders as a CSV file.
+        The export respects the currently active status filter, so you can export all orders
+        or only orders in a specific status. Useful for reporting, accounting, or sharing
+        order data with external systems.
+      </p>
+
       <h2>Order Rules</h2>
       <p>
         Admins can define automation rules in Settings &rarr; Rules. Rules automate actions when

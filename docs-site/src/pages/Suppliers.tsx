@@ -107,6 +107,25 @@ export default function Suppliers() {
         <strong>Save</strong> to persist or <strong>Cancel</strong> to discard changes.
       </p>
 
+      <h2>CSV Export &amp; Import</h2>
+      <p>
+        PickNPack supports bulk supplier operations via CSV files.
+      </p>
+
+      <h3>Export CSV</h3>
+      <p>
+        Click the <strong>Export</strong> button to download all suppliers as a CSV file.
+      </p>
+
+      <h3>Import CSV</h3>
+      <p>
+        Click the <strong>Import</strong> button to bulk-create suppliers from a CSV.
+        Required column: <strong>Name</strong>.
+        Optional: <strong>Email</strong>, <strong>Phone</strong>, <strong>Address</strong>,
+        <strong>Website</strong>, <strong>Notes</strong>.
+        Duplicate names are skipped automatically.
+      </p>
+
       <h2>Creating Purchase Orders</h2>
       <p>
         When creating a Purchase Order in the Receiving module, select a supplier from the dropdown.

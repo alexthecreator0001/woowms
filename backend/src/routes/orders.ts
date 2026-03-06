@@ -1,7 +1,44 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { pushOrderStatus } from '../woocommerce/fetch.js';
+import { buildCsv, sendCsv } from '../lib/csv.js';
 
 const router = Router();
+
+// GET /api/v1/orders/export — CSV export
+router.get('/export', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = req.prisma!;
+    const { status } = req.query as Record<string, string | undefined>;
+
+    const where: any = { store: { tenantId: req.tenantId } };
+    if (status) where.status = status;
+
+    const orders = await prisma.order.findMany({
+      where,
+      include: { items: true, store: { select: { name: true } } },
+      orderBy: { wooCreatedAt: 'desc' },
+    });
+
+    const headers = ['Order #', 'Status', 'Customer Name', 'Customer Email', 'Total', 'Currency', 'Payment Method', 'Shipping Method', 'Items Count', 'Created At', 'Store'];
+    const rows = orders.map((o) => [
+      o.orderNumber,
+      o.status,
+      o.customerName || '',
+      o.customerEmail || '',
+      o.total ? String(o.total) : '',
+      o.currency || '',
+      o.paymentMethodTitle || o.paymentMethod || '',
+      o.shippingMethodTitle || o.shippingMethod || '',
+      o.items?.length || 0,
+      o.wooCreatedAt ? new Date(o.wooCreatedAt).toISOString() : '',
+      (o.store as any)?.name || '',
+    ]);
+
+    sendCsv(res, 'orders-export.csv', buildCsv(headers, rows));
+  } catch (err) {
+    next(err);
+  }
+});
 
 // GET /api/v1/orders
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {

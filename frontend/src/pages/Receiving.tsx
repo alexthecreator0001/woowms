@@ -8,11 +8,14 @@ import {
   CaretDown,
   CaretRight,
   Cube,
+  DownloadSimple,
+  UploadSimple,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
-import api from '../services/api';
+import api, { downloadCsv } from '../services/api';
 import { proxyUrl } from '../lib/image';
 import Pagination from '../components/Pagination';
+import CsvImportModal from '../components/CsvImportModal';
 import type { PurchaseOrder, PaginationMeta } from '../types';
 
 const poStatusConfig: Record<string, { label: string; bg: string; text: string; dot: string }> = {
@@ -46,6 +49,7 @@ export default function Receiving() {
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
     setPage(1);
@@ -86,13 +90,29 @@ export default function Receiving() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => navigate('/receiving/new')}
-          className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-        >
-          <Plus size={14} weight="bold" />
-          Create Purchase Order
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => downloadCsv('/receiving/export', 'purchase-orders-export.csv')}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-card px-3.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
+          >
+            <DownloadSimple size={15} weight="bold" />
+            Export
+          </button>
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-card px-3.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
+          >
+            <UploadSimple size={15} weight="bold" />
+            Import
+          </button>
+          <button
+            onClick={() => navigate('/receiving/new')}
+            className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+          >
+            <Plus size={14} weight="bold" />
+            Create PO
+          </button>
+        </div>
       </div>
 
       {/* Filters Bar */}
@@ -235,6 +255,18 @@ export default function Receiving() {
 
       {/* Pagination */}
       {meta && <Pagination meta={meta} onPageChange={setPage} />}
+
+      <CsvImportModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        title="Import Purchase Orders"
+        description="Upload a CSV to create purchase orders. Rows are grouped by supplier — one PO per supplier."
+        endpoint="/receiving/import"
+        requiredColumns={['Supplier Name', 'SKU', 'Quantity']}
+        optionalColumns={['Expected Date', 'Notes']}
+        templateFilename="purchase-orders-import-template.csv"
+        onSuccess={loadPOs}
+      />
     </div>
   );
 }
