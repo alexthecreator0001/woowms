@@ -386,6 +386,7 @@ export interface PluginCatalogItem {
   installedAt?: string;
   apiKeyMode?: 'user_provided';
   providerName?: string;
+  webhookMode?: 'incoming';
 }
 
 // ─── Purchase Orders ────────────────────────────────

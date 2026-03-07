@@ -19,6 +19,9 @@ import {
   Globe,
   Package,
   PlugsConnected,
+  Bell,
+  PaperPlaneTilt,
+  ChatCircleDots,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import api from '../services/api';
@@ -115,6 +118,20 @@ export default function Plugins() {
   const [updatingKey, setUpdatingKey] = useState(false);
   const [updateKeyMsg, setUpdateKeyMsg] = useState('');
 
+  // Slack install modal state
+  const [slackInstallModal, setSlackInstallModal] = useState(false);
+  const [slackWebhookUrl, setSlackWebhookUrl] = useState('');
+  const [slackInstallError, setSlackInstallError] = useState('');
+
+  // Slack configure: test notification
+  const [slackTesting, setSlackTesting] = useState(false);
+  const [slackTestResult, setSlackTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  // Slack configure: update webhook URL
+  const [newWebhookUrl, setNewWebhookUrl] = useState('');
+  const [updatingWebhook, setUpdatingWebhook] = useState(false);
+  const [updateWebhookMsg, setUpdateWebhookMsg] = useState('');
+
   useEffect(() => {
     loadPlugins();
   }, []);
@@ -161,6 +178,54 @@ export default function Plugins() {
       setShippingInstallError(msg);
     } finally {
       setActionLoading(null);
+    }
+  }
+
+  async function handleSlackInstall() {
+    if (!slackWebhookUrl.trim()) return;
+    try {
+      setActionLoading('slack');
+      setSlackInstallError('');
+      await api.post('/plugins/slack/install', { webhookUrl: slackWebhookUrl });
+      setSlackInstallModal(false);
+      setSlackWebhookUrl('');
+      await loadPlugins();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Connection failed. Check your webhook URL.';
+      setSlackInstallError(msg);
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleSlackTestNotification() {
+    try {
+      setSlackTesting(true);
+      setSlackTestResult(null);
+      await api.post('/plugins/slack/test-notification');
+      setSlackTestResult({ ok: true, message: 'Test notification sent! Check your Slack channel.' });
+    } catch (err: any) {
+      setSlackTestResult({ ok: false, message: err?.response?.data?.message || 'Failed to send test notification.' });
+    } finally {
+      setSlackTesting(false);
+    }
+  }
+
+  async function handleUpdateWebhookUrl() {
+    if (!newWebhookUrl.trim()) return;
+    try {
+      setUpdatingWebhook(true);
+      setUpdateWebhookMsg('');
+      await api.patch('/plugins/slack/settings', { webhookUrl: newWebhookUrl });
+      setUpdateWebhookMsg('Webhook URL updated successfully');
+      setNewWebhookUrl('');
+      await loadPlugins();
+      setTimeout(() => setUpdateWebhookMsg(''), 4000);
+    } catch (err: any) {
+      setUpdateWebhookMsg(err?.response?.data?.message || 'Failed to update webhook URL');
+      setTimeout(() => setUpdateWebhookMsg(''), 4000);
+    } finally {
+      setUpdatingWebhook(false);
     }
   }
 
@@ -242,6 +307,9 @@ export default function Plugins() {
     setTestResult(null);
     setNewShippingKey('');
     setUpdateKeyMsg('');
+    setSlackTestResult(null);
+    setNewWebhookUrl('');
+    setUpdateWebhookMsg('');
   }
 
   function copyToClipboard(text: string) {
@@ -251,7 +319,11 @@ export default function Plugins() {
   }
 
   function handleInstallClick(plugin: PluginCatalogItem) {
-    if (plugin.apiKeyMode === 'user_provided') {
+    if (plugin.webhookMode === 'incoming') {
+      setSlackInstallModal(true);
+      setSlackWebhookUrl('');
+      setSlackInstallError('');
+    } else if (plugin.apiKeyMode === 'user_provided') {
       setShippingInstallModal(plugin);
       setShippingApiKey('');
       setShippingInstallError('');
@@ -263,6 +335,83 @@ export default function Plugins() {
   const filtered = category === 'All' ? plugins : plugins.filter((p) => p.category === category);
   const configuringPlugin = plugins.find((p) => p.key === configuring);
   const webhookBase = getWebhookBaseUrl();
+
+  // ─── Slack Install Modal ─────────────────────────
+
+  if (slackInstallModal) {
+    const brand = PLUGIN_BRANDS.slack;
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+        <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
+          <div className="mb-5 flex items-center gap-3">
+            <div className={cn('flex h-11 w-11 items-center justify-center rounded-xl', brand.bg)}>
+              <PluginIcon pluginKey="slack" size={24} />
+            </div>
+            <div>
+              <h3 className="text-[16px] font-semibold text-[#0a0a0a]">Connect Slack</h3>
+              <p className="text-[13px] text-[#6b6b6b]">Enter your Incoming Webhook URL</p>
+            </div>
+          </div>
+
+          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+            <p className="text-[12px] text-blue-800 leading-relaxed">
+              Create an <strong>Incoming Webhook</strong> in your Slack workspace to receive PickNPack notifications.
+              Go to <strong>api.slack.com/apps</strong> &rarr; create app &rarr; Incoming Webhooks &rarr; add to channel &rarr; copy the URL.
+            </p>
+          </div>
+
+          <div className="mb-4">
+            <label className="mb-1.5 block text-[12px] font-medium text-[#6b6b6b]">Webhook URL</label>
+            <input
+              type="url"
+              value={slackWebhookUrl}
+              onChange={(e) => setSlackWebhookUrl(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSlackInstall()}
+              placeholder="https://hooks.slack.com/services/..."
+              className="w-full rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5 text-[13px] placeholder:text-[#c0c0c0] focus:border-[#0a0a0a] focus:outline-none focus:ring-1 focus:ring-[#0a0a0a]"
+              autoFocus
+            />
+          </div>
+
+          {slackInstallError && (
+            <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
+              <XCircle size={16} weight="fill" className="mt-0.5 flex-shrink-0 text-red-500" />
+              <p className="text-[12px] text-red-700">{slackInstallError}</p>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setSlackInstallModal(false); setSlackWebhookUrl(''); setSlackInstallError(''); }}
+              className="flex flex-1 items-center justify-center rounded-lg border border-[#e5e5e5] bg-white px-4 py-2.5 text-[13px] font-medium text-[#6b6b6b] transition-colors hover:bg-[#f5f5f5]"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSlackInstall}
+              disabled={!slackWebhookUrl.trim() || actionLoading === 'slack'}
+              className={cn(
+                'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-medium text-white transition-colors disabled:opacity-50',
+                brand.installBg, brand.installHover
+              )}
+            >
+              {actionLoading === 'slack' ? (
+                <>
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <PlugsConnected size={16} />
+                  Connect
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ─── Shipping Install Modal ───────────────────────
 
@@ -608,6 +757,253 @@ export default function Plugins() {
                 >
                   <Trash size={14} />
                   Uninstall {configuringPlugin.name}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Slack configure view ── */}
+        {configuringPlugin.webhookMode === 'incoming' && (
+          <div className="space-y-6">
+            {/* Connection status */}
+            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <PlugsConnected size={18} weight="fill" className="text-emerald-600" />
+                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Connection Status</h2>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+                  <CheckCircle size={18} weight="fill" className="text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-emerald-700">Connected to Slack</p>
+                  <p className="text-[11px] text-emerald-600/70">Notifications are being sent to your Slack channel</p>
+                </div>
+              </div>
+            </div>
+
+            {/* How it works */}
+            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <ChatCircleDots size={18} weight="fill" className="text-[#6b6b6b]" />
+                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">How It Works</h2>
+              </div>
+              <p className="mb-4 text-[13px] leading-relaxed text-[#6b6b6b]">
+                When events happen in your warehouse (new orders, low stock, etc.), PickNPack automatically
+                sends a formatted notification to your Slack channel via the Incoming Webhook URL.
+              </p>
+              <div className="flex items-center gap-4 rounded-lg bg-[#fafafa] p-3">
+                <div className="flex items-center gap-2 text-[12px]">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                    <span className="text-[11px] font-bold text-primary">P</span>
+                  </div>
+                  <span className="font-medium text-[#0a0a0a]">PickNPack</span>
+                </div>
+                <div className="flex-1 border-t border-dashed border-[#d4d4d4]" />
+                <div className="rounded-md bg-[#ebebeb] px-2 py-0.5 text-[10px] font-mono text-[#6b6b6b]">Webhook</div>
+                <div className="flex-1 border-t border-dashed border-[#d4d4d4]" />
+                <div className="flex items-center gap-2 text-[12px]">
+                  <div className={cn('flex h-7 w-7 items-center justify-center rounded-lg', brand?.bg || 'bg-[#f5f5f5]')}>
+                    <PluginIcon pluginKey="slack" size={16} />
+                  </div>
+                  <span className="font-medium text-[#0a0a0a]">Slack</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Notification settings */}
+            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <Bell size={18} weight="fill" className="text-[#6b6b6b]" />
+                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Notification Settings</h2>
+              </div>
+              <p className="mb-4 text-[12px] text-[#6b6b6b]">Choose which events trigger a Slack notification.</p>
+              <div className="space-y-3">
+                {[
+                  { key: 'sendOrderNotifications', label: 'New order notifications', desc: 'When a new order is synced from WooCommerce' },
+                  { key: 'sendLowStockAlerts', label: 'Low stock alerts', desc: 'When stock drops below the product threshold' },
+                  { key: 'sendShippingUpdates', label: 'Shipping label notifications', desc: 'When a shipping label is created in packing' },
+                  { key: 'sendPOReceivedAlerts', label: 'PO received notifications', desc: 'When a purchase order is fully received' },
+                ].map((toggle) => (
+                  <div key={toggle.key} className="flex items-center justify-between rounded-lg border border-[#ebebeb] bg-[#fafafa] px-4 py-3">
+                    <div>
+                      <p className="text-[13px] font-medium text-[#0a0a0a]">{toggle.label}</p>
+                      <p className="text-[11px] text-[#a0a0a0]">{toggle.desc}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSettings((s) => ({ ...s, [toggle.key]: !s[toggle.key] }))}
+                      className={cn(
+                        'relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors',
+                        (settings as any)[toggle.key] ? 'bg-primary' : 'bg-[#d4d4d4]'
+                      )}
+                    >
+                      <span className={cn('inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm', (settings as any)[toggle.key] ? 'translate-x-[18px]' : 'translate-x-[3px]')} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => handleSaveSettings(configuringPlugin.key)}
+                disabled={savingSettings}
+                className="mt-5 w-full rounded-lg bg-[#0a0a0a] px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#1a1a1a] disabled:opacity-50"
+              >
+                {savingSettings ? 'Saving...' : 'Save Settings'}
+              </button>
+            </div>
+
+            {/* Test notification */}
+            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <PaperPlaneTilt size={18} weight="fill" className="text-[#6b6b6b]" />
+                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Test Notification</h2>
+              </div>
+              <p className="mb-4 text-[12px] text-[#6b6b6b]">
+                Send a test message to your Slack channel to verify the webhook is working.
+              </p>
+              <button
+                onClick={handleSlackTestNotification}
+                disabled={slackTesting}
+                className="inline-flex items-center gap-2 rounded-lg border border-[#e5e5e5] bg-white px-4 py-2.5 text-[13px] font-medium text-[#0a0a0a] transition-colors hover:bg-[#f5f5f5] disabled:opacity-50"
+              >
+                {slackTesting ? (
+                  <>
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#d4d4d4] border-t-[#0a0a0a]" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <PaperPlaneTilt size={14} />
+                    Send Test Message
+                  </>
+                )}
+              </button>
+              {slackTestResult && (
+                <div className={cn('mt-3 flex items-start gap-2 rounded-lg border p-3', slackTestResult.ok ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50')}>
+                  {slackTestResult.ok ? (
+                    <CheckCircle size={16} weight="fill" className="mt-0.5 flex-shrink-0 text-emerald-600" />
+                  ) : (
+                    <XCircle size={16} weight="fill" className="mt-0.5 flex-shrink-0 text-red-500" />
+                  )}
+                  <p className={cn('text-[12px]', slackTestResult.ok ? 'text-emerald-700' : 'text-red-700')}>{slackTestResult.message}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Webhook URL */}
+            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <Globe size={18} weight="fill" className="text-[#6b6b6b]" />
+                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Webhook URL</h2>
+              </div>
+              <div className="mb-3 rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#a0a0a0] mb-1">Current webhook</p>
+                <code className="text-[12px] font-mono text-[#6b6b6b]">
+                  {(() => {
+                    const url = (settings as any).webhookUrl as string || '';
+                    if (url.length <= 40) return url;
+                    return url.slice(0, 35) + '•••' + url.slice(-10);
+                  })()}
+                </code>
+              </div>
+              <p className="mb-3 text-[12px] text-[#6b6b6b]">Enter a new webhook URL to update your Slack channel.</p>
+              <div className="flex gap-3">
+                <input
+                  type="url"
+                  value={newWebhookUrl}
+                  onChange={(e) => setNewWebhookUrl(e.target.value)}
+                  placeholder="https://hooks.slack.com/services/..."
+                  className="flex-1 rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5 text-[13px] placeholder:text-[#c0c0c0] focus:border-[#0a0a0a] focus:outline-none focus:ring-1 focus:ring-[#0a0a0a]"
+                />
+                <button
+                  onClick={handleUpdateWebhookUrl}
+                  disabled={!newWebhookUrl.trim() || updatingWebhook}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#0a0a0a] px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#1a1a1a] disabled:opacity-50"
+                >
+                  {updatingWebhook ? (
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  ) : (
+                    <ArrowsClockwise size={14} />
+                  )}
+                  Update
+                </button>
+              </div>
+              {updateWebhookMsg && (
+                <p className={cn('mt-2 text-[12px] font-medium', updateWebhookMsg.includes('success') ? 'text-emerald-600' : 'text-red-600')}>
+                  {updateWebhookMsg}
+                </p>
+              )}
+            </div>
+
+            {/* Setup guide */}
+            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <ArrowSquareOut size={18} weight="fill" className="text-[#6b6b6b]" />
+                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Setup Guide</h2>
+              </div>
+              <div className="space-y-5">
+                <div className="flex gap-3">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#4A154B] text-[11px] font-bold text-white">1</span>
+                  <div className="flex-1">
+                    <p className="font-medium text-[13px] text-[#0a0a0a]">Go to api.slack.com/apps</p>
+                    <p className="mt-0.5 text-[12px] text-[#6b6b6b]">Click <strong>"Create New App"</strong> &rarr; <strong>"From scratch"</strong>. Name it "PickNPack" and select your workspace.</p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#4A154B] text-[11px] font-bold text-white">2</span>
+                  <div className="flex-1">
+                    <p className="font-medium text-[13px] text-[#0a0a0a]">Enable Incoming Webhooks</p>
+                    <p className="mt-0.5 text-[12px] text-[#6b6b6b]">In your app settings, go to <strong>"Incoming Webhooks"</strong> and toggle it on.</p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#4A154B] text-[11px] font-bold text-white">3</span>
+                  <div className="flex-1">
+                    <p className="font-medium text-[13px] text-[#0a0a0a]">Add to a channel</p>
+                    <p className="mt-0.5 text-[12px] text-[#6b6b6b]">Click <strong>"Add New Webhook to Workspace"</strong>, select the channel for notifications, and authorize.</p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-[11px] font-bold text-white"><Check size={12} weight="bold" /></span>
+                  <div className="flex-1">
+                    <p className="font-medium text-[13px] text-[#0a0a0a]">Copy the Webhook URL</p>
+                    <p className="mt-0.5 text-[12px] text-[#6b6b6b]">Copy the generated URL (starts with <code className="rounded bg-[#f5f5f5] px-1 py-0.5 font-mono text-[11px]">https://hooks.slack.com/services/...</code>) and paste it here.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Danger zone */}
+            <div className="rounded-xl border border-red-200 bg-red-50/50 p-5">
+              <h2 className="mb-1 text-[14px] font-semibold text-red-700">Danger Zone</h2>
+              <p className="mb-4 text-[12px] text-red-600/70">
+                Uninstalling removes the Slack webhook and stops all notifications.
+              </p>
+              {confirmUninstall ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-[13px] text-red-700">Are you sure?</span>
+                  <button
+                    onClick={() => handleUninstall(configuringPlugin.key)}
+                    disabled={actionLoading === configuringPlugin.key}
+                    className="rounded-md bg-red-600 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {actionLoading === configuringPlugin.key ? 'Removing...' : 'Yes, Uninstall'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmUninstall(false)}
+                    className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-[12px] font-medium text-red-700 transition-colors hover:bg-red-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmUninstall(true)}
+                  className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
+                >
+                  <Trash size={14} />
+                  Uninstall Slack
                 </button>
               )}
             </div>

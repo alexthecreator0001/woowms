@@ -10,6 +10,7 @@ import { sendPurchaseOrderEmail } from '../services/email.js';
 import prisma from '../lib/prisma.js';
 import { buildCsv, sendCsv } from '../lib/csv.js';
 import { generatePoPdf, type PoTemplate } from '../lib/poPdf.js';
+import { notifyPOReceived } from '../services/slack.js';
 import sharp from 'sharp';
 
 const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -780,6 +781,16 @@ router.patch('/:id/receive', async (req: Request, res: Response, next: NextFunct
         receivedDate: allReceived ? new Date() : null,
       },
     });
+
+    // Slack: PO fully received notification
+    if (allReceived) {
+      notifyPOReceived(req.tenantId!, {
+        poNumber: po!.poNumber || `PO-${po!.id}`,
+        supplier: po!.supplier,
+        itemCount: po!.items.length,
+        totalQty: po!.items.reduce((sum: number, i: any) => sum + i.receivedQty, 0),
+      });
+    }
 
     res.json({ data: po });
   } catch (err) {

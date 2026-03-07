@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { decrypt } from '../lib/crypto.js';
 import { getProvider } from '../shipping/registry.js';
 import { pushOrderStatus } from '../woocommerce/fetch.js';
+import { notifyShippingLabel } from '../services/slack.js';
 
 const router = Router();
 
@@ -190,6 +191,15 @@ router.post('/complete', async (req: Request, res: Response, next: NextFunction)
         weight: weight || null,
         status: 'LABEL_CREATED',
       },
+    });
+
+    // Slack: shipping label notification
+    notifyShippingLabel(req.tenantId!, {
+      orderNumber: order.orderNumber,
+      customerName: order.customerName || undefined,
+      carrier: mapping.wooMethodTitle || mapping.providerCarrier,
+      trackingNumber: result.trackingNumber,
+      trackingUrl: result.trackingUrl,
     });
 
     // Update order status to SHIPPED

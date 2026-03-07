@@ -93,6 +93,51 @@ export default function Plugins() {
         </p>
       </div>
 
+      <h2>Notification Plugins</h2>
+
+      <h3>Slack</h3>
+      <p>
+        Receive real-time warehouse notifications in your Slack channel. PickNPack sends
+        formatted messages via a Slack Incoming Webhook when key events happen in your warehouse.
+      </p>
+
+      <h4>Notification Types</h4>
+      <ul>
+        <li><strong>New Orders</strong> — When a new order is synced from WooCommerce (customer name, total, item count, payment status)</li>
+        <li><strong>Low Stock Alerts</strong> — When a product's stock drops below its low stock threshold after a stock adjustment</li>
+        <li><strong>Shipping Labels</strong> — When a shipping label is created from the packing station (carrier, tracking number)</li>
+        <li><strong>PO Received</strong> — When a purchase order is fully received (supplier, item count, total quantity)</li>
+      </ul>
+
+      <h4>Setting Up Slack</h4>
+      <ul>
+        <li>Go to <strong>api.slack.com/apps</strong> and create a new app from scratch</li>
+        <li>Enable <strong>Incoming Webhooks</strong> in your app settings</li>
+        <li>Click <strong>Add New Webhook to Workspace</strong> and select the channel for notifications</li>
+        <li>Copy the webhook URL (starts with <code>https://hooks.slack.com/services/...</code>)</li>
+        <li>In PickNPack, go to <strong>Plugins</strong>, click <strong>Install</strong> on the Slack card, and paste the webhook URL</li>
+        <li>Click <strong>Connect</strong> — a confirmation message is sent to your Slack channel</li>
+      </ul>
+
+      <h4>Managing Slack</h4>
+      <p>
+        After installing, click <strong>Configure</strong> on the Slack card to:
+      </p>
+      <ul>
+        <li>Toggle individual notification types on/off</li>
+        <li>Send a test notification to verify the webhook</li>
+        <li>Update the webhook URL (to change the Slack channel)</li>
+        <li>View the setup guide for creating a new webhook</li>
+        <li>Uninstall the plugin to stop all notifications</li>
+      </ul>
+
+      <div className="doc-callout">
+        <p>
+          <strong>No OAuth required:</strong> Slack notifications use a simple Incoming Webhook URL.
+          No bot tokens, no OAuth flows — just paste the URL and you're connected.
+        </p>
+      </div>
+
       <h2>Coming Soon</h2>
       <table className="doc-table">
         <thead>
@@ -102,10 +147,6 @@ export default function Plugins() {
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td className="font-medium text-surface-800">Slack</td>
-            <td>Real-time warehouse notifications in your Slack channels</td>
-          </tr>
           <tr>
             <td className="font-medium text-surface-800">QuickBooks</td>
             <td>Sync inventory costs and PO data with QuickBooks accounting</td>

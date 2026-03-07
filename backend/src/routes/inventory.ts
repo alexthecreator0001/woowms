@@ -5,6 +5,7 @@ import { authorize } from '../middleware/auth.js';
 import { syncProducts, pushStockToWoo, pushProductToWoo, shouldPushStock } from '../woocommerce/sync.js';
 import prisma from '../lib/prisma.js';
 import { buildCsv, sendCsv } from '../lib/csv.js';
+import { notifyLowStock } from '../services/slack.js';
 
 const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -431,6 +432,16 @@ router.patch('/:id/adjust', async (req: Request, res: Response, next: NextFuncti
         toBin: binId ? String(binId) : null,
       },
     });
+
+    // Slack: low stock alert
+    if (product.stockQty <= existing.lowStockThreshold) {
+      notifyLowStock(req.tenantId!, {
+        name: existing.name,
+        sku: existing.sku,
+        stockQty: product.stockQty,
+        lowStockThreshold: existing.lowStockThreshold,
+      });
+    }
 
     // Push stock to WooCommerce if enabled
     try {

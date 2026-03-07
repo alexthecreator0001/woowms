@@ -3,6 +3,15 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.61.0 / 2.46.0] - 2026-03-07
+
+### Added
+- **Slack notifications plugin** — Install the Slack plugin to receive real-time warehouse notifications in your Slack channel via an Incoming Webhook URL. Supports 4 notification types: new orders, low stock alerts, shipping label creation, and PO fully received.
+- **Slack notification toggles** — Configure which events trigger Slack notifications (new orders, low stock, shipping labels, PO received) from the plugin configure view.
+- **Slack test notification** — Send a test message to your Slack channel to verify the webhook is working from the Slack plugin configure page.
+- **Slack webhook URL management** — View masked webhook URL and update it without reinstalling the plugin.
+- **Slack setup guide** — Step-by-step instructions for creating a Slack Incoming Webhook directly in the plugin configure view.
+
 ## [3.60.0 / 2.45.0] - 2026-03-06
 
 ### Added

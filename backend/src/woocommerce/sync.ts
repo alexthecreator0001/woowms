@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import type { Store } from '@prisma/client';
 import { getWooClient } from './client.js';
+import { notifyNewOrder } from '../services/slack.js';
 
 const prisma = new PrismaClient();
 
@@ -209,6 +210,16 @@ export async function syncOrders(store: Store): Promise<void> {
         if (dbOrder) {
           await applyOrderRules(dbOrder.id, store.tenantId);
         }
+
+        // Slack notification (fire-and-forget)
+        notifyNewOrder(store.tenantId, {
+          orderNumber: order.number,
+          customerName: `${order.billing.first_name} ${order.billing.last_name}`,
+          total: order.total,
+          currency: order.currency,
+          itemCount: order.line_items.length,
+          isPaid: order.payment_method !== 'cod',
+        });
       }
     }
 

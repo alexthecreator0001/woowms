@@ -4,6 +4,7 @@ import { authorize } from '../middleware/auth.js';
 import prisma from '../lib/prisma.js';
 import { getProvider } from '../shipping/registry.js';
 import { encrypt } from '../lib/crypto.js';
+import { validateSlackWebhook } from '../services/slack.js';
 
 // ─── Plugin catalog (hardcoded) ────────────────────
 
@@ -46,7 +47,8 @@ const PLUGIN_CATALOG = [
     category: 'Notifications',
     icon: 'slack',
     requiresApiKey: false,
-    status: 'coming_soon' as const,
+    status: 'available' as const,
+    webhookMode: 'incoming' as const,
   },
   {
     key: 'quickbooks',
@@ -147,6 +149,42 @@ router.post('/:key/install', authorize('ADMIN', 'MANAGER'), async (req: Request,
       return res.status(409).json({ error: true, message: 'Plugin already installed', code: 'ALREADY_INSTALLED' });
     }
 
+    // Slack plugin: validate incoming webhook URL
+    if ((catalogItem as any).webhookMode === 'incoming') {
+      const { webhookUrl } = req.body;
+      if (!webhookUrl) {
+        return res.status(400).json({ error: true, message: 'Webhook URL is required', code: 'VALIDATION_ERROR' });
+      }
+
+      const valid = await validateSlackWebhook(webhookUrl);
+      if (!valid) {
+        return res.status(400).json({ error: true, message: 'Invalid webhook URL. Please check your Slack webhook URL and try again.', code: 'INVALID_WEBHOOK' });
+      }
+
+      const plugin = await req.prisma!.tenantPlugin.create({
+        data: {
+          pluginKey: key,
+          settings: {
+            webhookUrl,
+            sendOrderNotifications: true,
+            sendLowStockAlerts: true,
+            sendShippingUpdates: true,
+            sendPOReceivedAlerts: true,
+          },
+        },
+      });
+
+      return res.status(201).json({
+        data: {
+          ...catalogItem,
+          installed: true,
+          isEnabled: true,
+          settings: (plugin as any).settings,
+          installedAt: (plugin as any).installedAt,
+        },
+      });
+    }
+
     // Shipping plugin: validate user-provided API key + enforce single shipping plugin
     if ((catalogItem as any).apiKeyMode === 'user_provided') {
       const shippingKeys = PLUGIN_CATALOG
@@ -237,6 +275,29 @@ router.post('/:key/uninstall', authorize('ADMIN', 'MANAGER'), async (req: Reques
 
     await req.prisma!.tenantPlugin.delete({ where: { id: (existing as any).id } });
     res.json({ data: { success: true } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /:key/test-notification — send a test Slack notification
+router.post('/:key/test-notification', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { key } = req.params;
+    if (key !== 'slack') {
+      return res.status(400).json({ error: true, message: 'Not supported for this plugin', code: 'NOT_SUPPORTED' });
+    }
+    const existing = await req.prisma!.tenantPlugin.findFirst({ where: { pluginKey: 'slack' } }) as any;
+    if (!existing) {
+      return res.status(404).json({ error: true, message: 'Plugin not installed', code: 'NOT_INSTALLED' });
+    }
+    const settings = (existing.settings as Record<string, unknown>) || {};
+    const webhookUrl = settings.webhookUrl as string;
+    if (!webhookUrl) {
+      return res.status(400).json({ error: true, message: 'No webhook URL configured', code: 'NO_WEBHOOK' });
+    }
+    const ok = await validateSlackWebhook(webhookUrl);
+    res.json({ data: { ok } });
   } catch (err) {
     next(err);
   }
