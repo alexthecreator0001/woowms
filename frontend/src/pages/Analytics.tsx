@@ -525,8 +525,71 @@ export default function Analytics() {
 
   if (loading && !data) {
     return (
-      <div className="flex items-center justify-center py-32">
-        <Spinner size={32} className="animate-spin text-primary" />
+      <div className="space-y-5">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 animate-pulse rounded-xl bg-muted" />
+            <div>
+              <div className="h-7 w-32 animate-pulse rounded-md bg-muted" />
+              <div className="mt-1 h-4 w-44 animate-pulse rounded-md bg-muted" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-9 w-24 animate-pulse rounded-lg bg-muted" />
+            <div className="h-9 w-56 animate-pulse rounded-lg bg-muted" />
+          </div>
+        </div>
+        {/* Metric cards skeleton */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="h-9 w-9 animate-pulse rounded-lg bg-muted" />
+                <div className="h-5 w-14 animate-pulse rounded-full bg-muted" />
+              </div>
+              <div className="mt-3 h-8 w-28 animate-pulse rounded-md bg-muted" />
+              <div className="mt-2 h-4 w-20 animate-pulse rounded-md bg-muted" />
+              <div className="mt-3 h-8 w-full animate-pulse rounded-md bg-muted" />
+              <div className="mt-3 flex items-center gap-2 pt-3 border-t border-border/40">
+                <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+                <div className="h-3 w-12 animate-pulse rounded bg-muted" />
+                <div className="ml-auto h-3 w-12 animate-pulse rounded bg-muted" />
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Charts skeleton */}
+        <div className="grid gap-5 lg:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="rounded-2xl border border-border/60 bg-card shadow-sm">
+              <div className="border-b border-border/50 px-5 py-3">
+                <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+              </div>
+              <div className="p-3">
+                <div className="h-[200px] w-full animate-pulse rounded-lg bg-muted/50" />
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Breakdowns skeleton */}
+        <div className="grid gap-5 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rounded-2xl border border-border/60 bg-card shadow-sm">
+              <div className="border-b border-border/50 px-5 py-3">
+                <div className="h-4 w-28 animate-pulse rounded bg-muted" />
+              </div>
+              <div className="p-4 space-y-3">
+                {Array.from({ length: 4 }).map((_, j) => (
+                  <div key={j} className="flex items-center gap-3">
+                    <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+                    <div className="flex-1 h-5 animate-pulse rounded-md bg-muted/40" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

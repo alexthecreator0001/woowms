@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
   User,
@@ -20,6 +21,7 @@ import {
   Barcode,
   PaintBrush,
   ListMagnifyingGlass,
+  MagnifyingGlass,
 } from '@phosphor-icons/react';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
@@ -91,8 +93,22 @@ export default function SettingsPage() {
   const payload = getTokenPayload();
   const isAdmin = payload?.role === 'ADMIN';
 
+  const [search, setSearch] = useState('');
+
   const visibleCards = cards.filter((c) => !c.adminOnly || isAdmin);
-  const groups = [...new Set(visibleCards.map((c) => c.group))];
+
+  // Filter by search query
+  const q = search.toLowerCase().trim();
+  const filteredCards = q
+    ? visibleCards.filter(
+        (c) =>
+          c.title.toLowerCase().includes(q) ||
+          c.description.toLowerCase().includes(q) ||
+          c.group.toLowerCase().includes(q) ||
+          c.slug.toLowerCase().includes(q)
+      )
+    : visibleCards;
+  const groups = [...new Set(filteredCards.map((c) => c.group))];
 
   // If a section is active via URL, show its content
   if (section) {
@@ -130,12 +146,32 @@ export default function SettingsPage() {
   // Settings overview — card grid
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage your account, team, and integrations.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage your account, team, and integrations.
+          </p>
+        </div>
+        <div className="relative w-full sm:w-64">
+          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search settings..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-9 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-1"
+          />
+        </div>
       </div>
+
+      {q && filteredCards.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <MagnifyingGlass size={40} weight="duotone" className="text-muted-foreground/30 mb-3" />
+          <p className="text-sm font-medium text-muted-foreground">No settings found</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">Try a different search term</p>
+        </div>
+      )}
 
       {groups.map((group) => {
         const gs = groupStyles[group] || groupStyles['Personal settings'];
@@ -146,7 +182,7 @@ export default function SettingsPage() {
               {group}
             </h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {visibleCards
+              {filteredCards
                 .filter((c) => c.group === group)
                 .map((card) => {
                   const Icon = card.icon;

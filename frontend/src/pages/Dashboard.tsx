@@ -38,31 +38,37 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function load() {
+      const safe = (p: Promise<any>) => p.catch(() => null);
       try {
         const [meRes, ordersRes, orderStatsRes, inventoryRes, invStatsRes, lowStockRes, storesRes] = await Promise.all([
-          api.get('/auth/me'),
-          api.get('/orders', { params: { limit: 5 } }),
-          api.get('/orders/stats'),
-          api.get('/inventory', { params: { limit: 1 } }),
-          api.get('/inventory/stats'),
-          api.get('/inventory/low-stock'),
-          api.get('/stores'),
+          safe(api.get('/auth/me')),
+          safe(api.get('/orders', { params: { limit: 5 } })),
+          safe(api.get('/orders/stats')),
+          safe(api.get('/inventory', { params: { limit: 1 } })),
+          safe(api.get('/inventory/stats')),
+          safe(api.get('/inventory/low-stock')),
+          safe(api.get('/stores')),
         ]);
-        setUserName(meRes.data.data.name || '');
-        const byStatus = orderStatsRes.data.data.byStatus || {};
-        setStats({
-          orders: orderStatsRes.data.data.total,
-          pending: (byStatus.PENDING || 0) + (byStatus.PROCESSING || 0),
-          products: inventoryRes.data.meta.total,
-          lowStock: (lowStockRes.data.data || []).length,
-        });
-        setInventoryStats({
-          inStock: invStatsRes.data.data.inStock || 0,
-          reserved: invStatsRes.data.data.reserved || 0,
-          incoming: invStatsRes.data.data.incoming || 0,
-        });
-        setRecentOrders(ordersRes.data.data || []);
-        setStoreCount(storesRes.data.data.filter((s: any) => s.isActive).length);
+        if (meRes) setUserName(meRes.data.data.name || '');
+        if (orderStatsRes) {
+          const byStatus = orderStatsRes.data.data.byStatus || {};
+          setStats((prev) => ({
+            ...prev,
+            orders: orderStatsRes.data.data.total,
+            pending: (byStatus.PENDING || 0) + (byStatus.PROCESSING || 0),
+          }));
+        }
+        if (inventoryRes) setStats((prev) => ({ ...prev, products: inventoryRes.data.meta.total }));
+        if (lowStockRes) setStats((prev) => ({ ...prev, lowStock: (lowStockRes.data.data || []).length }));
+        if (invStatsRes) {
+          setInventoryStats({
+            inStock: invStatsRes.data.data.inStock || 0,
+            reserved: invStatsRes.data.data.reserved || 0,
+            incoming: invStatsRes.data.data.incoming || 0,
+          });
+        }
+        if (ordersRes) setRecentOrders(ordersRes.data.data || []);
+        if (storesRes) setStoreCount(storesRes.data.data.filter((s: any) => s.isActive).length);
       } catch (err) {
         console.error('Failed to load dashboard:', err);
       } finally {

@@ -375,6 +375,25 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
+// GET /api/v1/inventory/low-stock
+router.get('/low-stock', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = req.prisma!;
+    const threshold = await getLowStockThreshold(req.tenantId!);
+    const products = await prisma.product.findMany({
+      where: {
+        isActive: true,
+        stockQty: { lte: threshold },
+        store: { tenantId: req.tenantId },
+      },
+      orderBy: { stockQty: 'asc' },
+    });
+    res.json({ data: products });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/v1/inventory/:id
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -522,28 +541,6 @@ router.post('/push-stock-all', authorize('ADMIN', 'MANAGER'), async (req: Reques
     res.json({
       data: { message: `Pushed ${pushed} products, ${failed} failed`, pushed, failed, results },
     });
-  } catch (err) {
-    next(err);
-  }
-});
-
-// GET /api/v1/inventory/low-stock
-router.get('/low-stock', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const prisma = req.prisma!;
-
-    const threshold = await getLowStockThreshold(req.tenantId!);
-
-    const products = await prisma.product.findMany({
-      where: {
-        isActive: true,
-        stockQty: { lte: threshold },
-        store: { tenantId: req.tenantId },
-      },
-      orderBy: { stockQty: 'asc' },
-    });
-
-    res.json({ data: products });
   } catch (err) {
     next(err);
   }

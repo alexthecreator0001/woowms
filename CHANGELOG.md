@@ -3,6 +3,15 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.66.2 / 2.50.4] - 2026-03-07
+
+### Fixed
+- **Dashboard showing zeros** — Fixed critical Express route ordering bug where `/inventory/low-stock` was defined after `/:id`, causing it to be matched as a product ID and return 404. This cascaded through `Promise.all` and zeroed out all dashboard stats. Also made each API call resilient so individual failures no longer break the entire dashboard.
+- **Analytics loading skeleton** — Replaced spinner loading state with full skeleton UI matching the page layout (metric cards, charts, breakdown tables).
+
+### Added
+- **Settings search** — Added search input to the Settings overview page. Search filters cards by title, description, group, or slug with an empty state when no results match.
+
 ## [3.66.1 / 2.50.3] - 2026-03-07
 
 ### Fixed
