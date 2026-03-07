@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.66.0] - 2026-03-07
+
+### Changed
+- **Dashboard polish** — Metric cards are now clickable, linking to relevant pages. Added inventory summary strip (Total Stock, Reserved, Incoming, Free to Sell). Low stock count now fetched from backend (was hardcoded to 0). "Needs Attention" includes PENDING + PROCESSING orders. Quick Actions expanded to 6 items with descriptions. Recent orders show total amount and relative date. Loading skeleton animations throughout. Resources sidebar shows contextual alerts only when action is needed.
+
 ## [3.65.2 / 2.50.2] - 2026-03-07
 
 ### Fixed
