@@ -672,11 +672,18 @@ export default function ZoneDetail() {
             <select
               id="ebc-size"
               value={editBinSize}
-              onChange={(e) => setEditBinSize(e.target.value as BinSize)}
+              onChange={(e) => {
+                const newSize = e.target.value as BinSize;
+                setEditBinSize(newSize);
+                // Clear capacity override so the new size default takes effect
+                setEditBinCapacity('');
+              }}
               className={inputClasses}
             >
               {(Object.keys(BIN_SIZE_LABELS) as BinSize[]).map((size) => (
-                <option key={size} value={size}>{BIN_SIZE_LABELS[size]}</option>
+                <option key={size} value={size}>
+                  {BIN_SIZE_LABELS[size]} ({BIN_SIZE_CAPACITY[size]} cap)
+                </option>
               ))}
             </select>
           </div>

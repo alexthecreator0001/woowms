@@ -4,23 +4,23 @@ import type { ZoneType, BinSize } from '@prisma/client';
 
 const router = Router();
 
-// Default capacity by bin size category
+// Default capacity by bin size (in capacity units, 1 unit ≈ 1 liter)
 const BIN_SIZE_DEFAULTS: Record<string, number> = {
-  SMALL: 25,
-  MEDIUM: 50,
-  LARGE: 100,
-  XLARGE: 200,
+  SMALL: 25,       // ~25 liters, small tote/bin
+  MEDIUM: 100,     // ~100 liters, standard shelf section
+  LARGE: 500,      // ~500 liters, large rack section
+  XLARGE: 4000,    // ~4,000 liters, pallet rack bay
 };
 
 // Calculate how many capacity units a product occupies based on volume
-// 1 capacity unit ≈ 5 liters (5,000 cm³)
+// 1 capacity unit ≈ 1 liter (1,000 cm³)
 export function getCapacityUnits(product: { length?: number | null; width?: number | null; height?: number | null; sizeCategory?: string | null }): number {
   if (product.length && product.width && product.height) {
     const volumeCm3 = Number(product.length) * Number(product.width) * Number(product.height);
-    return Math.max(1, Math.round(volumeCm3 / 5000));
+    return Math.max(1, Math.round(volumeCm3 / 1000));
   }
   // Fallback to size category multipliers
-  const multipliers: Record<string, number> = { SMALL: 1, MEDIUM: 2, LARGE: 5, XLARGE: 10, OVERSIZED: 25 };
+  const multipliers: Record<string, number> = { SMALL: 1, MEDIUM: 3, LARGE: 15, XLARGE: 50, OVERSIZED: 200 };
   return multipliers[product.sizeCategory || ''] || 1;
 }
 

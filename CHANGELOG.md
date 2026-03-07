@@ -3,10 +3,16 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.65.1 / 2.50.1] - 2026-03-07
+
+### Fixed
+- **Bin capacity defaults** — Capacity is now volume-based (1 unit ≈ 1 liter). Defaults updated: Small=25, Medium=100, Large=500, X-Large=4,000. Pallet racks now correctly have much higher capacity than shelf sections. Migration resets old item-count defaults to use new values.
+- **Bin size change bug** — Changing a bin's Location Size now properly clears the old capacity so the new size default takes effect.
+
 ## [3.65.0 / 2.50.0] - 2026-03-07
 
 ### Fixed
-- **Volume-weighted bin capacity** — Bin capacity now accounts for product dimensions. Large products consume proportionally more capacity units (1 unit ≈ 5 liters). A 100×200×100 cm product now uses 400 capacity units per item instead of 1. Products without dimensions default to 1 unit. Affects warehouse display, assign-bin, and transfer capacity warnings.
+- **Volume-weighted bin capacity** — Bin capacity now accounts for product dimensions. Large products consume proportionally more capacity units (1 unit ≈ 1 liter). A 100×200×100 cm product now uses 2,000 capacity units per item instead of 1. Products without dimensions default to 1 unit. Affects warehouse display, assign-bin, and transfer capacity warnings.
 
 ## [3.64.2] - 2026-03-07
 

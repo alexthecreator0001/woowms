@@ -234,7 +234,7 @@ export default function GenerateBinsModal({
                 Location Size
               </label>
               <p className="mb-2 text-[11px] text-muted-foreground">
-                Sets the default capacity for each location. Small = 25 items, Medium = 50, Large = 100, X-Large = 200.
+                Sets the physical size category. Capacity is volume-based (1 unit ≈ 1 liter). Small = 25, Medium = 100, Large = 500, X-Large = 4,000.
               </p>
               <select
                 value={binSize}

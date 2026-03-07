@@ -30,16 +30,16 @@ export type ProductSize = 'SMALL' | 'MEDIUM' | 'LARGE' | 'XLARGE' | 'OVERSIZED';
 
 export const BIN_SIZE_CAPACITY: Record<BinSize, number> = {
   SMALL: 25,
-  MEDIUM: 50,
-  LARGE: 100,
-  XLARGE: 200,
+  MEDIUM: 100,
+  LARGE: 500,
+  XLARGE: 4000,
 };
 
 export const BIN_SIZE_LABELS: Record<BinSize, string> = {
-  SMALL: 'Small (25)',
-  MEDIUM: 'Medium (50)',
-  LARGE: 'Large (100)',
-  XLARGE: 'X-Large (200)',
+  SMALL: 'Small — Tote / Bin',
+  MEDIUM: 'Medium — Shelf Section',
+  LARGE: 'Large — Rack Section',
+  XLARGE: 'X-Large — Pallet Rack',
 };
 
 export const PRODUCT_SIZE_LABELS: Record<ProductSize, string> = {
