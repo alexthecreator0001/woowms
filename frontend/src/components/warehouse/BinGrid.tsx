@@ -268,10 +268,11 @@ function BinCell({
   onClick: () => void;
 }) {
   const stockCount = bin._stockCount ?? 0;
+  const capacityUsed = bin._capacityUsed ?? stockCount;
   const isEmpty = stockCount === 0;
   const inactive = !bin.isActive;
   const capacity = bin.capacity;
-  const isOverCapacity = capacity != null && capacity > 0 && stockCount > capacity;
+  const isOverCapacity = capacity != null && capacity > 0 && capacityUsed > capacity;
 
   return (
     <button

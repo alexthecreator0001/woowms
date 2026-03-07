@@ -163,6 +163,7 @@ export interface Bin {
     product?: { id: number; name: string; sku: string | null; imageUrl: string | null; sizeCategory: string | null };
   }[];
   _stockCount?: number;
+  _capacityUsed?: number;
 }
 
 export type ZoneType = 'RECEIVING' | 'STORAGE' | 'PICKING' | 'PACKING' | 'SHIPPING' | 'RETURNS';

@@ -8,6 +8,7 @@ import { buildCsv, sendCsv, resolveDelimiter, formatDate, filterColumns, type Co
 import { notifyLowStock } from '../services/slack.js';
 import { createNotification } from '../services/notifications.js';
 import { logActivity } from '../services/auditLog.js';
+import { getCapacityUnits } from './warehouse.js';
 
 const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -1162,7 +1163,7 @@ router.post('/:id/assign-bin', authorize('ADMIN', 'MANAGER'), async (req: Reques
     const bin = await prisma.bin.findUnique({
       where: { id: binId },
       include: {
-        stockLocations: { select: { quantity: true } },
+        stockLocations: { select: { quantity: true, product: { select: { length: true, width: true, height: true, sizeCategory: true } } } },
         zone: true,
       },
     });
@@ -1191,11 +1192,15 @@ router.post('/:id/assign-bin', authorize('ADMIN', 'MANAGER'), async (req: Reques
     // Build warnings (soft limits — never block)
     const warnings: string[] = [];
 
-    // Check capacity
-    const currentStock = bin.stockLocations.reduce((sum, sl) => sum + sl.quantity, 0);
-    const newTotal = currentStock + quantity;
-    if (bin.capacity && newTotal > bin.capacity) {
-      warnings.push(`Bin ${bin.label} is over capacity: ${newTotal}/${bin.capacity}`);
+    // Check capacity (volume-weighted)
+    const productUnits = getCapacityUnits(product);
+    const currentCapacityUsed = bin.stockLocations.reduce((sum, sl) => {
+      const units = sl.product ? getCapacityUnits(sl.product) : 1;
+      return sum + sl.quantity * units;
+    }, 0);
+    const newCapacityUsed = currentCapacityUsed + quantity * productUnits;
+    if (bin.capacity && newCapacityUsed > bin.capacity) {
+      warnings.push(`Bin ${bin.label} is over capacity: ${newCapacityUsed}/${bin.capacity} units`);
     }
 
     // Check product size vs bin size
@@ -1246,8 +1251,8 @@ router.post('/:id/transfer', authorize('ADMIN', 'MANAGER'), async (req: Request,
     }
 
     const [fromBin, toBin] = await Promise.all([
-      prisma.bin.findUnique({ where: { id: fromBinId }, include: { stockLocations: { select: { quantity: true } } } }),
-      prisma.bin.findUnique({ where: { id: toBinId }, include: { stockLocations: { select: { quantity: true } } } }),
+      prisma.bin.findUnique({ where: { id: fromBinId }, include: { stockLocations: { select: { quantity: true, product: { select: { length: true, width: true, height: true, sizeCategory: true } } } } } }),
+      prisma.bin.findUnique({ where: { id: toBinId }, include: { stockLocations: { select: { quantity: true, product: { select: { length: true, width: true, height: true, sizeCategory: true } } } } } }),
     ]);
     if (!fromBin || !toBin) {
       return res.status(404).json({ error: true, message: 'Bin not found', code: 'NOT_FOUND' });
@@ -1282,11 +1287,15 @@ router.post('/:id/transfer', authorize('ADMIN', 'MANAGER'), async (req: Request,
       },
     });
 
-    // Build warnings
+    // Build warnings (volume-weighted capacity check)
     const warnings: string[] = [];
-    const targetStock = toBin.stockLocations.reduce((sum, sl) => sum + sl.quantity, 0) + quantity;
-    if (toBin.capacity && targetStock > toBin.capacity) {
-      warnings.push(`Destination bin ${toBin.label} is over capacity: ${targetStock}/${toBin.capacity}`);
+    const transferUnits = getCapacityUnits(product);
+    const targetCapacityUsed = toBin.stockLocations.reduce((sum, sl) => {
+      const units = sl.product ? getCapacityUnits(sl.product) : 1;
+      return sum + sl.quantity * units;
+    }, 0) + quantity * transferUnits;
+    if (toBin.capacity && targetCapacityUsed > toBin.capacity) {
+      warnings.push(`Destination bin ${toBin.label} is over capacity: ${targetCapacityUsed}/${toBin.capacity} units`);
     }
 
     res.json({ data: targetLocation, warnings });

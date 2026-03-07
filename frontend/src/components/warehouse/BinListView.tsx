@@ -119,6 +119,7 @@ export default function BinListView({ bins, onBinClick }: BinListViewProps) {
           <tbody>
             {paginated.map((bin) => {
               const stockCount = bin._stockCount ?? 0;
+              const capacityUsed = bin._capacityUsed ?? stockCount;
               return (
                 <tr
                   key={bin.id}
@@ -146,9 +147,9 @@ export default function BinListView({ bins, onBinClick }: BinListViewProps) {
                     {bin.capacity ? (
                       <span className={cn(
                         'text-xs font-medium',
-                        stockCount > bin.capacity ? 'text-red-600' : 'text-muted-foreground',
+                        capacityUsed > bin.capacity ? 'text-red-600' : 'text-muted-foreground',
                       )}>
-                        {stockCount}/{bin.capacity}
+                        {capacityUsed}/{bin.capacity}
                       </span>
                     ) : (
                       <span className="text-xs text-muted-foreground/40">—</span>

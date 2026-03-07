@@ -12,6 +12,18 @@ const BIN_SIZE_DEFAULTS: Record<string, number> = {
   XLARGE: 200,
 };
 
+// Calculate how many capacity units a product occupies based on volume
+// 1 capacity unit ≈ 5 liters (5,000 cm³)
+export function getCapacityUnits(product: { length?: number | null; width?: number | null; height?: number | null; sizeCategory?: string | null }): number {
+  if (product.length && product.width && product.height) {
+    const volumeCm3 = Number(product.length) * Number(product.width) * Number(product.height);
+    return Math.max(1, Math.round(volumeCm3 / 5000));
+  }
+  // Fallback to size category multipliers
+  const multipliers: Record<string, number> = { SMALL: 1, MEDIUM: 2, LARGE: 5, XLARGE: 10, OVERSIZED: 25 };
+  return multipliers[product.sizeCategory || ''] || 1;
+}
+
 // GET /api/v1/warehouse — list all warehouses with zones, bins, and stock counts
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -25,7 +37,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
                   select: {
                     quantity: true,
                     product: {
-                      select: { id: true, name: true, sku: true, imageUrl: true, sizeCategory: true },
+                      select: { id: true, name: true, sku: true, imageUrl: true, sizeCategory: true, length: true, width: true, height: true },
                     },
                   },
                 },
@@ -36,7 +48,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       },
     });
 
-    // Add _stockCount to each bin for convenience
+    // Add _stockCount (item count) and _capacityUsed (volume-weighted) to each bin
     const data = warehouses.map((wh) => ({
       ...wh,
       zones: wh.zones.map((zone) => ({
@@ -44,6 +56,10 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         bins: zone.bins.map((bin) => ({
           ...bin,
           _stockCount: bin.stockLocations.reduce((sum, sl) => sum + sl.quantity, 0),
+          _capacityUsed: bin.stockLocations.reduce((sum, sl) => {
+            const units = sl.product ? getCapacityUnits(sl.product) : 1;
+            return sum + sl.quantity * units;
+          }, 0),
         })),
       })),
     }));

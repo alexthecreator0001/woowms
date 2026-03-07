@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.65.0 / 2.50.0] - 2026-03-07
+
+### Fixed
+- **Volume-weighted bin capacity** — Bin capacity now accounts for product dimensions. Large products consume proportionally more capacity units (1 unit ≈ 5 liters). A 100×200×100 cm product now uses 400 capacity units per item instead of 1. Products without dimensions default to 1 unit. Affects warehouse display, assign-bin, and transfer capacity warnings.
+
 ## [3.64.2] - 2026-03-07
 
 ### Changed
