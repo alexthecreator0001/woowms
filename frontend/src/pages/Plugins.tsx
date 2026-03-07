@@ -717,7 +717,7 @@ export default function Plugins() {
                 in Settings. This tells PickNPack which carrier and service to use for each order.
               </p>
               <button
-                onClick={() => navigate('/settings', { state: { tab: 'shipping' } })}
+                onClick={() => navigate('/settings/shipping')}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-[#e5e5e5] bg-white px-4 py-2.5 text-[13px] font-medium text-[#0a0a0a] transition-colors hover:bg-[#f5f5f5]"
               >
                 <ArrowSquareOut size={14} />

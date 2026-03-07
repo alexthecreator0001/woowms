@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.63.2 / 2.48.0] - 2026-03-07
+
+### Changed
+- **Settings URLs** — Each settings section now has its own URL (e.g. `/settings/woocommerce`, `/settings/tags`, `/settings/shipping`). Supports direct linking, browser back/forward, and bookmarking.
+
 ## [3.63.1 / 2.48.0] - 2026-03-07
 
 ### Fixed

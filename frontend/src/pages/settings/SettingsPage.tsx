@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
   User,
   UsersThree,
@@ -51,80 +51,67 @@ function getTokenPayload(): TokenPayload | null {
   }
 }
 
-type Section = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger' | 'notifications' | 'orderWorkflow' | 'inventoryDefaults' | 'units' | 'bins' | 'tags' | 'documents' | 'shipping' | 'customerRules' | 'mobileApp' | 'appearance';
-
 interface SettingsCard {
-  id: Section;
+  slug: string;
   title: string;
   description: string;
   icon: PhosphorIcon;
   group: string;
   adminOnly?: boolean;
   danger?: boolean;
+  component: React.ComponentType;
 }
 
 const cards: SettingsCard[] = [
-  { id: 'account', title: 'Personal details', description: 'Name, email, and password.', icon: User, group: 'Personal settings' },
-  { id: 'tables', title: 'Table preferences', description: 'Configure visible columns in orders and inventory.', icon: Table, group: 'Personal settings' },
-  { id: 'notifications', title: 'Notifications', description: 'Alerts, badges, and default filters.', icon: BellSimple, group: 'Personal settings' },
-  { id: 'appearance', title: 'Appearance', description: 'Theme and display preferences.', icon: PaintBrush, group: 'Personal settings' },
-  { id: 'branding', title: 'Business', description: 'Company name, address, and contact details.', icon: Buildings, group: 'Account settings', adminOnly: true },
-  { id: 'team', title: 'Team and security', description: 'Team members, roles, and permissions.', icon: UsersThree, group: 'Account settings', adminOnly: true },
-  { id: 'danger', title: 'Danger zone', description: 'Delete account and all data.', icon: Warning, group: 'Account settings', adminOnly: true, danger: true },
-  { id: 'orderWorkflow', title: 'Order workflow', description: 'Map WooCommerce statuses to WMS statuses.', icon: ArrowsLeftRight, group: 'Warehouse settings', adminOnly: true },
-  { id: 'inventoryDefaults', title: 'Inventory defaults', description: 'Low stock threshold and stock sync.', icon: Package, group: 'Warehouse settings', adminOnly: true },
-  { id: 'units', title: 'Units & measurements', description: 'Unit system and pallet type defaults.', icon: Ruler, group: 'Warehouse settings', adminOnly: true },
-  { id: 'bins', title: 'Bins & Labels', description: 'Default bin size, label printing, and bin properties.', icon: Barcode, group: 'Warehouse settings', adminOnly: true },
-  { id: 'tags', title: 'Tags', description: 'Create and manage order tags.', icon: Tag, group: 'Warehouse settings', adminOnly: true },
-  { id: 'documents', title: 'Documents', description: 'Document templates, branding colors, and stamps.', icon: FileText, group: 'Warehouse settings', adminOnly: true },
-  { id: 'customerRules', title: 'Rules', description: 'Automate order actions, customer tags, and free gifts.', icon: Lightning, group: 'Warehouse settings', adminOnly: true },
-  { id: 'mobileApp', title: 'Mobile App', description: 'Picking mode, barcode rules, and mobile modules.', icon: DeviceMobile, group: 'Warehouse settings', adminOnly: true },
-  { id: 'shipping', title: 'Shipping & Labels', description: 'Shipping provider, carrier mapping, and label printing.', icon: TruckTrailer, group: 'Integrations', adminOnly: true },
-  { id: 'woocommerce', title: 'WooCommerce', description: 'Store connections and sync settings.', icon: Storefront, group: 'Integrations' },
+  { slug: 'account', title: 'Personal details', description: 'Name, email, and password.', icon: User, group: 'Personal settings', component: AccountSection },
+  { slug: 'tables', title: 'Table preferences', description: 'Configure visible columns in orders and inventory.', icon: Table, group: 'Personal settings', component: TableConfigSection },
+  { slug: 'notifications', title: 'Notifications', description: 'Alerts, badges, and default filters.', icon: BellSimple, group: 'Personal settings', component: NotificationsSection },
+  { slug: 'appearance', title: 'Appearance', description: 'Theme and display preferences.', icon: PaintBrush, group: 'Personal settings', component: AppearanceSection },
+  { slug: 'branding', title: 'Business', description: 'Company name, address, and contact details.', icon: Buildings, group: 'Account settings', adminOnly: true, component: BrandingSection },
+  { slug: 'team', title: 'Team and security', description: 'Team members, roles, and permissions.', icon: UsersThree, group: 'Account settings', adminOnly: true, component: TeamSection },
+  { slug: 'danger-zone', title: 'Danger zone', description: 'Delete account and all data.', icon: Warning, group: 'Account settings', adminOnly: true, danger: true, component: DangerZoneSection },
+  { slug: 'order-workflow', title: 'Order workflow', description: 'Map WooCommerce statuses to WMS statuses.', icon: ArrowsLeftRight, group: 'Warehouse settings', adminOnly: true, component: OrderWorkflowSection },
+  { slug: 'inventory-defaults', title: 'Inventory defaults', description: 'Low stock threshold and stock sync.', icon: Package, group: 'Warehouse settings', adminOnly: true, component: InventoryDefaultsSection },
+  { slug: 'units', title: 'Units & measurements', description: 'Unit system and pallet type defaults.', icon: Ruler, group: 'Warehouse settings', adminOnly: true, component: UnitsSection },
+  { slug: 'bins', title: 'Bins & Labels', description: 'Default bin size, label printing, and bin properties.', icon: Barcode, group: 'Warehouse settings', adminOnly: true, component: BinsSection },
+  { slug: 'tags', title: 'Tags', description: 'Create and manage order tags.', icon: Tag, group: 'Warehouse settings', adminOnly: true, component: TagsSection },
+  { slug: 'documents', title: 'Documents', description: 'Document templates, branding colors, and stamps.', icon: FileText, group: 'Warehouse settings', adminOnly: true, component: DocumentsSection },
+  { slug: 'rules', title: 'Rules', description: 'Automate order actions, customer tags, and free gifts.', icon: Lightning, group: 'Warehouse settings', adminOnly: true, component: RulesSection },
+  { slug: 'mobile-app', title: 'Mobile App', description: 'Picking mode, barcode rules, and mobile modules.', icon: DeviceMobile, group: 'Warehouse settings', adminOnly: true, component: MobileAppSection },
+  { slug: 'shipping', title: 'Shipping & Labels', description: 'Shipping provider, carrier mapping, and label printing.', icon: TruckTrailer, group: 'Integrations', adminOnly: true, component: ShippingSection },
+  { slug: 'woocommerce', title: 'WooCommerce', description: 'Store connections and sync settings.', icon: Storefront, group: 'Integrations', component: WooCommerceSection },
 ];
 
 export default function SettingsPage() {
-  const [active, setActive] = useState<Section | null>(null);
+  const { section } = useParams<{ section?: string }>();
+  const navigate = useNavigate();
   const payload = getTokenPayload();
   const isAdmin = payload?.role === 'ADMIN';
 
   const visibleCards = cards.filter((c) => !c.adminOnly || isAdmin);
   const groups = [...new Set(visibleCards.map((c) => c.group))];
 
-  // If a section is active, show its content
-  if (active) {
-    const card = cards.find((c) => c.id === active);
+  // If a section is active via URL, show its content
+  if (section) {
+    const card = cards.find((c) => c.slug === section);
+    if (!card || (card.adminOnly && !isAdmin)) {
+      navigate('/settings', { replace: true });
+      return null;
+    }
+    const SectionComponent = card.component;
     return (
       <div className="space-y-6">
         <div>
-          <button
-            type="button"
-            onClick={() => setActive(null)}
+          <Link
+            to="/settings"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors mb-2"
           >
             <ArrowLeft size={14} />
             Settings
-          </button>
-          <h1 className="text-2xl font-bold tracking-tight">{card?.title}</h1>
+          </Link>
+          <h1 className="text-2xl font-bold tracking-tight">{card.title}</h1>
         </div>
-
-        {active === 'account' && <AccountSection />}
-        {active === 'branding' && isAdmin && <BrandingSection />}
-        {active === 'team' && isAdmin && <TeamSection />}
-        {active === 'woocommerce' && <WooCommerceSection />}
-        {active === 'tables' && <TableConfigSection />}
-        {active === 'notifications' && <NotificationsSection />}
-        {active === 'orderWorkflow' && isAdmin && <OrderWorkflowSection />}
-        {active === 'inventoryDefaults' && isAdmin && <InventoryDefaultsSection />}
-        {active === 'units' && isAdmin && <UnitsSection />}
-        {active === 'bins' && isAdmin && <BinsSection />}
-        {active === 'tags' && isAdmin && <TagsSection />}
-        {active === 'documents' && isAdmin && <DocumentsSection />}
-        {active === 'shipping' && isAdmin && <ShippingSection />}
-        {active === 'customerRules' && isAdmin && <RulesSection />}
-        {active === 'mobileApp' && isAdmin && <MobileAppSection />}
-        {active === 'appearance' && <AppearanceSection />}
-        {active === 'danger' && isAdmin && <DangerZoneSection />}
+        <SectionComponent />
       </div>
     );
   }
@@ -163,10 +150,9 @@ export default function SettingsPage() {
                   const iconBg = card.danger ? 'bg-red-500/10' : gs.bg;
                   const iconColor = card.danger ? 'text-red-500' : gs.icon;
                   return (
-                    <button
-                      key={card.id}
-                      type="button"
-                      onClick={() => setActive(card.id)}
+                    <Link
+                      key={card.slug}
+                      to={`/settings/${card.slug}`}
                       className={cn(
                         'flex items-start gap-3.5 rounded-xl border bg-card p-4 text-left shadow-sm transition-all hover:border-border hover:bg-muted/30 hover:shadow-md',
                         card.danger ? 'border-red-200/60' : 'border-border/60'
@@ -191,7 +177,7 @@ export default function SettingsPage() {
                         </p>
                       </div>
                       <CaretRight size={14} className="mt-1 flex-shrink-0 text-muted-foreground/40" />
-                    </button>
+                    </Link>
                   );
                 })}
             </div>

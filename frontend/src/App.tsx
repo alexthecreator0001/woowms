@@ -159,6 +159,7 @@ export default function App() {
                 <Route path="/suppliers/:id" element={<SupplierDetail />} />
                 <Route path="/plugins" element={<Plugins />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/settings/:section" element={<Settings />} />
               </Routes>
             </Layout>
           </PrivateRoute>
