@@ -516,6 +516,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
       const prodId = prod?.id;
       return {
         ...i,
+        productId: prodId || null,
         imageUrl: prod?.imageUrl || null,
         supplierSku: prodId ? (supplierSkuMap.get(prodId) || null) : null,
         ean: prodId ? (barcodeMap.get(prodId) || null) : null,
@@ -976,6 +977,8 @@ router.post('/:id/send-to-supplier', async (req: Request, res: Response, next: N
     });
     const pdfBuffer = Buffer.concat(chunks);
 
+    const companyEmail = (settings.companyEmail as string) || null;
+
     await sendPurchaseOrderEmail(
       po.supplierRef.email,
       {
@@ -991,7 +994,8 @@ router.post('/:id/send-to-supplier', async (req: Request, res: Response, next: N
         })),
       },
       pdfBuffer,
-      companyName
+      companyName,
+      companyEmail
     );
 
     // Update sentAt

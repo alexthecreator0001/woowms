@@ -84,6 +84,7 @@ export default function Receiving() {
         <li>Click <strong>Send</strong> in the header action bar</li>
         <li>The supplier must have an email address configured (the button is disabled if no email is set)</li>
         <li>The email includes a summary of the PO and the PDF as an attachment</li>
+        <li>If a company email is configured in Settings &gt; Branding, it is set as the reply-to address so suppliers can respond directly</li>
         <li>After sending, the sent date is recorded and shown on the PO</li>
         <li>You can resend the PO at any time using the <strong>Resend to Supplier</strong> button</li>
       </ul>
@@ -205,12 +206,17 @@ export default function Receiving() {
         the signature line on the PDF.
       </p>
 
-      <h3>Editing Ordered/Shipped POs</h3>
+      <h3>Inline Editing</h3>
       <p>
-        While only Draft POs allow full editing (supplier, items), POs in Ordered or Shipped status
-        also support editing the <strong>expected date</strong>, <strong>notes</strong>,
-        <strong>tracking number</strong>, and <strong>tracking URL</strong>. These fields
-        can be updated inline from the PO detail page.
+        In <strong>Draft</strong> status, you can edit ordered quantities and unit costs directly
+        inline by clicking on the values. Product names are clickable links to the product detail
+        page. Changes save automatically on blur.
+      </p>
+      <p>
+        POs in <strong>Ordered</strong> or <strong>Shipped</strong> status support editing
+        the <strong>expected date</strong>, <strong>notes</strong>,
+        <strong>tracking number</strong>, and <strong>tracking URL</strong> inline.
+        Date fields open a calendar picker on click.
       </p>
 
       <h2>CSV Export &amp; Import</h2>

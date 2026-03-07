@@ -440,6 +440,7 @@ export type POStatus = 'DRAFT' | 'ORDERED' | 'SHIPPED' | 'PARTIALLY_RECEIVED' | 
 
 export interface PurchaseOrderItem {
   id: number;
+  productId?: number | null;
   sku: string;
   productName: string;
   orderedQty: number;

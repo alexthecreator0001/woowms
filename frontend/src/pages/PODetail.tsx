@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   PackageOpen,
@@ -505,7 +505,11 @@ export default function PODetail() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="text-sm font-semibold leading-snug truncate">{item.productName}</p>
+                              {item.productId ? (
+                                <Link to={`/inventory/${item.productId}`} className="text-sm font-semibold leading-snug truncate block hover:text-primary transition-colors">{item.productName}</Link>
+                              ) : (
+                                <p className="text-sm font-semibold leading-snug truncate">{item.productName}</p>
+                              )}
                               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                                 <code className="rounded bg-muted/50 px-1.5 py-0.5 text-[11px]">{item.sku}</code>
                                 {item.supplierSku && (
@@ -522,7 +526,28 @@ export default function PODetail() {
                               <div className="flex items-center gap-3">
                                 <div className="text-center">
                                   <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">Ord.</span>
-                                  <p className="text-sm font-bold">{item.orderedQty}</p>
+                                  {po.status === 'DRAFT' ? (
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      defaultValue={item.orderedQty}
+                                      onBlur={async (e) => {
+                                        const val = parseInt(e.target.value) || 1;
+                                        if (val !== item.orderedQty) {
+                                          const newItems = (po.items || []).map((it) =>
+                                            it.id === item.id ? { sku: it.sku, productName: it.productName, orderedQty: val, unitCost: it.unitCost ? parseFloat(it.unitCost) : undefined } : { sku: it.sku, productName: it.productName, orderedQty: it.orderedQty, unitCost: it.unitCost ? parseFloat(it.unitCost) : undefined }
+                                          );
+                                          try {
+                                            const { data } = await api.patch(`/receiving/${po.id}`, { items: newItems });
+                                            setPo(data.data);
+                                          } catch { /* ignore */ }
+                                        }
+                                      }}
+                                      className="mt-0.5 h-7 w-16 rounded-md border border-border/60 bg-background px-1.5 text-center text-sm font-bold shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                    />
+                                  ) : (
+                                    <p className="text-sm font-bold">{item.orderedQty}</p>
+                                  )}
                                 </div>
                                 <div className="text-center">
                                   <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">Rcvd.</span>
@@ -534,12 +559,37 @@ export default function PODetail() {
                                     {item.receivedQty}
                                   </p>
                                 </div>
-                                {item.unitCost && (
-                                  <div className="text-right pl-2 border-l border-border/40">
-                                    <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">Total</span>
-                                    <p className="text-sm font-semibold">{lineTotal > 0 ? `$${lineTotal.toFixed(2)}` : '—'}</p>
-                                  </div>
-                                )}
+                                <div className="text-right pl-2 border-l border-border/40">
+                                  <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">Cost</span>
+                                  {po.status === 'DRAFT' ? (
+                                    <div className="relative mt-0.5">
+                                      <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground/50">$</span>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        min={0}
+                                        defaultValue={item.unitCost || ''}
+                                        onBlur={async (e) => {
+                                          const val = e.target.value.trim();
+                                          const current = item.unitCost || '';
+                                          if (val !== current) {
+                                            const newItems = (po.items || []).map((it) =>
+                                              it.id === item.id ? { sku: it.sku, productName: it.productName, orderedQty: it.orderedQty, unitCost: val ? parseFloat(val) : undefined } : { sku: it.sku, productName: it.productName, orderedQty: it.orderedQty, unitCost: it.unitCost ? parseFloat(it.unitCost) : undefined }
+                                            );
+                                            try {
+                                              const { data } = await api.patch(`/receiving/${po.id}`, { items: newItems });
+                                              setPo(data.data);
+                                            } catch { /* ignore */ }
+                                          }
+                                        }}
+                                        placeholder="0.00"
+                                        className="h-7 w-20 rounded-md border border-border/60 bg-background pl-4 pr-1.5 text-right text-sm font-semibold shadow-sm placeholder:text-muted-foreground/30 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm font-semibold">{item.unitCost ? `$${parseFloat(item.unitCost).toFixed(2)}` : '—'}</p>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -659,7 +709,8 @@ export default function PODetail() {
                   <input
                     type="date"
                     defaultValue={po.expectedDate ? new Date(po.expectedDate).toISOString().split('T')[0] : ''}
-                    onBlur={async (e) => {
+                    onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                    onChange={async (e) => {
                       const val = e.target.value;
                       const current = po.expectedDate ? new Date(po.expectedDate).toISOString().split('T')[0] : '';
                       if (val !== current) {
@@ -669,7 +720,7 @@ export default function PODetail() {
                         } catch { /* ignore */ }
                       }
                     }}
-                    className="h-8 w-36 rounded-lg border border-border/60 bg-background px-2 text-sm font-medium shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="h-8 w-36 cursor-pointer rounded-lg border border-border/60 bg-background px-2 text-sm font-medium shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 ) : (
                   <span className="text-sm font-medium">
@@ -808,14 +859,15 @@ export default function PODetail() {
                 <input
                   type="date"
                   defaultValue={po.invoiceDate ? new Date(po.invoiceDate).toISOString().split('T')[0] : ''}
-                  onBlur={(e) => {
+                  onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                  onChange={(e) => {
                     const val = e.target.value;
                     const current = po.invoiceDate ? new Date(po.invoiceDate).toISOString().split('T')[0] : '';
                     if (val !== current) {
                       handleInvoiceFieldSave('invoiceDate', val || null);
                     }
                   }}
-                  className="h-8 w-full rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="h-8 w-full cursor-pointer rounded-lg border border-border/60 bg-background px-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div>

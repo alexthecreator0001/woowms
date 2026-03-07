@@ -3,6 +3,14 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.66.1 / 2.50.3] - 2026-03-07
+
+### Fixed
+- **PO product links** — Product names in PO detail are now clickable, linking to the product detail page.
+- **PO inline editing** — Ordered quantity and unit cost can now be edited inline when PO is in DRAFT status.
+- **PO email reply-to** — Supplier emails now set reply-to as the company email (from Settings). "Please reply" text only appears when a company email is configured.
+- **PO date picker** — Expected date and invoice date now open the calendar picker on click instead of requiring manual typing.
+
 ## [3.66.0] - 2026-03-07
 
 ### Changed

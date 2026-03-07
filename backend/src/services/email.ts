@@ -45,7 +45,8 @@ export async function sendPurchaseOrderEmail(
   to: string,
   po: POEmailData,
   pdfBuffer: Buffer,
-  companyName: string
+  companyName: string,
+  replyToEmail?: string | null
 ): Promise<void> {
   const totalCost = po.items.reduce((sum, item) => {
     if (!item.unitCost) return sum;
@@ -69,6 +70,7 @@ export async function sendPurchaseOrderEmail(
   const { error } = await resend.emails.send({
     from: config.emailFrom,
     to,
+    ...(replyToEmail ? { replyTo: replyToEmail } : {}),
     subject: `Purchase Order ${po.poNumber} from ${companyName}`,
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; max-width: 640px; margin: 0 auto; padding: 40px 20px;">
@@ -116,7 +118,7 @@ export async function sendPurchaseOrderEmail(
           <p style="margin: 0; font-size: 13px; color: #92400e;"><strong>Notes:</strong> ${po.notes}</p>
         </div>` : ''}
         <p style="font-size: 12px; color: #94a3b8; margin: 0;">
-          The full purchase order PDF is attached to this email. Please confirm receipt and expected delivery timeline.
+          The full purchase order PDF is attached to this email.${replyToEmail ? ' Please reply to confirm receipt and expected delivery timeline.' : ''}
         </p>
       </div>
     `,
