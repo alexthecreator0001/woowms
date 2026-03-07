@@ -3,6 +3,14 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.63.0 / 2.48.0] - 2026-03-07
+
+### Added
+- **Dark mode** — Full dark theme support with light/dark/system modes. Toggle from the sidebar footer (Sun/Moon/Monitor icon) or Settings > Appearance. Persists to localStorage and follows OS preference in system mode.
+- **Keyboard shortcuts** — Navigate anywhere with `G then D/O/I/P/S/H/W/K/X` chord shortcuts. Press `Shift + ?` to see all available shortcuts. Cmd+K search shortcut migrated to the new hotkeys system.
+- **Notification center** — In-app notifications with unread badge in the sidebar. Receives alerts for new orders, low stock, PO received, and shipping labels. Polls every 30 seconds. Mark individual or all as read.
+- **Activity / Audit log** — Full audit trail at `/activity` showing who did what and when. Tracks order status changes, stock adjustments, PO creation/status changes, and supplier creation. Filterable by resource type with pagination.
+
 ## [3.62.0 / 2.47.0] - 2026-03-07
 
 ### Added

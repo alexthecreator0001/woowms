@@ -25,6 +25,7 @@ import POCreate from './pages/POCreate';
 import Suppliers from './pages/Suppliers';
 import SupplierDetail from './pages/SupplierDetail';
 import Analytics from './pages/Analytics';
+import AuditLog from './pages/AuditLog';
 import Settings from './pages/settings/SettingsPage';
 import Plugins from './pages/Plugins';
 import type { TokenPayload } from './types';
@@ -140,6 +141,7 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/analytics" element={<Analytics />} />
+                <Route path="/activity" element={<AuditLog />} />
                 <Route path="/orders" element={<Orders />} />
                 <Route path="/orders/:id" element={<OrderDetail />} />
                 <Route path="/inventory" element={<Inventory />} />

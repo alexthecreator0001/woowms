@@ -6,6 +6,8 @@ import { syncProducts, pushStockToWoo, pushProductToWoo, shouldPushStock } from 
 import prisma from '../lib/prisma.js';
 import { buildCsv, sendCsv, resolveDelimiter, formatDate, filterColumns, type ColumnDef } from '../lib/csv.js';
 import { notifyLowStock } from '../services/slack.js';
+import { createNotification } from '../services/notifications.js';
+import { logActivity } from '../services/auditLog.js';
 
 const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -441,7 +443,25 @@ router.patch('/:id/adjust', async (req: Request, res: Response, next: NextFuncti
         stockQty: product.stockQty,
         lowStockThreshold: existing.lowStockThreshold,
       });
+      createNotification({
+        tenantId: req.tenantId!,
+        type: 'low_stock',
+        title: 'Low stock',
+        message: `${existing.name}${existing.sku ? ` (${existing.sku})` : ''} is at ${product.stockQty} units (threshold: ${existing.lowStockThreshold})`,
+        link: `/inventory/${existing.id}`,
+      });
     }
+
+    // Audit log
+    logActivity({
+      tenantId: req.tenantId!,
+      userId: req.user?.id,
+      userName: req.user?.name,
+      action: 'inventory.stock_adjusted',
+      resource: 'product',
+      resourceId: String(existing.id),
+      details: { sku: existing.sku, quantity, reason: reason || 'Manual adjustment' },
+    });
 
     // Push stock to WooCommerce if enabled
     try {

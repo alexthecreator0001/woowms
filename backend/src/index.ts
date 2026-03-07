@@ -31,6 +31,8 @@ import searchRoutes from './routes/search.js';
 import pluginRoutes, { zapierWebhookRouter } from './routes/plugins.js';
 import analyticsRoutes from './routes/analytics.js';
 import packingRoutes from './routes/packing.js';
+import notificationRoutes from './routes/notifications.js';
+import auditRoutes from './routes/audit.js';
 import shippingConfigRoutes from './shipping/routes.js';
 import { registerProvider } from './shipping/registry.js';
 import { shippoProvider } from './shipping/shippo.js';
@@ -106,6 +108,8 @@ app.use('/api/v1/search', searchRoutes);
 app.use('/api/v1/plugins', pluginRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/packing', packingRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/audit', auditRoutes);
 app.use('/api/v1/shipping-config', shippingConfigRoutes);
 
 // Error handler

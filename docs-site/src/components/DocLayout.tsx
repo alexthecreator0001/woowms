@@ -44,6 +44,14 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    label: 'Customization',
+    items: [
+      { to: '/dark-mode', label: 'Dark Mode' },
+      { to: '/keyboard-shortcuts', label: 'Keyboard Shortcuts' },
+      { to: '/activity-log', label: 'Activity Log' },
+    ],
+  },
+  {
     label: 'Mobile',
     items: [
       { to: '/mobile-app', label: 'Picking App' },

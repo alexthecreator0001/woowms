@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import type { Store } from '@prisma/client';
 import { getWooClient } from './client.js';
 import { notifyNewOrder } from '../services/slack.js';
+import { createNotification } from '../services/notifications.js';
 
 const prisma = new PrismaClient();
 
@@ -219,6 +220,15 @@ export async function syncOrders(store: Store): Promise<void> {
           currency: order.currency,
           itemCount: order.line_items.length,
           isPaid: order.payment_method !== 'cod',
+        });
+
+        // In-app notification (fire-and-forget)
+        createNotification({
+          tenantId: store.tenantId,
+          type: 'order_new',
+          title: 'New order',
+          message: `Order #${order.number} from ${order.billing.first_name} ${order.billing.last_name} — ${order.currency} ${order.total}`,
+          link: dbOrder ? `/orders/${dbOrder.id}` : undefined,
         });
       }
     }

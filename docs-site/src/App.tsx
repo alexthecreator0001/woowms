@@ -16,6 +16,9 @@ import Receiving from './pages/Receiving';
 import Suppliers from './pages/Suppliers';
 import Plugins from './pages/Plugins';
 import Search from './pages/Search';
+import DarkMode from './pages/DarkMode';
+import KeyboardShortcuts from './pages/KeyboardShortcuts';
+import ActivityLog from './pages/ActivityLog';
 import MobileApp from './pages/MobileApp';
 
 export default function App() {
@@ -39,6 +42,9 @@ export default function App() {
         <Route path="/suppliers" element={<Suppliers />} />
         <Route path="/plugins" element={<Plugins />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/dark-mode" element={<DarkMode />} />
+        <Route path="/keyboard-shortcuts" element={<KeyboardShortcuts />} />
+        <Route path="/activity-log" element={<ActivityLog />} />
         <Route path="/mobile-app" element={<MobileApp />} />
       </Route>
     </Routes>

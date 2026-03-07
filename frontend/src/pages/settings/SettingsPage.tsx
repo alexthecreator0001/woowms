@@ -18,6 +18,7 @@ import {
   FileText,
   DeviceMobile,
   Barcode,
+  PaintBrush,
 } from '@phosphor-icons/react';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
@@ -38,6 +39,7 @@ import DocumentsSection from './DocumentsSection';
 import RulesSection from './RulesSection';
 import MobileAppSection from './MobileAppSection';
 import BinsSection from './BinsSection';
+import AppearanceSection from './AppearanceSection';
 
 function getTokenPayload(): TokenPayload | null {
   const token = localStorage.getItem('token');
@@ -49,7 +51,7 @@ function getTokenPayload(): TokenPayload | null {
   }
 }
 
-type Section = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger' | 'notifications' | 'orderWorkflow' | 'inventoryDefaults' | 'units' | 'bins' | 'tags' | 'documents' | 'shipping' | 'customerRules' | 'mobileApp';
+type Section = 'account' | 'branding' | 'team' | 'woocommerce' | 'tables' | 'danger' | 'notifications' | 'orderWorkflow' | 'inventoryDefaults' | 'units' | 'bins' | 'tags' | 'documents' | 'shipping' | 'customerRules' | 'mobileApp' | 'appearance';
 
 interface SettingsCard {
   id: Section;
@@ -65,6 +67,7 @@ const cards: SettingsCard[] = [
   { id: 'account', title: 'Personal details', description: 'Name, email, and password.', icon: User, group: 'Personal settings' },
   { id: 'tables', title: 'Table preferences', description: 'Configure visible columns in orders and inventory.', icon: Table, group: 'Personal settings' },
   { id: 'notifications', title: 'Notifications', description: 'Alerts, badges, and default filters.', icon: BellSimple, group: 'Personal settings' },
+  { id: 'appearance', title: 'Appearance', description: 'Theme and display preferences.', icon: PaintBrush, group: 'Personal settings' },
   { id: 'branding', title: 'Business', description: 'Company name, address, and contact details.', icon: Buildings, group: 'Account settings', adminOnly: true },
   { id: 'team', title: 'Team and security', description: 'Team members, roles, and permissions.', icon: UsersThree, group: 'Account settings', adminOnly: true },
   { id: 'danger', title: 'Danger zone', description: 'Delete account and all data.', icon: Warning, group: 'Account settings', adminOnly: true, danger: true },
@@ -120,6 +123,7 @@ export default function SettingsPage() {
         {active === 'shipping' && isAdmin && <ShippingSection />}
         {active === 'customerRules' && isAdmin && <RulesSection />}
         {active === 'mobileApp' && isAdmin && <MobileAppSection />}
+        {active === 'appearance' && <AppearanceSection />}
         {active === 'danger' && isAdmin && <DangerZoneSection />}
       </div>
     );

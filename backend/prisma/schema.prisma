@@ -23,6 +23,8 @@ model Tenant {
   purchaseOrders PurchaseOrder[]
   suppliers      Supplier[]
   plugins        TenantPlugin[]
+  notifications  Notification[]
+  auditLogs      AuditLog[]
 
   @@map("tenants")
 }
@@ -507,6 +509,44 @@ model BundleItem {
 
   @@unique([bundleProductId, componentProductId])
   @@map("bundle_items")
+}
+
+// ─── Notifications ─────────────────────────────────
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int      @map("tenant_id")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  userId    Int?     @map("user_id")
+  type      String   // 'order_new', 'low_stock', 'po_received', 'shipping_label', 'system'
+  title     String
+  message   String
+  link      String?  // in-app route e.g. '/orders/12345'
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId, read, createdAt])
+  @@index([userId])
+  @@map("notifications")
+}
+
+// ─── Audit Log ─────────────────────────────────────
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  tenantId   Int      @map("tenant_id")
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  userId     Int?     @map("user_id")
+  userName   String?  @map("user_name")
+  action     String   // 'order.status_changed', 'inventory.stock_adjusted', 'po.created'
+  resource   String   // 'order', 'product', 'purchase_order', 'supplier', 'settings'
+  resourceId String?  @map("resource_id")
+  details    Json?    // { from: 'pending', to: 'processing' }
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId, createdAt])
+  @@index([resource, resourceId])
+  @@map("audit_logs")
 }
 
 // ─── Plugins ───────────────────────────────────────

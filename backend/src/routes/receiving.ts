@@ -11,6 +11,8 @@ import prisma from '../lib/prisma.js';
 import { buildCsv, sendCsv, resolveDelimiter, formatDate, filterColumns, type ColumnDef } from '../lib/csv.js';
 import { generatePoPdf, type PoTemplate } from '../lib/poPdf.js';
 import { notifyPOReceived } from '../services/slack.js';
+import { createNotification } from '../services/notifications.js';
+import { logActivity } from '../services/auditLog.js';
 import sharp from 'sharp';
 
 const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -559,6 +561,16 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       include: { items: true, supplierRef: true },
     });
 
+    logActivity({
+      tenantId: req.tenantId!,
+      userId: req.user?.id,
+      userName: req.user?.name,
+      action: 'po.created',
+      resource: 'purchase_order',
+      resourceId: String(po.id),
+      details: { poNumber, supplier },
+    });
+
     res.status(201).json({ data: po });
   } catch (err: unknown) {
     if ((err as { code?: string }).code === 'P2002') {
@@ -684,6 +696,16 @@ router.patch('/:id/status', async (req: Request, res: Response, next: NextFuncti
       include: { items: true },
     });
 
+    logActivity({
+      tenantId: req.tenantId!,
+      userId: req.user?.id,
+      userName: req.user?.name,
+      action: 'po.status_changed',
+      resource: 'purchase_order',
+      resourceId: String(poId),
+      details: { from: existing.status, to: status },
+    });
+
     res.json({ data: po });
   } catch (err) {
     next(err);
@@ -792,7 +814,25 @@ router.patch('/:id/receive', async (req: Request, res: Response, next: NextFunct
         itemCount: po!.items.length,
         totalQty: po!.items.reduce((sum: number, i: any) => sum + i.receivedQty, 0),
       });
+      createNotification({
+        tenantId: req.tenantId!,
+        type: 'po_received',
+        title: 'PO fully received',
+        message: `${po!.poNumber || `PO-${po!.id}`} from ${po!.supplier} — ${po!.items.length} items received`,
+        link: `/receiving/${po!.id}`,
+      });
     }
+
+    // Audit log
+    logActivity({
+      tenantId: req.tenantId!,
+      userId: req.user?.id,
+      userName: req.user?.name,
+      action: 'po.items_received',
+      resource: 'purchase_order',
+      resourceId: String(poId),
+      details: { status: allReceived ? 'RECEIVED' : 'PARTIALLY_RECEIVED' },
+    });
 
     res.json({ data: po });
   } catch (err) {

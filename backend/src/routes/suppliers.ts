@@ -4,6 +4,7 @@ import { parse } from 'csv-parse/sync';
 import { authorize } from '../middleware/auth.js';
 import prisma from '../lib/prisma.js';
 import { buildCsv, sendCsv, resolveDelimiter, filterColumns, type ColumnDef } from '../lib/csv.js';
+import { logActivity } from '../services/auditLog.js';
 
 const router = Router();
 const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -194,6 +195,16 @@ router.post('/', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Respon
       include: {
         _count: { select: { supplierProducts: true, purchaseOrders: true } },
       },
+    });
+
+    logActivity({
+      tenantId: req.tenantId!,
+      userId: req.user?.id,
+      userName: req.user?.name,
+      action: 'supplier.created',
+      resource: 'supplier',
+      resourceId: String(supplier.id),
+      details: { name },
     });
 
     res.status(201).json({ data: supplier });

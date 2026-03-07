@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { pushOrderStatus } from '../woocommerce/fetch.js';
 import { buildCsv, sendCsv, resolveDelimiter, formatDate, filterColumns, type ColumnDef } from '../lib/csv.js';
+import { logActivity } from '../services/auditLog.js';
 
 const router = Router();
 
@@ -186,9 +187,21 @@ router.patch('/:id/status', async (req: Request, res: Response, next: NextFuncti
       return res.status(404).json({ error: true, message: 'Order not found', code: 'NOT_FOUND' });
     }
 
+    const previousStatus = existing!.status;
     const order = await prisma.order.update({
       where: { id: existing!.id },
       data: { status },
+    });
+
+    // Audit log
+    logActivity({
+      tenantId: req.tenantId!,
+      userId: req.user?.id,
+      userName: req.user?.name,
+      action: 'order.status_changed',
+      resource: 'order',
+      resourceId: String(existing!.id),
+      details: { orderNumber: existing!.orderNumber, from: previousStatus, to: status },
     });
 
     // Push status back to WooCommerce if auto-push is enabled

@@ -4,6 +4,7 @@ import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import {
   SquaresFour,
   ChartLineUp,
+  ClockCounterClockwise,
   ShoppingBag,
   Cube,
   Buildings,
@@ -18,12 +19,19 @@ import {
   CaretLineRight,
   Plug,
   MagnifyingGlass,
+  Sun,
+  Moon,
+  Monitor,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import { LogoMark } from './Logo';
 import api from '../services/api';
 import GlobalSearch from './GlobalSearch';
+import KeyboardShortcutsModal from './KeyboardShortcutsModal';
+import NotificationCenter from './NotificationCenter';
 import { SidebarContext } from '../contexts/SidebarContext';
+import { useTheme, type Theme } from '../contexts/ThemeContext';
+import { useHotkeys } from '../hooks/useHotkeys';
 
 interface NavItem {
   path: string;
@@ -42,6 +50,7 @@ const navSections: NavSection[] = [
     items: [
       { path: '/', label: 'Dashboard', icon: SquaresFour },
       { path: '/analytics', label: 'Analytics', icon: ChartLineUp },
+      { path: '/activity', label: 'Activity', icon: ClockCounterClockwise },
       { path: '/orders', label: 'Orders', icon: ShoppingBag },
     ],
   },
@@ -69,12 +78,23 @@ const navSections: NavSection[] = [
   },
 ];
 
+const themeOrder: Theme[] = ['light', 'dark', 'system'];
+const themeIcons = { light: Sun, dark: Moon, system: Monitor } as const;
+const themeLabels = { light: 'Light', dark: 'Dark', system: 'System' } as const;
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+
+  const cycleTheme = () => {
+    const idx = themeOrder.indexOf(theme);
+    setTheme(themeOrder[(idx + 1) % themeOrder.length]);
+  };
 
   useEffect(() => {
     api.get('/auth/me')
@@ -85,17 +105,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       .catch(() => {});
   }, []);
 
-  // Cmd+K / Ctrl+K keyboard shortcut for global search
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setSearchOpen(true);
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  // Keyboard shortcuts
+  useHotkeys([
+    { key: 'k', meta: true, handler: () => setSearchOpen(true) },
+    { key: '?', shift: true, handler: () => setShortcutsOpen(true) },
+    { chord: 'g', key: 'd', handler: () => navigate('/') },
+    { chord: 'g', key: 'o', handler: () => navigate('/orders') },
+    { chord: 'g', key: 'i', handler: () => navigate('/inventory') },
+    { chord: 'g', key: 'p', handler: () => navigate('/receiving') },
+    { chord: 'g', key: 's', handler: () => navigate('/suppliers') },
+    { chord: 'g', key: 'h', handler: () => navigate('/shipping') },
+    { chord: 'g', key: 'w', handler: () => navigate('/warehouse') },
+    { chord: 'g', key: 'k', handler: () => navigate('/picking') },
+    { chord: 'g', key: 'x', handler: () => navigate('/settings') },
+  ]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -110,11 +133,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarContext.Provider value={{ collapsed, setCollapsed }}>
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[#ebebeb] bg-white transition-all duration-300 ease-in-out',
+          'fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-background transition-all duration-300 ease-in-out',
           sidebarWidth
         )}
       >
@@ -122,7 +145,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div
           title={collapsed ? (companyName || 'PickNPack') : undefined}
           className={cn(
-            'flex items-center border-b border-[#ebebeb] px-3 py-3',
+            'flex items-center border-b border-border px-3 py-3',
             collapsed ? 'justify-center' : 'gap-2.5'
           )}
         >
@@ -143,7 +166,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   {initial}
                 </div>
               )}
-              <span className="truncate text-[13px] font-semibold text-[#0a0a0a]">
+              <span className="truncate text-[13px] font-semibold text-foreground">
                 {companyName || 'PickNPack'}
               </span>
             </>
@@ -173,7 +196,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           {navSections.map((section) => (
             <div key={section.label} className="mb-5">
               {!collapsed && (
-                <p className="mb-1 px-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#a0a0a0]">
+                <p className="mb-1 px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
                   {section.label}
                 </p>
               )}
@@ -193,8 +216,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                             ? 'justify-center p-2.5'
                             : 'gap-2.5 px-2.5 py-[7px]',
                           isActive
-                            ? 'bg-[#f5f5f5] text-[#0a0a0a]'
-                            : 'text-[#6b6b6b] hover:bg-[#f5f5f5] hover:text-[#0a0a0a]'
+                            ? 'bg-muted text-foreground'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                         )
                       }
                     >
@@ -217,7 +240,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-[#ebebeb] p-2.5 space-y-px">
+        <div className="border-t border-border p-2.5 space-y-px">
+          <NotificationCenter collapsed={collapsed} />
           <a
             href="https://docs.picknpack.io"
             target="_blank"
@@ -226,7 +250,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             className={cn(
               'flex items-center rounded-md text-[13px] font-medium transition-colors duration-150',
               collapsed ? 'justify-center p-2.5' : 'gap-2.5 px-2.5 py-[7px]',
-              'text-[#6b6b6b] hover:bg-[#f5f5f5] hover:text-[#0a0a0a]'
+              'text-muted-foreground hover:bg-muted hover:text-foreground'
             )}
           >
             <Question size={collapsed ? 20 : 18} weight="regular" className="flex-shrink-0" />
@@ -240,8 +264,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 'flex items-center rounded-md text-[13px] font-medium transition-colors duration-150',
                 collapsed ? 'justify-center p-2.5' : 'gap-2.5 px-2.5 py-[7px]',
                 isActive
-                  ? 'bg-[#f5f5f5] text-[#0a0a0a]'
-                  : 'text-[#6b6b6b] hover:bg-[#f5f5f5] hover:text-[#0a0a0a]'
+                  ? 'bg-muted text-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               )
             }
           >
@@ -257,7 +281,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             onClick={handleLogout}
             title={collapsed ? 'Log out' : undefined}
             className={cn(
-              'flex w-full items-center rounded-md text-[13px] font-medium text-[#6b6b6b] transition-colors duration-150 hover:bg-red-50 hover:text-red-600',
+              'flex w-full items-center rounded-md text-[13px] font-medium text-muted-foreground transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive',
               collapsed ? 'justify-center p-2.5' : 'gap-2.5 px-2.5 py-[7px]'
             )}
           >
@@ -265,11 +289,28 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {!collapsed && <span>Log out</span>}
           </button>
 
+          {(() => {
+            const ThemeIcon = themeIcons[theme];
+            return (
+              <button
+                onClick={cycleTheme}
+                title={collapsed ? `Theme: ${themeLabels[theme]}` : undefined}
+                className={cn(
+                  'flex w-full items-center rounded-md text-[13px] font-medium text-muted-foreground/60 transition-colors duration-150 hover:bg-muted hover:text-muted-foreground',
+                  collapsed ? 'justify-center p-2.5' : 'gap-2.5 px-2.5 py-[7px]'
+                )}
+              >
+                <ThemeIcon size={collapsed ? 20 : 18} className="flex-shrink-0" />
+                {!collapsed && <span>{themeLabels[theme]}</span>}
+              </button>
+            );
+          })()}
+
           <button
             onClick={() => setCollapsed(!collapsed)}
             title={collapsed ? 'Expand' : 'Collapse'}
             className={cn(
-              'flex w-full items-center rounded-md text-[13px] font-medium text-[#a0a0a0] transition-colors duration-150 hover:bg-[#f5f5f5] hover:text-[#6b6b6b]',
+              'flex w-full items-center rounded-md text-[13px] font-medium text-muted-foreground/60 transition-colors duration-150 hover:bg-muted hover:text-muted-foreground',
               collapsed ? 'justify-center p-2.5' : 'gap-2.5 px-2.5 py-[7px]'
             )}
           >
@@ -299,6 +340,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Global Search */}
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+
+      {/* Keyboard Shortcuts */}
+      <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
     </SidebarContext.Provider>
   );
