@@ -31,11 +31,11 @@ import { useNavigate } from 'react-router-dom';
 // ─── Brand config ──────────────────────────────────
 
 const PLUGIN_BRANDS: Record<string, { bg: string; installBg: string; installHover: string }> = {
-  zapier: { bg: 'bg-[#FFF4EE]', installBg: 'bg-[#FF4A00]', installHover: 'hover:bg-[#e64300]' },
+  zapier: { bg: 'bg-[#FF4A00]/10', installBg: 'bg-[#FF4A00]', installHover: 'hover:bg-[#e64300]' },
   shippo: { bg: 'bg-[#0A2240]/10', installBg: 'bg-[#0A2240]', installHover: 'hover:bg-[#0D2D52]' },
   easypost: { bg: 'bg-[#0066CC]/10', installBg: 'bg-[#0066CC]', installHover: 'hover:bg-[#0052A3]' },
-  slack: { bg: 'bg-[#F8F0F9]', installBg: 'bg-[#4A154B]', installHover: 'hover:bg-[#3B0F3C]' },
-  quickbooks: { bg: 'bg-[#EEFBEC]', installBg: 'bg-[#2CA01C]', installHover: 'hover:bg-[#238815]' },
+  slack: { bg: 'bg-[#4A154B]/10', installBg: 'bg-[#4A154B]', installHover: 'hover:bg-[#3B0F3C]' },
+  quickbooks: { bg: 'bg-[#2CA01C]/10', installBg: 'bg-[#2CA01C]', installHover: 'hover:bg-[#238815]' },
 };
 
 const PLUGIN_LOGOS: Record<string, string> = {
@@ -51,7 +51,7 @@ function PluginIcon({ pluginKey, size = 28 }: { pluginKey: string; size?: number
   if (logo) {
     return <img src={logo} alt={pluginKey} width={size} height={size} className="flex-shrink-0 object-contain" />;
   }
-  return <Plug size={size} weight="fill" className="flex-shrink-0 text-[#6b6b6b]" />;
+  return <Plug size={size} weight="fill" className="flex-shrink-0 text-muted-foreground" />;
 }
 
 // Helper: get the base API URL for webhook instructions
@@ -71,12 +71,12 @@ function CopyBlock({ value, label }: { value: string; label?: string }) {
   }
   return (
     <div>
-      {label && <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#a0a0a0]">{label}</p>}
-      <div className="flex items-center gap-2 rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5">
-        <code className="flex-1 break-all text-[12px] font-mono text-[#0a0a0a] select-all">{value}</code>
+      {label && <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">{label}</p>}
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
+        <code className="flex-1 break-all text-[12px] font-mono text-foreground select-all">{value}</code>
         <button
           onClick={copy}
-          className="flex-shrink-0 rounded-md p-1 text-[#a0a0a0] transition-colors hover:bg-[#ebebeb] hover:text-[#0a0a0a]"
+          className="flex-shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
           title="Copy"
         >
           {didCopy ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
@@ -342,14 +342,14 @@ export default function Plugins() {
     const brand = PLUGIN_BRANDS.slack;
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-        <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
+        <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-2xl">
           <div className="mb-5 flex items-center gap-3">
             <div className={cn('flex h-11 w-11 items-center justify-center rounded-xl', brand.bg)}>
               <PluginIcon pluginKey="slack" size={24} />
             </div>
             <div>
-              <h3 className="text-[16px] font-semibold text-[#0a0a0a]">Connect Slack</h3>
-              <p className="text-[13px] text-[#6b6b6b]">Enter your Incoming Webhook URL</p>
+              <h3 className="text-[16px] font-semibold text-foreground">Connect Slack</h3>
+              <p className="text-[13px] text-muted-foreground">Enter your Incoming Webhook URL</p>
             </div>
           </div>
 
@@ -361,14 +361,14 @@ export default function Plugins() {
           </div>
 
           <div className="mb-4">
-            <label className="mb-1.5 block text-[12px] font-medium text-[#6b6b6b]">Webhook URL</label>
+            <label className="mb-1.5 block text-[12px] font-medium text-muted-foreground">Webhook URL</label>
             <input
               type="url"
               value={slackWebhookUrl}
               onChange={(e) => setSlackWebhookUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSlackInstall()}
               placeholder="https://hooks.slack.com/services/..."
-              className="w-full rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5 text-[13px] placeholder:text-[#c0c0c0] focus:border-[#0a0a0a] focus:outline-none focus:ring-1 focus:ring-[#0a0a0a]"
+              className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2.5 text-[13px] placeholder:text-muted-foreground/40 focus:border-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
               autoFocus
             />
           </div>
@@ -383,7 +383,7 @@ export default function Plugins() {
           <div className="flex gap-2">
             <button
               onClick={() => { setSlackInstallModal(false); setSlackWebhookUrl(''); setSlackInstallError(''); }}
-              className="flex flex-1 items-center justify-center rounded-lg border border-[#e5e5e5] bg-white px-4 py-2.5 text-[13px] font-medium text-[#6b6b6b] transition-colors hover:bg-[#f5f5f5]"
+              className="flex flex-1 items-center justify-center rounded-lg border border-border bg-card px-4 py-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted"
             >
               Cancel
             </button>
@@ -419,14 +419,14 @@ export default function Plugins() {
     const brand = PLUGIN_BRANDS[shippingInstallModal.key];
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-        <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
+        <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-2xl">
           <div className="mb-5 flex items-center gap-3">
-            <div className={cn('flex h-11 w-11 items-center justify-center rounded-xl', brand?.bg || 'bg-[#f5f5f5]')}>
+            <div className={cn('flex h-11 w-11 items-center justify-center rounded-xl', brand?.bg || 'bg-muted')}>
               <PluginIcon pluginKey={shippingInstallModal.key} size={24} />
             </div>
             <div>
-              <h3 className="text-[16px] font-semibold text-[#0a0a0a]">Connect {shippingInstallModal.name}</h3>
-              <p className="text-[13px] text-[#6b6b6b]">Enter your API key to connect</p>
+              <h3 className="text-[16px] font-semibold text-foreground">Connect {shippingInstallModal.name}</h3>
+              <p className="text-[13px] text-muted-foreground">Enter your API key to connect</p>
             </div>
           </div>
 
@@ -438,14 +438,14 @@ export default function Plugins() {
           </div>
 
           <div className="mb-4">
-            <label className="mb-1.5 block text-[12px] font-medium text-[#6b6b6b]">API Key</label>
+            <label className="mb-1.5 block text-[12px] font-medium text-muted-foreground">API Key</label>
             <input
               type="password"
               value={shippingApiKey}
               onChange={(e) => setShippingApiKey(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleShippingInstall()}
               placeholder={`Enter your ${shippingInstallModal.name} API key`}
-              className="w-full rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5 text-[13px] placeholder:text-[#c0c0c0] focus:border-[#0a0a0a] focus:outline-none focus:ring-1 focus:ring-[#0a0a0a]"
+              className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2.5 text-[13px] placeholder:text-muted-foreground/40 focus:border-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
               autoFocus
             />
           </div>
@@ -460,7 +460,7 @@ export default function Plugins() {
           <div className="flex gap-2">
             <button
               onClick={() => { setShippingInstallModal(null); setShippingApiKey(''); setShippingInstallError(''); }}
-              className="flex flex-1 items-center justify-center rounded-lg border border-[#e5e5e5] bg-white px-4 py-2.5 text-[13px] font-medium text-[#6b6b6b] transition-colors hover:bg-[#f5f5f5]"
+              className="flex flex-1 items-center justify-center rounded-lg border border-border bg-card px-4 py-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted"
             >
               Cancel
             </button>
@@ -469,8 +469,8 @@ export default function Plugins() {
               disabled={!shippingApiKey.trim() || actionLoading === shippingInstallModal.key}
               className={cn(
                 'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-medium text-white transition-colors disabled:opacity-50',
-                brand?.installBg || 'bg-[#0a0a0a]',
-                brand?.installHover || 'hover:bg-[#1a1a1a]'
+                brand?.installBg || 'bg-foreground',
+                brand?.installHover || 'hover:bg-foreground/90'
               )}
             >
               {actionLoading === shippingInstallModal.key ? (
@@ -498,15 +498,15 @@ export default function Plugins() {
 
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-        <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl">
+        <div className="w-full max-w-lg rounded-xl bg-card p-6 shadow-2xl">
           {/* Header */}
           <div className="mb-5 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#FFF4EE]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#FF4A00]/10">
               <PluginIcon pluginKey="zapier" size={24} />
             </div>
             <div>
-              <h3 className="text-[16px] font-semibold text-[#0a0a0a]">Zapier Connected</h3>
-              <p className="text-[13px] text-[#6b6b6b]">Your API key has been generated</p>
+              <h3 className="text-[16px] font-semibold text-foreground">Zapier Connected</h3>
+              <p className="text-[13px] text-muted-foreground">Your API key has been generated</p>
             </div>
           </div>
 
@@ -522,14 +522,14 @@ export default function Plugins() {
 
           {/* The key */}
           <div className="mb-4">
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#a0a0a0]">Your API Key</p>
-            <div className="flex items-center gap-2 rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5">
-              <code className="flex-1 break-all text-[13px] font-mono text-[#0a0a0a] select-all">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Your API Key</p>
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
+              <code className="flex-1 break-all text-[13px] font-mono text-foreground select-all">
                 {apiKeyModal.plaintext}
               </code>
               <button
                 onClick={() => copyToClipboard(apiKeyModal.plaintext)}
-                className="flex-shrink-0 rounded-md p-1.5 text-[#a0a0a0] transition-colors hover:bg-[#ebebeb] hover:text-[#0a0a0a]"
+                className="flex-shrink-0 rounded-md p-1.5 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
               >
                 {copied ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
               </button>
@@ -549,16 +549,16 @@ export default function Plugins() {
           </div>
 
           {/* Quick setup preview */}
-          <div className="mb-5 rounded-lg border border-[#e5e5e5] bg-[#fafafa] p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#a0a0a0] mb-2">Quick Setup — Use in Zapier</p>
+          <div className="mb-5 rounded-lg border border-border bg-muted/50 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2">Quick Setup — Use in Zapier</p>
             <div className="space-y-2 text-[12px]">
               <div className="flex items-start gap-2">
-                <Globe size={14} className="mt-0.5 flex-shrink-0 text-[#6b6b6b]" />
-                <span className="text-[#4a4a4a]">Webhook URL: <code className="rounded bg-white px-1 py-0.5 font-mono text-[11px] border border-[#e5e5e5]">{webhookUrl}</code></span>
+                <Globe size={14} className="mt-0.5 flex-shrink-0 text-muted-foreground" />
+                <span className="text-foreground/80">Webhook URL: <code className="rounded bg-card px-1 py-0.5 font-mono text-[11px] border border-border">{webhookUrl}</code></span>
               </div>
               <div className="flex items-start gap-2">
-                <Key size={14} className="mt-0.5 flex-shrink-0 text-[#6b6b6b]" />
-                <span className="text-[#4a4a4a]">Header: <code className="rounded bg-white px-1 py-0.5 font-mono text-[11px] border border-[#e5e5e5]">X-API-Key: {apiKeyModal.plaintext.slice(0, 11)}...</code></span>
+                <Key size={14} className="mt-0.5 flex-shrink-0 text-muted-foreground" />
+                <span className="text-foreground/80">Header: <code className="rounded bg-card px-1 py-0.5 font-mono text-[11px] border border-border">X-API-Key: {apiKeyModal.plaintext.slice(0, 11)}...</code></span>
               </div>
             </div>
           </div>
@@ -567,14 +567,14 @@ export default function Plugins() {
           <div className="flex gap-2">
             <button
               onClick={() => copyToClipboard(apiKeyModal.plaintext)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#e5e5e5] bg-white px-4 py-2.5 text-[13px] font-medium text-[#0a0a0a] transition-colors hover:bg-[#f5f5f5]"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted"
             >
               {copied ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
               {copied ? 'Copied!' : 'Copy Key'}
             </button>
             <button
               onClick={() => setApiKeyModal(null)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0a0a0a] px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#1a1a1a]"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-[13px] font-medium text-background transition-colors hover:bg-foreground/90"
             >
               <ShieldCheck size={16} />
               I've Copied My Key
@@ -596,7 +596,7 @@ export default function Plugins() {
         {/* Back button */}
         <button
           onClick={() => setConfiguring(null)}
-          className="mb-6 flex items-center gap-1.5 text-[13px] font-medium text-[#6b6b6b] transition-colors hover:text-[#0a0a0a]"
+          className="mb-6 flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft size={16} />
           Back to Plugins
@@ -604,18 +604,18 @@ export default function Plugins() {
 
         {/* Plugin header */}
         <div className="mb-8 flex items-start gap-4">
-          <div className={cn('flex h-14 w-14 items-center justify-center rounded-xl', brand?.bg || 'bg-[#f5f5f5]')}>
+          <div className={cn('flex h-14 w-14 items-center justify-center rounded-xl', brand?.bg || 'bg-muted')}>
             <PluginIcon pluginKey={configuringPlugin.key} size={28} />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-semibold text-[#0a0a0a]">{configuringPlugin.name}</h1>
+              <h1 className="text-xl font-semibold text-foreground">{configuringPlugin.name}</h1>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
                 <Check size={12} weight="bold" />
                 Installed
               </span>
             </div>
-            <p className="mt-1 text-[13px] text-[#6b6b6b]">{configuringPlugin.description}</p>
+            <p className="mt-1 text-[13px] text-muted-foreground">{configuringPlugin.description}</p>
           </div>
         </div>
 
@@ -623,10 +623,10 @@ export default function Plugins() {
         {isShippingPlugin && (
           <div className="space-y-6">
             {/* Connection status */}
-            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-4 flex items-center gap-2">
                 <PlugsConnected size={18} weight="fill" className="text-emerald-600" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Connection Status</h2>
+                <h2 className="text-[14px] font-semibold text-foreground">Connection Status</h2>
               </div>
               <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
@@ -640,42 +640,42 @@ export default function Plugins() {
             </div>
 
             {/* How it works */}
-            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-4 flex items-center gap-2">
-                <Package size={18} weight="fill" className="text-[#6b6b6b]" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">How It Works</h2>
+                <Package size={18} weight="fill" className="text-muted-foreground" />
+                <h2 className="text-[14px] font-semibold text-foreground">How It Works</h2>
               </div>
-              <p className="mb-4 text-[13px] leading-relaxed text-[#6b6b6b]">
+              <p className="mb-4 text-[13px] leading-relaxed text-muted-foreground">
                 {configuringPlugin.name} handles shipping label generation and tracking. When a packer clicks
                 "Print Label & Ship" in the packing station, PickNPack calls {configuringPlugin.name} to
                 create a label based on the order's shipping method mapping.
               </p>
-              <div className="flex items-center gap-4 rounded-lg bg-[#fafafa] p-3">
+              <div className="flex items-center gap-4 rounded-lg bg-muted/50 p-3">
                 <div className="flex items-center gap-2 text-[12px]">
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
                     <span className="text-[11px] font-bold text-primary">P</span>
                   </div>
-                  <span className="font-medium text-[#0a0a0a]">PickNPack</span>
+                  <span className="font-medium text-foreground">PickNPack</span>
                 </div>
-                <div className="flex-1 border-t border-dashed border-[#d4d4d4]" />
-                <div className="rounded-md bg-[#ebebeb] px-2 py-0.5 text-[10px] font-mono text-[#6b6b6b]">API Key</div>
-                <div className="flex-1 border-t border-dashed border-[#d4d4d4]" />
+                <div className="flex-1 border-t border-dashed border-border" />
+                <div className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground">API Key</div>
+                <div className="flex-1 border-t border-dashed border-border" />
                 <div className="flex items-center gap-2 text-[12px]">
-                  <div className={cn('flex h-7 w-7 items-center justify-center rounded-lg', brand?.bg || 'bg-[#f5f5f5]')}>
+                  <div className={cn('flex h-7 w-7 items-center justify-center rounded-lg', brand?.bg || 'bg-muted')}>
                     <PluginIcon pluginKey={configuringPlugin.key} size={16} />
                   </div>
-                  <span className="font-medium text-[#0a0a0a]">{configuringPlugin.name}</span>
+                  <span className="font-medium text-foreground">{configuringPlugin.name}</span>
                 </div>
               </div>
             </div>
 
             {/* Change API key */}
-            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-4 flex items-center gap-2">
-                <Key size={18} weight="fill" className="text-[#6b6b6b]" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">API Key</h2>
+                <Key size={18} weight="fill" className="text-muted-foreground" />
+                <h2 className="text-[14px] font-semibold text-foreground">API Key</h2>
               </div>
-              <p className="mb-3 text-[12px] text-[#6b6b6b]">
+              <p className="mb-3 text-[12px] text-muted-foreground">
                 Your API key is stored encrypted. Enter a new key below to update it.
               </p>
               <div className="flex gap-3">
@@ -684,12 +684,12 @@ export default function Plugins() {
                   value={newShippingKey}
                   onChange={(e) => setNewShippingKey(e.target.value)}
                   placeholder="Enter new API key"
-                  className="flex-1 rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5 text-[13px] placeholder:text-[#c0c0c0] focus:border-[#0a0a0a] focus:outline-none focus:ring-1 focus:ring-[#0a0a0a]"
+                  className="flex-1 rounded-lg border border-border bg-muted/50 px-3 py-2.5 text-[13px] placeholder:text-muted-foreground/40 focus:border-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
                 />
                 <button
                   onClick={() => handleUpdateShippingKey(configuringPlugin.key)}
                   disabled={!newShippingKey.trim() || updatingKey}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#0a0a0a] px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#1a1a1a] disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-foreground px-4 py-2.5 text-[13px] font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
                 >
                   {updatingKey ? (
                     <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -707,18 +707,18 @@ export default function Plugins() {
             </div>
 
             {/* Shipping method mapping link */}
-            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-4 flex items-center gap-2">
-                <GearSix size={18} weight="fill" className="text-[#6b6b6b]" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Carrier Mapping</h2>
+                <GearSix size={18} weight="fill" className="text-muted-foreground" />
+                <h2 className="text-[14px] font-semibold text-foreground">Carrier Mapping</h2>
               </div>
-              <p className="mb-4 text-[13px] text-[#6b6b6b]">
+              <p className="mb-4 text-[13px] text-muted-foreground">
                 Map your WooCommerce shipping methods to {configuringPlugin.name} carrier services
                 in Settings. This tells PickNPack which carrier and service to use for each order.
               </p>
               <button
                 onClick={() => navigate('/settings/shipping')}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-[#e5e5e5] bg-white px-4 py-2.5 text-[13px] font-medium text-[#0a0a0a] transition-colors hover:bg-[#f5f5f5]"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted"
               >
                 <ArrowSquareOut size={14} />
                 Go to Settings &rarr; Shipping
@@ -745,7 +745,7 @@ export default function Plugins() {
                   </button>
                   <button
                     onClick={() => setConfirmUninstall(false)}
-                    className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-[12px] font-medium text-red-700 transition-colors hover:bg-red-50"
+                    className="rounded-md border border-red-200 bg-card px-3 py-1.5 text-[12px] font-medium text-red-700 transition-colors hover:bg-red-50"
                   >
                     Cancel
                   </button>
@@ -753,7 +753,7 @@ export default function Plugins() {
               ) : (
                 <button
                   onClick={() => setConfirmUninstall(true)}
-                  className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
+                  className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-card px-3 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
                 >
                   <Trash size={14} />
                   Uninstall {configuringPlugin.name}
@@ -767,10 +767,10 @@ export default function Plugins() {
         {configuringPlugin.webhookMode === 'incoming' && (
           <div className="space-y-6">
             {/* Connection status */}
-            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-4 flex items-center gap-2">
                 <PlugsConnected size={18} weight="fill" className="text-emerald-600" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Connection Status</h2>
+                <h2 className="text-[14px] font-semibold text-foreground">Connection Status</h2>
               </div>
               <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
@@ -784,41 +784,41 @@ export default function Plugins() {
             </div>
 
             {/* How it works */}
-            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-4 flex items-center gap-2">
-                <ChatCircleDots size={18} weight="fill" className="text-[#6b6b6b]" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">How It Works</h2>
+                <ChatCircleDots size={18} weight="fill" className="text-muted-foreground" />
+                <h2 className="text-[14px] font-semibold text-foreground">How It Works</h2>
               </div>
-              <p className="mb-4 text-[13px] leading-relaxed text-[#6b6b6b]">
+              <p className="mb-4 text-[13px] leading-relaxed text-muted-foreground">
                 When events happen in your warehouse (new orders, low stock, etc.), PickNPack automatically
                 sends a formatted notification to your Slack channel via the Incoming Webhook URL.
               </p>
-              <div className="flex items-center gap-4 rounded-lg bg-[#fafafa] p-3">
+              <div className="flex items-center gap-4 rounded-lg bg-muted/50 p-3">
                 <div className="flex items-center gap-2 text-[12px]">
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
                     <span className="text-[11px] font-bold text-primary">P</span>
                   </div>
-                  <span className="font-medium text-[#0a0a0a]">PickNPack</span>
+                  <span className="font-medium text-foreground">PickNPack</span>
                 </div>
-                <div className="flex-1 border-t border-dashed border-[#d4d4d4]" />
-                <div className="rounded-md bg-[#ebebeb] px-2 py-0.5 text-[10px] font-mono text-[#6b6b6b]">Webhook</div>
-                <div className="flex-1 border-t border-dashed border-[#d4d4d4]" />
+                <div className="flex-1 border-t border-dashed border-border" />
+                <div className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground">Webhook</div>
+                <div className="flex-1 border-t border-dashed border-border" />
                 <div className="flex items-center gap-2 text-[12px]">
-                  <div className={cn('flex h-7 w-7 items-center justify-center rounded-lg', brand?.bg || 'bg-[#f5f5f5]')}>
+                  <div className={cn('flex h-7 w-7 items-center justify-center rounded-lg', brand?.bg || 'bg-muted')}>
                     <PluginIcon pluginKey="slack" size={16} />
                   </div>
-                  <span className="font-medium text-[#0a0a0a]">Slack</span>
+                  <span className="font-medium text-foreground">Slack</span>
                 </div>
               </div>
             </div>
 
             {/* Notification settings */}
-            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-4 flex items-center gap-2">
-                <Bell size={18} weight="fill" className="text-[#6b6b6b]" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Notification Settings</h2>
+                <Bell size={18} weight="fill" className="text-muted-foreground" />
+                <h2 className="text-[14px] font-semibold text-foreground">Notification Settings</h2>
               </div>
-              <p className="mb-4 text-[12px] text-[#6b6b6b]">Choose which events trigger a Slack notification.</p>
+              <p className="mb-4 text-[12px] text-muted-foreground">Choose which events trigger a Slack notification.</p>
               <div className="space-y-3">
                 {[
                   { key: 'sendOrderNotifications', label: 'New order notifications', desc: 'When a new order is synced from WooCommerce' },
@@ -826,17 +826,17 @@ export default function Plugins() {
                   { key: 'sendShippingUpdates', label: 'Shipping label notifications', desc: 'When a shipping label is created in packing' },
                   { key: 'sendPOReceivedAlerts', label: 'PO received notifications', desc: 'When a purchase order is fully received' },
                 ].map((toggle) => (
-                  <div key={toggle.key} className="flex items-center justify-between rounded-lg border border-[#ebebeb] bg-[#fafafa] px-4 py-3">
+                  <div key={toggle.key} className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/50 px-4 py-3">
                     <div>
-                      <p className="text-[13px] font-medium text-[#0a0a0a]">{toggle.label}</p>
-                      <p className="text-[11px] text-[#a0a0a0]">{toggle.desc}</p>
+                      <p className="text-[13px] font-medium text-foreground">{toggle.label}</p>
+                      <p className="text-[11px] text-muted-foreground/60">{toggle.desc}</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSettings((s) => ({ ...s, [toggle.key]: !s[toggle.key] }))}
                       className={cn(
                         'relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors',
-                        (settings as any)[toggle.key] ? 'bg-primary' : 'bg-[#d4d4d4]'
+                        (settings as any)[toggle.key] ? 'bg-primary' : 'bg-muted-foreground/30'
                       )}
                     >
                       <span className={cn('inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm', (settings as any)[toggle.key] ? 'translate-x-[18px]' : 'translate-x-[3px]')} />
@@ -847,29 +847,29 @@ export default function Plugins() {
               <button
                 onClick={() => handleSaveSettings(configuringPlugin.key)}
                 disabled={savingSettings}
-                className="mt-5 w-full rounded-lg bg-[#0a0a0a] px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#1a1a1a] disabled:opacity-50"
+                className="mt-5 w-full rounded-lg bg-foreground px-4 py-2.5 text-[13px] font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
               >
                 {savingSettings ? 'Saving...' : 'Save Settings'}
               </button>
             </div>
 
             {/* Test notification */}
-            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-3 flex items-center gap-2">
-                <PaperPlaneTilt size={18} weight="fill" className="text-[#6b6b6b]" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Test Notification</h2>
+                <PaperPlaneTilt size={18} weight="fill" className="text-muted-foreground" />
+                <h2 className="text-[14px] font-semibold text-foreground">Test Notification</h2>
               </div>
-              <p className="mb-4 text-[12px] text-[#6b6b6b]">
+              <p className="mb-4 text-[12px] text-muted-foreground">
                 Send a test message to your Slack channel to verify the webhook is working.
               </p>
               <button
                 onClick={handleSlackTestNotification}
                 disabled={slackTesting}
-                className="inline-flex items-center gap-2 rounded-lg border border-[#e5e5e5] bg-white px-4 py-2.5 text-[13px] font-medium text-[#0a0a0a] transition-colors hover:bg-[#f5f5f5] disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
               >
                 {slackTesting ? (
                   <>
-                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#d4d4d4] border-t-[#0a0a0a]" />
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-border border-t-foreground" />
                     Sending...
                   </>
                 ) : (
@@ -892,14 +892,14 @@ export default function Plugins() {
             </div>
 
             {/* Webhook URL */}
-            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-4 flex items-center gap-2">
-                <Globe size={18} weight="fill" className="text-[#6b6b6b]" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Webhook URL</h2>
+                <Globe size={18} weight="fill" className="text-muted-foreground" />
+                <h2 className="text-[14px] font-semibold text-foreground">Webhook URL</h2>
               </div>
-              <div className="mb-3 rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#a0a0a0] mb-1">Current webhook</p>
-                <code className="text-[12px] font-mono text-[#6b6b6b]">
+              <div className="mb-3 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-1">Current webhook</p>
+                <code className="text-[12px] font-mono text-muted-foreground">
                   {(() => {
                     const url = (settings as any).webhookUrl as string || '';
                     if (url.length <= 40) return url;
@@ -907,19 +907,19 @@ export default function Plugins() {
                   })()}
                 </code>
               </div>
-              <p className="mb-3 text-[12px] text-[#6b6b6b]">Enter a new webhook URL to update your Slack channel.</p>
+              <p className="mb-3 text-[12px] text-muted-foreground">Enter a new webhook URL to update your Slack channel.</p>
               <div className="flex gap-3">
                 <input
                   type="url"
                   value={newWebhookUrl}
                   onChange={(e) => setNewWebhookUrl(e.target.value)}
                   placeholder="https://hooks.slack.com/services/..."
-                  className="flex-1 rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5 text-[13px] placeholder:text-[#c0c0c0] focus:border-[#0a0a0a] focus:outline-none focus:ring-1 focus:ring-[#0a0a0a]"
+                  className="flex-1 rounded-lg border border-border bg-muted/50 px-3 py-2.5 text-[13px] placeholder:text-muted-foreground/40 focus:border-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
                 />
                 <button
                   onClick={handleUpdateWebhookUrl}
                   disabled={!newWebhookUrl.trim() || updatingWebhook}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#0a0a0a] px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#1a1a1a] disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-foreground px-4 py-2.5 text-[13px] font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
                 >
                   {updatingWebhook ? (
                     <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -937,38 +937,38 @@ export default function Plugins() {
             </div>
 
             {/* Setup guide */}
-            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-4 flex items-center gap-2">
-                <ArrowSquareOut size={18} weight="fill" className="text-[#6b6b6b]" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Setup Guide</h2>
+                <ArrowSquareOut size={18} weight="fill" className="text-muted-foreground" />
+                <h2 className="text-[14px] font-semibold text-foreground">Setup Guide</h2>
               </div>
               <div className="space-y-5">
                 <div className="flex gap-3">
                   <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#4A154B] text-[11px] font-bold text-white">1</span>
                   <div className="flex-1">
-                    <p className="font-medium text-[13px] text-[#0a0a0a]">Go to api.slack.com/apps</p>
-                    <p className="mt-0.5 text-[12px] text-[#6b6b6b]">Click <strong>"Create New App"</strong> &rarr; <strong>"From scratch"</strong>. Name it "PickNPack" and select your workspace.</p>
+                    <p className="font-medium text-[13px] text-foreground">Go to api.slack.com/apps</p>
+                    <p className="mt-0.5 text-[12px] text-muted-foreground">Click <strong>"Create New App"</strong> &rarr; <strong>"From scratch"</strong>. Name it "PickNPack" and select your workspace.</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
                   <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#4A154B] text-[11px] font-bold text-white">2</span>
                   <div className="flex-1">
-                    <p className="font-medium text-[13px] text-[#0a0a0a]">Enable Incoming Webhooks</p>
-                    <p className="mt-0.5 text-[12px] text-[#6b6b6b]">In your app settings, go to <strong>"Incoming Webhooks"</strong> and toggle it on.</p>
+                    <p className="font-medium text-[13px] text-foreground">Enable Incoming Webhooks</p>
+                    <p className="mt-0.5 text-[12px] text-muted-foreground">In your app settings, go to <strong>"Incoming Webhooks"</strong> and toggle it on.</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
                   <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#4A154B] text-[11px] font-bold text-white">3</span>
                   <div className="flex-1">
-                    <p className="font-medium text-[13px] text-[#0a0a0a]">Add to a channel</p>
-                    <p className="mt-0.5 text-[12px] text-[#6b6b6b]">Click <strong>"Add New Webhook to Workspace"</strong>, select the channel for notifications, and authorize.</p>
+                    <p className="font-medium text-[13px] text-foreground">Add to a channel</p>
+                    <p className="mt-0.5 text-[12px] text-muted-foreground">Click <strong>"Add New Webhook to Workspace"</strong>, select the channel for notifications, and authorize.</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
                   <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-[11px] font-bold text-white"><Check size={12} weight="bold" /></span>
                   <div className="flex-1">
-                    <p className="font-medium text-[13px] text-[#0a0a0a]">Copy the Webhook URL</p>
-                    <p className="mt-0.5 text-[12px] text-[#6b6b6b]">Copy the generated URL (starts with <code className="rounded bg-[#f5f5f5] px-1 py-0.5 font-mono text-[11px]">https://hooks.slack.com/services/...</code>) and paste it here.</p>
+                    <p className="font-medium text-[13px] text-foreground">Copy the Webhook URL</p>
+                    <p className="mt-0.5 text-[12px] text-muted-foreground">Copy the generated URL (starts with <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">https://hooks.slack.com/services/...</code>) and paste it here.</p>
                   </div>
                 </div>
               </div>
@@ -992,7 +992,7 @@ export default function Plugins() {
                   </button>
                   <button
                     onClick={() => setConfirmUninstall(false)}
-                    className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-[12px] font-medium text-red-700 transition-colors hover:bg-red-50"
+                    className="rounded-md border border-red-200 bg-card px-3 py-1.5 text-[12px] font-medium text-red-700 transition-colors hover:bg-red-50"
                   >
                     Cancel
                   </button>
@@ -1000,7 +1000,7 @@ export default function Plugins() {
               ) : (
                 <button
                   onClick={() => setConfirmUninstall(true)}
-                  className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
+                  className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-card px-3 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
                 >
                   <Trash size={14} />
                   Uninstall Slack
@@ -1014,31 +1014,31 @@ export default function Plugins() {
         {configuringPlugin.key === 'zapier' && (
           <div className="space-y-6">
             {/* ── How it works ── */}
-            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-4 flex items-center gap-2">
                 <Lightning size={18} weight="fill" className="text-[#FF4A00]" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">How It Works</h2>
+                <h2 className="text-[14px] font-semibold text-foreground">How It Works</h2>
               </div>
-              <p className="mb-4 text-[13px] leading-relaxed text-[#6b6b6b]">
+              <p className="mb-4 text-[13px] leading-relaxed text-muted-foreground">
                 Zapier calls your PickNPack webhook URL with an API key to fetch data.
                 You can use it to trigger actions in 5,000+ apps — for example, send a Slack message
                 when a new order comes in, or add a Google Sheets row when stock runs low.
               </p>
-              <div className="flex items-center gap-4 rounded-lg bg-[#fafafa] p-3">
-                <div className="flex items-center gap-2 text-[12px] text-[#6b6b6b]">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#FFF4EE]">
+              <div className="flex items-center gap-4 rounded-lg bg-muted/50 p-3">
+                <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#FF4A00]/10">
                     <PluginIcon pluginKey="zapier" size={16} />
                   </div>
-                  <span className="font-medium text-[#0a0a0a]">Zapier</span>
+                  <span className="font-medium text-foreground">Zapier</span>
                 </div>
-                <div className="flex-1 border-t border-dashed border-[#d4d4d4]" />
-                <div className="rounded-md bg-[#ebebeb] px-2 py-0.5 text-[10px] font-mono text-[#6b6b6b]">X-API-Key</div>
-                <div className="flex-1 border-t border-dashed border-[#d4d4d4]" />
-                <div className="flex items-center gap-2 text-[12px] text-[#6b6b6b]">
+                <div className="flex-1 border-t border-dashed border-border" />
+                <div className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground">X-API-Key</div>
+                <div className="flex-1 border-t border-dashed border-border" />
+                <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
                     <span className="text-[11px] font-bold text-primary">P</span>
                   </div>
-                  <span className="font-medium text-[#0a0a0a]">PickNPack</span>
+                  <span className="font-medium text-foreground">PickNPack</span>
                 </div>
               </div>
             </div>
@@ -1051,40 +1051,40 @@ export default function Plugins() {
                 return (
                   <>
                     {/* Webhook endpoint */}
-                    <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+                    <div className="rounded-xl border border-border bg-card p-5">
                       <div className="mb-4 flex items-center gap-2">
-                        <Globe size={18} weight="fill" className="text-[#6b6b6b]" />
-                        <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Webhook Endpoint</h2>
+                        <Globe size={18} weight="fill" className="text-muted-foreground" />
+                        <h2 className="text-[14px] font-semibold text-foreground">Webhook Endpoint</h2>
                       </div>
                       <div className="space-y-3">
                         <CopyBlock label="Webhook URL (POST)" value={webhookUrl} />
                         <CopyBlock label="Test URL (GET)" value={testUrl} />
                       </div>
-                      <p className="mt-3 text-[11px] text-[#a0a0a0]">
+                      <p className="mt-3 text-[11px] text-muted-foreground/60">
                         Use the POST URL as your Zapier webhook trigger. The GET URL is for testing that the connection works.
                       </p>
                     </div>
 
                     {/* API Key */}
-                    <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+                    <div className="rounded-xl border border-border bg-card p-5">
                       <div className="mb-4 flex items-center gap-2">
-                        <Key size={18} weight="fill" className="text-[#6b6b6b]" />
-                        <h2 className="text-[14px] font-semibold text-[#0a0a0a]">API Key</h2>
+                        <Key size={18} weight="fill" className="text-muted-foreground" />
+                        <h2 className="text-[14px] font-semibold text-foreground">API Key</h2>
                       </div>
-                      <p className="mb-3 text-[12px] text-[#6b6b6b]">
+                      <p className="mb-3 text-[12px] text-muted-foreground">
                         Add this as a header in every Zapier request to authenticate:
                       </p>
-                      <div className="mb-3 rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[#a0a0a0] mb-1">Header name</p>
-                        <code className="text-[12px] font-mono text-[#0a0a0a]">X-API-Key</code>
+                      <div className="mb-3 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-1">Header name</p>
+                        <code className="text-[12px] font-mono text-foreground">X-API-Key</code>
                       </div>
-                      <div className="mb-3 rounded-lg border border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[#a0a0a0] mb-1">Header value (masked)</p>
-                        <code className="text-[12px] font-mono text-[#6b6b6b]">
-                          {configuringPlugin.apiKeyPrefix}<span className="text-[#d4d4d4]">{'•'.repeat(52)}</span>
+                      <div className="mb-3 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-1">Header value (masked)</p>
+                        <code className="text-[12px] font-mono text-muted-foreground">
+                          {configuringPlugin.apiKeyPrefix}<span className="text-muted-foreground/30">{'•'.repeat(52)}</span>
                         </code>
                       </div>
-                      <p className="mb-4 text-[11px] text-[#a0a0a0]">
+                      <p className="mb-4 text-[11px] text-muted-foreground/60">
                         The full key was shown when you installed the plugin. Only the prefix is stored for your security.
                       </p>
                       {confirmRegenerate ? (
@@ -1103,7 +1103,7 @@ export default function Plugins() {
                             </button>
                             <button
                               onClick={() => setConfirmRegenerate(false)}
-                              className="rounded-md border border-[#e5e5e5] bg-white px-3 py-1.5 text-[12px] font-medium text-[#6b6b6b] transition-colors hover:bg-[#f5f5f5]"
+                              className="rounded-md border border-border bg-card px-3 py-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted"
                             >
                               Cancel
                             </button>
@@ -1112,7 +1112,7 @@ export default function Plugins() {
                       ) : (
                         <button
                           onClick={() => setConfirmRegenerate(true)}
-                          className="flex items-center gap-1.5 rounded-lg border border-[#e5e5e5] bg-white px-3 py-2 text-[13px] font-medium text-[#6b6b6b] transition-colors hover:bg-[#f5f5f5]"
+                          className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted"
                         >
                           <ArrowsClockwise size={14} />
                           Lost your key? Regenerate
@@ -1125,13 +1125,13 @@ export default function Plugins() {
             </div>
 
             {/* ── Available actions ── */}
-            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-4 flex items-center gap-2">
-                <Code size={18} weight="fill" className="text-[#6b6b6b]" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Available Actions</h2>
+                <Code size={18} weight="fill" className="text-muted-foreground" />
+                <h2 className="text-[14px] font-semibold text-foreground">Available Actions</h2>
               </div>
-              <p className="mb-4 text-[12px] text-[#6b6b6b]">
-                Send a JSON body with an <code className="rounded bg-[#f5f5f5] px-1 py-0.5 font-mono text-[11px]">"action"</code> field to control what data you receive:
+              <p className="mb-4 text-[12px] text-muted-foreground">
+                Send a JSON body with an <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">"action"</code> field to control what data you receive:
               </p>
               <div className="space-y-2">
                 {[
@@ -1140,13 +1140,13 @@ export default function Plugins() {
                   { action: 'low_stock', desc: 'Get products that are at or below their low stock threshold', body: '{ "action": "low_stock" }' },
                   { action: 'order_status', desc: 'Look up a specific order by ID', body: '{ "action": "order_status", "orderId": 123 }' },
                 ].map((item) => (
-                  <div key={item.action} className="flex items-start gap-3 rounded-lg border border-[#ebebeb] bg-[#fafafa] p-3">
-                    <code className="mt-0.5 flex-shrink-0 rounded bg-[#0a0a0a] px-2 py-0.5 text-[11px] font-mono text-white">
+                  <div key={item.action} className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/50 p-3">
+                    <code className="mt-0.5 flex-shrink-0 rounded bg-foreground px-2 py-0.5 text-[11px] font-mono text-background">
                       {item.action}
                     </code>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[12px] text-[#4a4a4a]">{item.desc}</p>
-                      <code className="mt-1 block text-[11px] font-mono text-[#a0a0a0]">{item.body}</code>
+                      <p className="text-[12px] text-foreground/80">{item.desc}</p>
+                      <code className="mt-1 block text-[11px] font-mono text-muted-foreground/60">{item.body}</code>
                     </div>
                   </div>
                 ))}
@@ -1154,10 +1154,10 @@ export default function Plugins() {
             </div>
 
             {/* ── Step by step guide ── */}
-            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-4 flex items-center gap-2">
-                <ArrowSquareOut size={18} weight="fill" className="text-[#6b6b6b]" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Setup Guide</h2>
+                <ArrowSquareOut size={18} weight="fill" className="text-muted-foreground" />
+                <h2 className="text-[14px] font-semibold text-foreground">Setup Guide</h2>
               </div>
               <div className="space-y-5">
                 {(() => {
@@ -1167,27 +1167,27 @@ export default function Plugins() {
                       <div className="flex gap-3">
                         <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#FF4A00] text-[11px] font-bold text-white">1</span>
                         <div className="flex-1">
-                          <p className="font-medium text-[13px] text-[#0a0a0a]">Create a new Zap on zapier.com</p>
-                          <p className="mt-0.5 text-[12px] text-[#6b6b6b]">Click "Create Zap", then for the trigger choose <strong>"Webhooks by Zapier"</strong> &rarr; <strong>"Custom Request"</strong>.</p>
+                          <p className="font-medium text-[13px] text-foreground">Create a new Zap on zapier.com</p>
+                          <p className="mt-0.5 text-[12px] text-muted-foreground">Click "Create Zap", then for the trigger choose <strong>"Webhooks by Zapier"</strong> &rarr; <strong>"Custom Request"</strong>.</p>
                         </div>
                       </div>
                       <div className="flex gap-3">
                         <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#FF4A00] text-[11px] font-bold text-white">2</span>
                         <div className="flex-1">
-                          <p className="font-medium text-[13px] text-[#0a0a0a]">Set the method and URL</p>
-                          <p className="mt-0.5 mb-2 text-[12px] text-[#6b6b6b]">Set the method to <strong>POST</strong> and paste this URL:</p>
+                          <p className="font-medium text-[13px] text-foreground">Set the method and URL</p>
+                          <p className="mt-0.5 mb-2 text-[12px] text-muted-foreground">Set the method to <strong>POST</strong> and paste this URL:</p>
                           <CopyBlock value={webhookUrl} />
                         </div>
                       </div>
                       <div className="flex gap-3">
                         <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#FF4A00] text-[11px] font-bold text-white">3</span>
                         <div className="flex-1">
-                          <p className="font-medium text-[13px] text-[#0a0a0a]">Add the API key header</p>
-                          <p className="mt-0.5 mb-2 text-[12px] text-[#6b6b6b]">In the "Headers" section, add one header:</p>
-                          <div className="rounded-lg border border-[#e5e5e5] bg-[#fafafa] p-3 font-mono text-[11px]">
+                          <p className="font-medium text-[13px] text-foreground">Add the API key header</p>
+                          <p className="mt-0.5 mb-2 text-[12px] text-muted-foreground">In the "Headers" section, add one header:</p>
+                          <div className="rounded-lg border border-border bg-muted/50 p-3 font-mono text-[11px]">
                             <div className="flex gap-4">
-                              <div><span className="text-[#a0a0a0]">Key:</span> <span className="text-[#0a0a0a]">X-API-Key</span></div>
-                              <div><span className="text-[#a0a0a0]">Value:</span> <span className="text-[#0a0a0a]">[paste your API key from installation]</span></div>
+                              <div><span className="text-muted-foreground/60">Key:</span> <span className="text-foreground">X-API-Key</span></div>
+                              <div><span className="text-muted-foreground/60">Value:</span> <span className="text-foreground">[paste your API key from installation]</span></div>
                             </div>
                           </div>
                         </div>
@@ -1195,23 +1195,23 @@ export default function Plugins() {
                       <div className="flex gap-3">
                         <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#FF4A00] text-[11px] font-bold text-white">4</span>
                         <div className="flex-1">
-                          <p className="font-medium text-[13px] text-[#0a0a0a]">Set the body</p>
-                          <p className="mt-0.5 mb-2 text-[12px] text-[#6b6b6b]">Set "Data" to <strong>Raw</strong> and paste the action you want:</p>
+                          <p className="font-medium text-[13px] text-foreground">Set the body</p>
+                          <p className="mt-0.5 mb-2 text-[12px] text-muted-foreground">Set "Data" to <strong>Raw</strong> and paste the action you want:</p>
                           <CopyBlock value='{ "action": "new_orders" }' />
                         </div>
                       </div>
                       <div className="flex gap-3">
                         <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#FF4A00] text-[11px] font-bold text-white">5</span>
                         <div className="flex-1">
-                          <p className="font-medium text-[13px] text-[#0a0a0a]">Add an action</p>
-                          <p className="mt-0.5 text-[12px] text-[#6b6b6b]">Now add what should happen when data comes in. For example: send a Slack message, create a Google Sheets row, send an email, update a Notion database — anything Zapier supports.</p>
+                          <p className="font-medium text-[13px] text-foreground">Add an action</p>
+                          <p className="mt-0.5 text-[12px] text-muted-foreground">Now add what should happen when data comes in. For example: send a Slack message, create a Google Sheets row, send an email, update a Notion database — anything Zapier supports.</p>
                         </div>
                       </div>
                       <div className="flex gap-3">
                         <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-[11px] font-bold text-white"><Check size={12} weight="bold" /></span>
                         <div className="flex-1">
-                          <p className="font-medium text-[13px] text-[#0a0a0a]">Test and turn on</p>
-                          <p className="mt-0.5 text-[12px] text-[#6b6b6b]">Click "Test" in Zapier to verify it receives data, then turn on the Zap. Done!</p>
+                          <p className="font-medium text-[13px] text-foreground">Test and turn on</p>
+                          <p className="mt-0.5 text-[12px] text-muted-foreground">Click "Test" in Zapier to verify it receives data, then turn on the Zap. Done!</p>
                         </div>
                       </div>
                     </>
@@ -1224,16 +1224,16 @@ export default function Plugins() {
             {(() => {
               const webhookUrl = `${webhookBase}/api/v1/zapier/webhook`;
               return (
-                <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+                <div className="rounded-xl border border-border bg-card p-5">
                   <div className="mb-3 flex items-center gap-2">
-                    <CheckCircle size={18} weight="fill" className="text-[#6b6b6b]" />
-                    <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Test from Terminal</h2>
+                    <CheckCircle size={18} weight="fill" className="text-muted-foreground" />
+                    <h2 className="text-[14px] font-semibold text-foreground">Test from Terminal</h2>
                   </div>
-                  <p className="mb-3 text-[12px] text-[#6b6b6b]">
-                    Run this in your terminal to verify the webhook works (replace <code className="rounded bg-[#f5f5f5] px-1 py-0.5 font-mono text-[11px]">YOUR_KEY</code> with your actual key):
+                  <p className="mb-3 text-[12px] text-muted-foreground">
+                    Run this in your terminal to verify the webhook works (replace <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">YOUR_KEY</code> with your actual key):
                   </p>
                   <CopyBlock value={`curl -X POST ${webhookUrl} -H "Content-Type: application/json" -H "X-API-Key: YOUR_KEY" -d '{"action":"test"}'`} />
-                  <p className="mt-2 text-[11px] text-[#a0a0a0]">
+                  <p className="mt-2 text-[11px] text-muted-foreground/60">
                     You should get back: <code className="font-mono">{'{"data":{"ok":true,"company":"Your Company"}}'}</code>
                   </p>
                 </div>
@@ -1241,10 +1241,10 @@ export default function Plugins() {
             })()}
 
             {/* ── Settings toggles ── */}
-            <div className="rounded-xl border border-[#e5e5e5] bg-white p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
               <div className="mb-4 flex items-center gap-2">
-                <GearSix size={18} weight="fill" className="text-[#6b6b6b]" />
-                <h2 className="text-[14px] font-semibold text-[#0a0a0a]">Notification Settings</h2>
+                <GearSix size={18} weight="fill" className="text-muted-foreground" />
+                <h2 className="text-[14px] font-semibold text-foreground">Notification Settings</h2>
               </div>
               <div className="space-y-3">
                 {[
@@ -1253,13 +1253,13 @@ export default function Plugins() {
                   { key: 'sendShippingUpdates', label: 'Send shipping updates' },
                 ].map((toggle) => (
                   <label key={toggle.key} className="flex items-center justify-between">
-                    <span className="text-[13px] text-[#0a0a0a]">{toggle.label}</span>
+                    <span className="text-[13px] text-foreground">{toggle.label}</span>
                     <button
                       type="button"
                       onClick={() => setSettings((s) => ({ ...s, [toggle.key]: !s[toggle.key] }))}
                       className={cn(
                         'relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
-                        (settings as any)[toggle.key] ? 'bg-primary' : 'bg-[#d4d4d4]'
+                        (settings as any)[toggle.key] ? 'bg-primary' : 'bg-muted-foreground/30'
                       )}
                     >
                       <span className={cn('inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm', (settings as any)[toggle.key] ? 'translate-x-[18px]' : 'translate-x-[3px]')} />
@@ -1270,7 +1270,7 @@ export default function Plugins() {
               <button
                 onClick={() => handleSaveSettings(configuringPlugin.key)}
                 disabled={savingSettings}
-                className="mt-5 w-full rounded-lg bg-[#0a0a0a] px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#1a1a1a] disabled:opacity-50"
+                className="mt-5 w-full rounded-lg bg-foreground px-4 py-2.5 text-[13px] font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
               >
                 {savingSettings ? 'Saving...' : 'Save Settings'}
               </button>
@@ -1294,7 +1294,7 @@ export default function Plugins() {
                   </button>
                   <button
                     onClick={() => setConfirmUninstall(false)}
-                    className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-[12px] font-medium text-red-700 transition-colors hover:bg-red-50"
+                    className="rounded-md border border-red-200 bg-card px-3 py-1.5 text-[12px] font-medium text-red-700 transition-colors hover:bg-red-50"
                   >
                     Cancel
                   </button>
@@ -1302,7 +1302,7 @@ export default function Plugins() {
               ) : (
                 <button
                   onClick={() => setConfirmUninstall(true)}
-                  className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
+                  className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-card px-3 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
                 >
                   <Trash size={14} />
                   Uninstall Zapier
@@ -1321,8 +1321,8 @@ export default function Plugins() {
     <div>
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-[#0a0a0a]">Plugins</h1>
-        <p className="mt-1 text-[13px] text-[#6b6b6b]">Extend your warehouse with integrations</p>
+        <h1 className="text-xl font-semibold text-foreground">Plugins</h1>
+        <p className="mt-1 text-[13px] text-muted-foreground">Extend your warehouse with integrations</p>
       </div>
 
       {/* Category filter pills */}
@@ -1334,8 +1334,8 @@ export default function Plugins() {
             className={cn(
               'rounded-full px-3.5 py-1.5 text-[12px] font-medium transition-colors',
               category === cat
-                ? 'bg-[#0a0a0a] text-white'
-                : 'bg-[#f5f5f5] text-[#6b6b6b] hover:bg-[#ebebeb] hover:text-[#0a0a0a]'
+                ? 'bg-foreground text-background'
+                : 'bg-muted text-muted-foreground hover:bg-muted hover:text-foreground'
             )}
           >
             {cat}
@@ -1346,7 +1346,7 @@ export default function Plugins() {
       {/* Plugin grid */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#e5e5e5] border-t-[#0a0a0a]" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-foreground" />
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -1358,30 +1358,30 @@ export default function Plugins() {
               <div
                 key={plugin.key}
                 className={cn(
-                  'group relative rounded-xl border bg-white p-5 transition-all',
+                  'group relative rounded-xl border bg-card p-5 transition-all',
                   isComingSoon
-                    ? 'border-[#ebebeb] opacity-75'
-                    : 'border-[#e5e5e5] hover:border-[#d0d0d0] hover:shadow-sm'
+                    ? 'border-border/60 opacity-75'
+                    : 'border-border hover:border-border hover:shadow-sm'
                 )}
               >
                 {/* Icon + Category */}
                 <div className="mb-4 flex items-start justify-between">
-                  <div className={cn('flex h-12 w-12 items-center justify-center rounded-xl', brand?.bg || 'bg-[#f5f5f5]')}>
+                  <div className={cn('flex h-12 w-12 items-center justify-center rounded-xl', brand?.bg || 'bg-muted')}>
                     <PluginIcon pluginKey={plugin.key} size={24} />
                   </div>
-                  <span className="rounded-full bg-[#f5f5f5] px-2.5 py-0.5 text-[11px] font-medium text-[#6b6b6b]">
+                  <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                     {plugin.category}
                   </span>
                 </div>
 
                 {/* Name + Description */}
-                <h3 className="mb-1.5 text-[14px] font-semibold text-[#0a0a0a]">{plugin.name}</h3>
-                <p className="mb-5 text-[12px] leading-relaxed text-[#6b6b6b]">{plugin.description}</p>
+                <h3 className="mb-1.5 text-[14px] font-semibold text-foreground">{plugin.name}</h3>
+                <p className="mb-5 text-[12px] leading-relaxed text-muted-foreground">{plugin.description}</p>
 
                 {/* Action */}
                 <div className="flex items-center gap-2">
                   {isComingSoon ? (
-                    <span className="flex items-center gap-1.5 rounded-lg bg-[#f5f5f5] px-3 py-2 text-[12px] font-medium text-[#a0a0a0]">
+                    <span className="flex items-center gap-1.5 rounded-lg bg-muted px-3 py-2 text-[12px] font-medium text-muted-foreground/60">
                       <Clock size={14} />
                       Coming Soon
                     </span>
@@ -1393,7 +1393,7 @@ export default function Plugins() {
                       </span>
                       <button
                         onClick={() => openConfigure(plugin)}
-                        className="ml-auto rounded-lg border border-[#e5e5e5] bg-white px-3 py-1.5 text-[12px] font-medium text-[#0a0a0a] transition-colors hover:bg-[#f5f5f5]"
+                        className="ml-auto rounded-lg border border-border bg-card px-3 py-1.5 text-[12px] font-medium text-foreground transition-colors hover:bg-muted"
                       >
                         Configure
                       </button>
@@ -1404,8 +1404,8 @@ export default function Plugins() {
                       disabled={actionLoading === plugin.key}
                       className={cn(
                         'flex items-center gap-1.5 rounded-lg px-4 py-2 text-[12px] font-medium text-white transition-colors disabled:opacity-50',
-                        brand?.installBg || 'bg-[#0a0a0a]',
-                        brand?.installHover || 'hover:bg-[#1a1a1a]'
+                        brand?.installBg || 'bg-foreground',
+                        brand?.installHover || 'hover:bg-foreground/90'
                       )}
                     >
                       {actionLoading === plugin.key ? (
@@ -1427,9 +1427,9 @@ export default function Plugins() {
 
       {!loading && filtered.length === 0 && (
         <div className="py-16 text-center">
-          <Plug size={40} weight="light" className="mx-auto mb-3 text-[#d4d4d4]" />
-          <p className="text-[14px] font-medium text-[#6b6b6b]">No plugins in this category</p>
-          <p className="mt-1 text-[12px] text-[#a0a0a0]">Try selecting a different category</p>
+          <Plug size={40} weight="light" className="mx-auto mb-3 text-muted-foreground/30" />
+          <p className="text-[14px] font-medium text-muted-foreground">No plugins in this category</p>
+          <p className="mt-1 text-[12px] text-muted-foreground/60">Try selecting a different category</p>
         </div>
       )}
     </div>

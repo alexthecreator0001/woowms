@@ -3,6 +3,13 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.65.2 / 2.50.2] - 2026-03-07
+
+### Fixed
+- **Plugins dark theme** — Replaced 200+ hardcoded hex colors in Plugins page with shadcn CSS variable tokens (bg-card, text-foreground, border-border, etc.). All cards, modals, inputs, buttons, and spinners now properly adapt to dark mode. Brand colors (Zapier, Slack, Shippo, EasyPost, QuickBooks) preserved with opacity-based backgrounds for dark mode compatibility.
+- **PO incoming display** — Products with Purchase Orders in Draft or Shipped status now correctly show as "Incoming" on the product detail page (previously only ORDERED and PARTIALLY_RECEIVED were shown).
+- **Sidebar shortcut styling** — Keyboard shortcut hints on nav items now display as individually styled key badges with borders instead of plain text.
+
 ## [3.65.1 / 2.50.1] - 2026-03-07
 
 ### Fixed

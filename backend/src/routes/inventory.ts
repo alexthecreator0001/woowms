@@ -97,7 +97,7 @@ router.get('/stats', async (req: Request, res: Response, next: NextFunction) => 
     const incomingResult = await prisma.purchaseOrderItem.aggregate({
       where: {
         purchaseOrder: {
-          status: { in: ['ORDERED', 'PARTIALLY_RECEIVED'] },
+          status: { in: ['DRAFT', 'ORDERED', 'SHIPPED', 'PARTIALLY_RECEIVED'] },
           tenantId: req.tenantId,
         },
       },
@@ -1327,7 +1327,7 @@ router.get('/:id/incoming', async (req: Request, res: Response, next: NextFuncti
         sku: product.sku,
         purchaseOrder: {
           tenantId: req.tenantId!,
-          status: { in: ['ORDERED', 'PARTIALLY_RECEIVED'] },
+          status: { in: ['DRAFT', 'ORDERED', 'SHIPPED', 'PARTIALLY_RECEIVED'] },
         },
       },
       include: {

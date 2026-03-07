@@ -232,9 +232,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                             <>
                               <span className="flex-1">{item.label}</span>
                               {item.shortcut && (
-                                <kbd className="hidden lg:inline text-[10px] font-medium text-muted-foreground/30 group-hover:text-muted-foreground/50 transition-colors">
-                                  {item.shortcut}
-                                </kbd>
+                                <span className="ml-auto hidden lg:inline-flex items-center gap-0.5">
+                                  {item.shortcut.split(' ').map((k, i) => (
+                                    <kbd key={i} className="flex h-[18px] min-w-[18px] items-center justify-center rounded border border-border/40 bg-muted/60 px-1 text-[9px] font-semibold text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors">
+                                      {k}
+                                    </kbd>
+                                  ))}
+                                </span>
                               )}
                             </>
                           )}
