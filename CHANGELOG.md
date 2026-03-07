@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.67.0 / 2.51.0] - 2026-03-07
+
+### Added
+- **Returns / RMA processing** — Full return merchandise authorization lifecycle. Create returns linked to original orders, authorize or reject requests, receive and inspect returned items (condition assessment), and process with resolution (restock, dispose, or mark damaged). Stock adjustments applied only on completion — restocked items increment inventory with RETURNED stock movements, damaged items create DAMAGED movements, and disposed items have no stock impact. Includes CSV export, global search integration, `G R` keyboard shortcut, and docs page.
+
 ## [3.66.2 / 2.50.4] - 2026-03-07
 
 ### Fixed

@@ -35,6 +35,7 @@ const NAV_SECTIONS = [
       { to: '/shipping', label: 'Shipping' },
       { to: '/receiving', label: 'Purchase Orders' },
       { to: '/suppliers', label: 'Suppliers' },
+      { to: '/returns', label: 'Returns / RMA' },
     ],
   },
   {

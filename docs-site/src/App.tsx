@@ -20,6 +20,7 @@ import DarkMode from './pages/DarkMode';
 import KeyboardShortcuts from './pages/KeyboardShortcuts';
 import ActivityLog from './pages/ActivityLog';
 import CycleCounts from './pages/CycleCounts';
+import Returns from './pages/Returns';
 import MobileApp from './pages/MobileApp';
 
 export default function App() {
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/shipping" element={<Shipping />} />
         <Route path="/receiving" element={<Receiving />} />
         <Route path="/suppliers" element={<Suppliers />} />
+        <Route path="/returns" element={<Returns />} />
         <Route path="/plugins" element={<Plugins />} />
         <Route path="/search" element={<Search />} />
         <Route path="/dark-mode" element={<DarkMode />} />

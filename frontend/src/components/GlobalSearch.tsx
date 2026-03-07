@@ -20,6 +20,7 @@ import {
   Package,
   GearSix,
   Plug,
+  ArrowUUpLeft,
 } from '@phosphor-icons/react';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
@@ -68,6 +69,14 @@ interface SearchResults {
     assignedToName: string | null;
     _count?: { items: number };
   }>;
+  returnOrders: Array<{
+    id: number;
+    rmaNumber: string;
+    orderNumber: string;
+    customerName: string;
+    status: string;
+    _count?: { items: number };
+  }>;
 }
 
 const RECENT_KEY = 'pickNPack_recentSearches';
@@ -99,6 +108,11 @@ const statusBadge: Record<string, { bg: string; text: string }> = {
   ORDERED: { bg: 'bg-blue-500/10', text: 'text-blue-600' },
   PARTIALLY_RECEIVED: { bg: 'bg-amber-500/10', text: 'text-amber-600' },
   RECEIVED: { bg: 'bg-emerald-500/10', text: 'text-emerald-600' },
+  REQUESTED: { bg: 'bg-blue-500/10', text: 'text-blue-600' },
+  AUTHORIZED: { bg: 'bg-indigo-500/10', text: 'text-indigo-600' },
+  RECEIVING: { bg: 'bg-amber-500/10', text: 'text-amber-600' },
+  COMPLETED: { bg: 'bg-emerald-500/10', text: 'text-emerald-600' },
+  REJECTED: { bg: 'bg-red-500/10', text: 'text-red-600' },
 };
 
 interface PageEntry {
@@ -122,6 +136,8 @@ const APP_PAGES: PageEntry[] = [
   { path: '/suppliers', label: 'Suppliers', description: 'Manage suppliers', keywords: ['suppliers', 'vendors'], icon: UsersThree },
   { path: '/cycle-counts', label: 'Cycle Counts', description: 'Inventory accuracy counts', keywords: ['cycle count', 'counting', 'inventory accuracy', 'audit', 'variance'], icon: ListMagnifyingGlass },
   { path: '/cycle-counts/new', label: 'New Cycle Count', description: 'Create a new count', keywords: ['new cycle count', 'create cycle count', 'count inventory'], icon: ListMagnifyingGlass },
+  { path: '/returns', label: 'Returns', description: 'Return merchandise authorizations', keywords: ['returns', 'rma', 'return', 'refund', 'exchange'], icon: ArrowUUpLeft },
+  { path: '/returns/new', label: 'New Return', description: 'Create a return request', keywords: ['new return', 'create return', 'new rma', 'create rma'], icon: ArrowUUpLeft },
   { path: '/plugins', label: 'Plugins', description: 'Integrations & extensions', keywords: ['plugins', 'integrations', 'extensions', 'woocommerce', 'connect'], icon: Plug },
   { path: '/settings', label: 'Settings', description: 'App configuration', keywords: ['settings', 'config', 'configuration', 'preferences', 'branding', 'account'], icon: GearSix },
 ];
@@ -186,6 +202,7 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
         data.data.purchaseOrders?.forEach((po: { poNumber: string }) => items.push({ type: 'po', slug: po.poNumber }));
         data.data.suppliers?.forEach((s: { id: number }) => items.push({ type: 'supplier', slug: String(s.id) }));
         data.data.cycleCounts?.forEach((cc: { id: number }) => items.push({ type: 'cycleCount', slug: String(cc.id) }));
+        data.data.returnOrders?.forEach((r: { rmaNumber: string }) => items.push({ type: 'return', slug: r.rmaNumber }));
         resultItemsRef.current = items;
       } catch {
         setResults(null);
@@ -210,6 +227,7 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
       po: `/receiving/${slug}`,
       supplier: `/suppliers/${slug}`,
       cycleCount: `/cycle-counts/${slug}`,
+      return: `/returns/${slug}`,
     };
     navigate(paths[type] || '/');
   }, [navigate, onClose, query]);
@@ -242,7 +260,7 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
 
   if (!open) return null;
 
-  const hasApiResults = results && (results.orders.length > 0 || results.products.length > 0 || results.purchaseOrders.length > 0 || results.suppliers.length > 0 || results.cycleCounts?.length > 0);
+  const hasApiResults = results && (results.orders.length > 0 || results.products.length > 0 || results.purchaseOrders.length > 0 || results.suppliers.length > 0 || results.cycleCounts?.length > 0 || results.returnOrders?.length > 0);
   const hasResults = hasApiResults || matchedPages.length > 0;
   const noResults = !hasResults && query.length >= 2;
 
@@ -471,6 +489,35 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
                         {cc.assignedToName && <span className="text-muted-foreground">{cc.assignedToName}</span>}
                         <span className={cn('ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold uppercase', badge.bg, badge.text)}>
                           {cc.status.replace(/_/g, ' ')}
+                        </span>
+                        <ArrowRight size={12} className="flex-shrink-0 text-muted-foreground/30" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Returns */}
+              {results?.returnOrders && results.returnOrders.length > 0 && (
+                <div className="mb-1">
+                  <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Returns</p>
+                  {results?.returnOrders.map((r) => {
+                    const idx = getItemIndex('return', r.rmaNumber);
+                    const badge = statusBadge[r.status] || statusBadge.PENDING;
+                    return (
+                      <button
+                        key={r.id}
+                        onClick={() => navigateTo('return', r.rmaNumber)}
+                        className={cn(
+                          'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                          idx === activeIndex ? 'bg-primary/8' : 'hover:bg-muted/40'
+                        )}
+                      >
+                        <ArrowUUpLeft size={16} weight="duotone" className="flex-shrink-0 text-muted-foreground/50" />
+                        <span className="font-semibold">{r.rmaNumber}</span>
+                        <span className="text-muted-foreground">{r.customerName}</span>
+                        <span className={cn('ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold uppercase', badge.bg, badge.text)}>
+                          {r.status.replace(/_/g, ' ')}
                         </span>
                         <ArrowRight size={12} className="flex-shrink-0 text-muted-foreground/30" />
                       </button>

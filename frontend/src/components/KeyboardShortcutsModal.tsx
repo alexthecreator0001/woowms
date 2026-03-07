@@ -27,6 +27,7 @@ const shortcutGroups: ShortcutGroup[] = [
       { keys: ['G', 'W'], description: 'Go to Warehouse' },
       { keys: ['G', 'K'], description: 'Go to Picking' },
       { keys: ['G', 'C'], description: 'Go to Cycle Counts' },
+      { keys: ['G', 'R'], description: 'Go to Returns' },
       { keys: ['G', 'X'], description: 'Go to Settings' },
     ],
   },

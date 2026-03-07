@@ -7,13 +7,13 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const q = ((req.query.q as string) || '').trim();
     if (!q || q.length < 2) {
-      return res.json({ data: { orders: [], products: [], purchaseOrders: [], suppliers: [], cycleCounts: [] } });
+      return res.json({ data: { orders: [], products: [], purchaseOrders: [], suppliers: [], cycleCounts: [], returnOrders: [] } });
     }
 
     const tenantId = req.tenantId;
     const prisma = req.prisma!;
 
-    const [orders, products, purchaseOrders, suppliers, cycleCounts] = await Promise.all([
+    const [orders, products, purchaseOrders, suppliers, cycleCounts, returnOrders] = await Promise.all([
       prisma.order.findMany({
         where: {
           store: { tenantId },
@@ -79,9 +79,22 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         take: 25,
         orderBy: { createdAt: 'desc' },
       }),
+      prisma.returnOrder.findMany({
+        where: {
+          tenantId,
+          OR: [
+            { rmaNumber: { contains: q, mode: 'insensitive' } },
+            { orderNumber: { contains: q, mode: 'insensitive' } },
+            { customerName: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        include: { _count: { select: { items: true } } },
+        take: 25,
+        orderBy: { createdAt: 'desc' },
+      }),
     ]);
 
-    res.json({ data: { orders, products, purchaseOrders, suppliers, cycleCounts } });
+    res.json({ data: { orders, products, purchaseOrders, suppliers, cycleCounts, returnOrders } });
   } catch (err) {
     next(err);
   }

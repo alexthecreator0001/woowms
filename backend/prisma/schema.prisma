@@ -26,6 +26,7 @@ model Tenant {
   notifications  Notification[]
   auditLogs      AuditLog[]
   cycleCounts    CycleCount[]
+  returnOrders   ReturnOrder[]
 
   @@map("tenants")
 }
@@ -620,6 +621,78 @@ model CycleCountItem {
 
   @@index([cycleCountId])
   @@map("cycle_count_items")
+}
+
+// ─── Returns / RMA ─────────────────────────────────
+
+enum RMAStatus {
+  REQUESTED
+  AUTHORIZED
+  RECEIVING
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum ItemCondition {
+  NEW
+  OPENED
+  DAMAGED
+  DEFECTIVE
+}
+
+enum ItemResolution {
+  PENDING
+  RESTOCK
+  DISPOSE
+  DAMAGED
+}
+
+model ReturnOrder {
+  id             Int       @id @default(autoincrement())
+  tenantId       Int       @map("tenant_id")
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  rmaNumber      String    @unique @map("rma_number")
+  orderId        Int?      @map("order_id")
+  orderNumber    String    @map("order_number")
+  customerName   String    @map("customer_name")
+  customerEmail  String?   @map("customer_email")
+  status         RMAStatus @default(REQUESTED)
+  reason         String?
+  notes          String?
+  refundAmount   Decimal?  @db.Decimal(10, 2) @map("refund_amount")
+  requestedAt    DateTime  @default(now()) @map("requested_at")
+  authorizedAt   DateTime? @map("authorized_at")
+  receivedAt     DateTime? @map("received_at")
+  completedAt    DateTime? @map("completed_at")
+  createdById    Int?      @map("created_by_id")
+  createdByName  String?   @map("created_by_name")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  items ReturnOrderItem[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([orderNumber])
+  @@map("return_orders")
+}
+
+model ReturnOrderItem {
+  id             Int            @id @default(autoincrement())
+  returnOrderId  Int            @map("return_order_id")
+  returnOrder    ReturnOrder    @relation(fields: [returnOrderId], references: [id], onDelete: Cascade)
+  productId      Int?           @map("product_id")
+  productName    String         @map("product_name")
+  sku            String?
+  quantity       Int
+  receivedQty    Int            @default(0) @map("received_qty")
+  condition      ItemCondition  @default(NEW)
+  resolution     ItemResolution @default(PENDING)
+  notes          String?
+
+  @@index([returnOrderId])
+  @@map("return_order_items")
 }
 
 // ─── Plugins ───────────────────────────────────────

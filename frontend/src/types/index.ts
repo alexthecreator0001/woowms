@@ -413,6 +413,47 @@ export interface CycleCount {
   _count?: { items: number };
 }
 
+// ─── Returns / RMA ─────────────────────────────────
+
+export type RMAStatus = 'REQUESTED' | 'AUTHORIZED' | 'RECEIVING' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
+export type ItemCondition = 'NEW' | 'OPENED' | 'DAMAGED' | 'DEFECTIVE';
+export type ItemResolution = 'PENDING' | 'RESTOCK' | 'DISPOSE' | 'DAMAGED';
+
+export interface ReturnOrderItem {
+  id: number;
+  productId: number | null;
+  productName: string;
+  sku: string | null;
+  quantity: number;
+  receivedQty: number;
+  condition: ItemCondition;
+  resolution: ItemResolution;
+  notes: string | null;
+  imageUrl?: string | null;
+}
+
+export interface ReturnOrder {
+  id: number;
+  rmaNumber: string;
+  orderId: number | null;
+  orderNumber: string;
+  customerName: string;
+  customerEmail: string | null;
+  status: RMAStatus;
+  reason: string | null;
+  notes: string | null;
+  refundAmount: string | null;
+  requestedAt: string;
+  authorizedAt: string | null;
+  receivedAt: string | null;
+  completedAt: string | null;
+  createdById: number | null;
+  createdByName: string | null;
+  createdAt: string;
+  items?: ReturnOrderItem[];
+  _count?: { items: number };
+}
+
 // ─── Plugins ───────────────────────────────────────
 
 export interface PluginCatalogItem {

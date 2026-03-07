@@ -20,6 +20,7 @@ import {
   CaretLineRight,
   Plug,
   MagnifyingGlass,
+  ArrowUUpLeft,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import { LogoMark } from './Logo';
@@ -67,6 +68,7 @@ const navSections: NavSection[] = [
       { path: '/shipping', label: 'Shipping', icon: TruckTrailer, shortcut: 'G H' },
       { path: '/receiving', label: 'Purchase Orders', icon: Package, shortcut: 'G P' },
       { path: '/suppliers', label: 'Suppliers', icon: UsersThree, shortcut: 'G S' },
+      { path: '/returns', label: 'Returns', icon: ArrowUUpLeft, shortcut: 'G R' },
     ],
   },
   {
@@ -107,6 +109,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { chord: 'g', key: 'w', handler: () => navigate('/warehouse') },
     { chord: 'g', key: 'k', handler: () => navigate('/picking') },
     { chord: 'g', key: 'c', handler: () => navigate('/cycle-counts') },
+    { chord: 'g', key: 'r', handler: () => navigate('/returns') },
     { chord: 'g', key: 'x', handler: () => navigate('/settings') },
   ]);
 

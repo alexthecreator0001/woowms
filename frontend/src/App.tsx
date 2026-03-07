@@ -31,6 +31,9 @@ import Plugins from './pages/Plugins';
 import CycleCounts from './pages/CycleCounts';
 import CycleCountCreate from './pages/CycleCountCreate';
 import CycleCountDetail from './pages/CycleCountDetail';
+import Returns from './pages/Returns';
+import ReturnCreate from './pages/ReturnCreate';
+import ReturnDetail from './pages/ReturnDetail';
 import type { TokenPayload } from './types';
 
 function getTokenPayload(): TokenPayload | null {
@@ -163,6 +166,9 @@ export default function App() {
                 <Route path="/cycle-counts" element={<CycleCounts />} />
                 <Route path="/cycle-counts/new" element={<CycleCountCreate />} />
                 <Route path="/cycle-counts/:id" element={<CycleCountDetail />} />
+                <Route path="/returns" element={<Returns />} />
+                <Route path="/returns/new" element={<ReturnCreate />} />
+                <Route path="/returns/:id" element={<ReturnDetail />} />
                 <Route path="/plugins" element={<Plugins />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/settings/:section" element={<Settings />} />
