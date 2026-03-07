@@ -19,7 +19,7 @@ import {
 import { cn } from '../lib/utils';
 import api from '../services/api';
 import type { Warehouse, Zone, Bin, ZoneType, BinSize } from '../types';
-import { BIN_SIZE_LABELS } from '../types';
+import { BIN_SIZE_LABELS, BIN_SIZE_CAPACITY } from '../types';
 import BinGrid from '../components/warehouse/BinGrid';
 import BinListView from '../components/warehouse/BinListView';
 import SlideOver from '../components/warehouse/SlideOver';
