@@ -6,7 +6,6 @@ import {
   Cube,
   Warning,
   ArrowRight,
-  Plus,
   ListChecks,
   TruckTrailer,
   Package,
@@ -64,8 +63,6 @@ export default function Dashboard() {
     return 'Good evening';
   };
 
-  const hasStores = storeCount !== null && storeCount > 0;
-
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -77,29 +74,6 @@ export default function Dashboard() {
           Here's what's happening with your warehouse today.
         </p>
       </div>
-
-      {/* Getting started banner */}
-      {!hasStores && !loading && (
-        <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 via-white to-violet-500/5 p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Getting started</p>
-              <h3 className="mt-1.5 text-lg font-semibold">Connect your WooCommerce store</h3>
-              <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                Link your store to start syncing orders, products, and inventory automatically.
-              </p>
-              <Link
-                to="/settings"
-                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                <Plus size={16} weight="bold" />
-                Connect a Store
-              </Link>
-            </div>
-            <Storefront size={64} weight="duotone" className="hidden sm:block text-primary/15" />
-          </div>
-        </div>
-      )}
 
       {/* Key metrics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

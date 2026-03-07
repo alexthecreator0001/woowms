@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.63.1 / 2.48.0] - 2026-03-07
+
+### Fixed
+- **Dashboard** — Removed "Getting Started / Connect your WooCommerce store" banner that incorrectly showed even when a store was already connected. The banner could also flash if any API call failed during dashboard load.
+
 ## [3.63.0 / 2.48.0] - 2026-03-07
 
 ### Added
