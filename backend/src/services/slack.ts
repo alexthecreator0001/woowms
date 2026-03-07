@@ -100,7 +100,7 @@ export function notifyNewOrder(tenantId: number, order: OrderData): void {
     const config = await getSlackConfig(tenantId);
     if (!config?.sendOrderNotifications) return;
 
-    const paymentStatus = order.isPaid ? ':white_check_mark: Paid' : ':warning: Unpaid (COD)';
+    const paymentStatus = order.isPaid ? ':white_check_mark: Paid' : ':warning: Unpaid';
 
     await postToSlack(config.webhookUrl, {
       attachments: [{

@@ -84,6 +84,16 @@ function calculateProductSize(length: number | null, width: number | null, heigh
   return 'OVERSIZED';
 }
 
+export function evaluateIsPaid(
+  paymentMethod: string | null | undefined,
+  wooStatus: string,
+  paymentRules?: Record<string, { paidStatuses: string[] }> | null
+): boolean {
+  if (!paymentRules) return paymentMethod !== 'cod';
+  if (!paymentMethod || !paymentRules[paymentMethod]) return true;
+  return paymentRules[paymentMethod].paidStatuses.includes(wooStatus);
+}
+
 async function getTenantSettings(tenantId: number): Promise<Record<string, unknown>> {
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
@@ -157,6 +167,7 @@ export async function syncOrders(store: Store): Promise<void> {
           paymentMethodTitle: order.payment_method_title || null,
           shippingMethod: order.shipping_lines?.[0] ? `${order.shipping_lines[0].method_id}:${order.shipping_lines[0].instance_id || '0'}` : null,
           shippingMethodTitle: order.shipping_lines?.[0]?.method_title || null,
+          isPaid: evaluateIsPaid(order.payment_method, order.status, tenantSettings.paymentRules as any),
           updatedAt: new Date(),
         },
         create: {
@@ -173,7 +184,7 @@ export async function syncOrders(store: Store): Promise<void> {
           currency: order.currency,
           paymentMethod: order.payment_method || null,
           paymentMethodTitle: order.payment_method_title || null,
-          isPaid: order.payment_method !== 'cod',
+          isPaid: evaluateIsPaid(order.payment_method, order.status, tenantSettings.paymentRules as any),
           shippingMethod: order.shipping_lines?.[0] ? `${order.shipping_lines[0].method_id}:${order.shipping_lines[0].instance_id || '0'}` : null,
           shippingMethodTitle: order.shipping_lines?.[0]?.method_title || null,
           wooCreatedAt: new Date(order.date_created),

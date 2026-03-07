@@ -396,7 +396,7 @@ export default function OrderDetail() {
                 </span>
                 {order.isPaid === false && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-600">
-                    COD
+                    Unpaid
                   </span>
                 )}
                 {order.isPaid !== false && (
@@ -960,7 +960,7 @@ export default function OrderDetail() {
                   <span className="text-sm font-semibold">Total</span>
                   {order.isPaid === false ? (
                     <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600">
-                      COD
+                      Unpaid
                     </span>
                   ) : (
                     <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">

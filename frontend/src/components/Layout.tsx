@@ -16,8 +16,7 @@ import {
   GearSix,
   Question,
   SignOut,
-  CaretLineLeft,
-  CaretLineRight,
+  SidebarSimple,
   Plug,
   MagnifyingGlass,
   ArrowUUpLeft,
@@ -148,7 +147,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               title="Expand sidebar"
               className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
             >
-              <CaretLineRight size={16} />
+              <SidebarSimple size={16} />
             </button>
           ) : (
             <>
@@ -167,7 +166,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 title="Collapse sidebar"
                 className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground/40 transition-colors hover:bg-muted hover:text-muted-foreground"
               >
-                <CaretLineLeft size={14} />
+                <SidebarSimple size={14} />
               </button>
             </>
           )}

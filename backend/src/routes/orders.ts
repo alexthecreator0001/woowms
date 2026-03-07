@@ -112,6 +112,22 @@ router.get('/stats', async (req: Request, res: Response, next: NextFunction) => 
   }
 });
 
+// GET /api/v1/orders/payment-methods — distinct payment methods from synced orders
+router.get('/payment-methods', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const prisma = req.prisma!;
+    const methods = await prisma.order.findMany({
+      where: { store: { tenantId: req.tenantId }, paymentMethod: { not: null } },
+      select: { paymentMethod: true, paymentMethodTitle: true },
+      distinct: ['paymentMethod'],
+      orderBy: { paymentMethod: 'asc' },
+    });
+    res.json({ data: methods });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/v1/orders/:id
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -208,8 +224,9 @@ router.patch('/:id/status', async (req: Request, res: Response, next: NextFuncti
     try {
       const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId } });
       const settings = (tenant?.settings as Record<string, any>) || {};
-      if (settings.autoStatusPush && settings.statusMapping) {
-        const wooStatus = settings.statusMapping[status];
+      const reverseMapping = settings.reverseStatusMapping || settings.statusMapping;
+      if (settings.autoStatusPush && reverseMapping) {
+        const wooStatus = reverseMapping[status];
         if (wooStatus && existing!.store) {
           await pushOrderStatus(existing!.store as any, existing!.wooId, wooStatus);
         }

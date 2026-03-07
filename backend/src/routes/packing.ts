@@ -221,8 +221,9 @@ router.post('/complete', async (req: Request, res: Response, next: NextFunction)
     // Push status back to WooCommerce if auto-push is enabled
     try {
       const settings = (tenant?.settings as Record<string, any>) || {};
-      if (settings.autoStatusPush && settings.statusMapping) {
-        const wooStatus = settings.statusMapping['SHIPPED'];
+      const reverseMapping = settings.reverseStatusMapping || settings.statusMapping;
+      if (settings.autoStatusPush && reverseMapping) {
+        const wooStatus = reverseMapping['SHIPPED'];
         if (wooStatus) {
           await pushOrderStatus(order.store as any, order.wooId, wooStatus);
         }
@@ -278,8 +279,9 @@ router.post('/skip', async (req: Request, res: Response, next: NextFunction) => 
     try {
       const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId } });
       const settings = (tenant?.settings as Record<string, any>) || {};
-      if (settings.autoStatusPush && settings.statusMapping) {
-        const wooStatus = settings.statusMapping['SHIPPED'];
+      const reverseMapping = settings.reverseStatusMapping || settings.statusMapping;
+      if (settings.autoStatusPush && reverseMapping) {
+        const wooStatus = reverseMapping['SHIPPED'];
         if (wooStatus) {
           await pushOrderStatus(order.store as any, order.wooId, wooStatus);
         }

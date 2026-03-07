@@ -107,7 +107,7 @@ export default function StoreConfig() {
     try {
       await api.patch('/account/tenant-settings', {
         paymentMethods: paymentConfig,
-        statusMapping,
+        reverseStatusMapping: statusMapping,
         autoStatusPush: Object.keys(statusMapping).length > 0,
       });
       navigate('/onboarding/warehouse-setup');

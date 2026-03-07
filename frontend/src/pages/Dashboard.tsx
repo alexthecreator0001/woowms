@@ -15,10 +15,10 @@ import {
   ChartLineUp,
   CaretRight,
   ListMagnifyingGlass,
-  CurrencyDollar,
-  CalendarBlank,
+  HandWaving,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
+import { fmtMoney } from '../lib/currency';
 import { getStatusDotBadge } from '../lib/statuses';
 import api from '../services/api';
 import type { Order } from '../types';
@@ -85,12 +85,6 @@ export default function Dashboard() {
     return 'Good evening';
   };
 
-  const formatCurrency = (val: string) => {
-    const num = parseFloat(val);
-    if (isNaN(num)) return val;
-    return num.toLocaleString(undefined, { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
-  };
-
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     const now = new Date();
@@ -125,8 +119,9 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">
+        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
           {greeting()}, {userName || 'there'}
+          <HandWaving size={24} weight="duotone" className="text-amber-400" />
         </h1>
         <p className="mt-1 text-[15px] text-muted-foreground">
           Here's what's happening with your warehouse today.
@@ -181,22 +176,33 @@ export default function Dashboard() {
       <div>
         <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-muted-foreground/70">Quick Actions</h2>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {shortcuts.map((a) => (
-            <Link
-              key={a.to}
-              to={a.to}
-              className="group flex items-center gap-3 rounded-xl border border-border/60 bg-card px-4 py-3 transition-all hover:border-border hover:shadow-sm"
-            >
-              <div className={cn('flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg', a.color.replace('text-', 'bg-').replace('500', '500/10'))}>
-                <a.icon size={18} weight="duotone" className={a.color} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{a.label}</p>
-                <p className="text-[11px] text-muted-foreground/60">{a.desc}</p>
-              </div>
-              <CaretRight size={14} className="text-muted-foreground/30 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-          ))}
+          {loading
+            ? Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 rounded-xl border border-border/60 bg-card px-4 py-3">
+                  <Skeleton className="h-9 w-9 rounded-lg" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-3 w-28" />
+                  </div>
+                </div>
+              ))
+            : shortcuts.map((a) => (
+                <Link
+                  key={a.to}
+                  to={a.to}
+                  className="group flex items-center gap-3 rounded-xl border border-border/60 bg-card px-4 py-3 transition-all hover:border-border hover:shadow-sm"
+                >
+                  <div className={cn('flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg', a.color.replace('text-', 'bg-').replace('500', '500/10'))}>
+                    <a.icon size={18} weight="duotone" className={a.color} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">{a.label}</p>
+                    <p className="text-[11px] text-muted-foreground/60">{a.desc}</p>
+                  </div>
+                  <CaretRight size={14} className="text-muted-foreground/30 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              ))
+          }
         </div>
       </div>
 
@@ -205,7 +211,10 @@ export default function Dashboard() {
         {/* Recent Orders — 2 cols */}
         <div className="lg:col-span-2">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-semibold">Recent Orders</h2>
+            <h2 className="flex items-center gap-2 text-base font-semibold">
+              <ShoppingBag size={18} weight="duotone" className="text-primary" />
+              Recent Orders
+            </h2>
             <Link to="/orders" className="flex items-center gap-1 text-[13px] font-medium text-primary hover:text-primary/80 transition-colors">
               View all <ArrowRight size={14} />
             </Link>
@@ -246,7 +255,7 @@ export default function Dashboard() {
                       <span className="ml-2 text-sm text-muted-foreground">{order.customerName}</span>
                     </div>
                     <span className="hidden sm:inline text-[12px] tabular-nums text-muted-foreground/60">
-                      {order.total && parseFloat(order.total) > 0 ? formatCurrency(order.total) : ''}
+                      {order.total && parseFloat(order.total) > 0 ? fmtMoney(order.total, order.currency || 'USD') : ''}
                     </span>
                     <span className="hidden sm:inline text-[12px] text-muted-foreground/40">
                       {order.wooCreatedAt ? formatDate(order.wooCreatedAt) : ''}

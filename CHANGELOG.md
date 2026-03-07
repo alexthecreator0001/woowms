@@ -3,6 +3,22 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.67.1 / 2.51.1] - 2026-03-07
+
+### Fixed
+- **WooCommerce status push** — Fixed broken status push that never fired because the mapping keys were inverted. Added a dedicated "Status Push" settings card with per-status WMS → WooCommerce mapping and an enable/disable toggle.
+- **Dashboard currency** — Orders on the dashboard now display in the correct store currency (was hardcoded to USD). Uses `fmtMoney()` utility with per-order currency.
+- **Paid/Unpaid badges** — Changed "COD" badge label to "Unpaid" across OrderDetail and PackingStation since the `isPaid` flag is now based on configurable payment rules, not just COD.
+
+### Added
+- **Payment rules** — Configurable rules in Settings → Order Workflow that determine whether an order is paid based on payment method + WooCommerce status. Example: COD = paid only at "Completed", bank transfer = paid at "Processing" (not "On Hold"). Methods without rules are always considered paid (prepaid gateways like Stripe/PayPal). The `isPaid` flag is now recalculated on every sync update, not just on order creation.
+- **Dashboard greeting emoji** — Added a wave hand icon next to the time-based greeting.
+- **Recent Orders icon** — Added ShoppingBag icon to the Recent Orders section header.
+- **Dashboard skeleton** — Extended skeleton loading to cover Quick Actions section.
+
+### Changed
+- **Sidebar collapse icon** — Replaced CaretLineLeft/Right with SidebarSimple icon for a clearer visual metaphor.
+
 ## [3.67.0 / 2.51.0] - 2026-03-07
 
 ### Added

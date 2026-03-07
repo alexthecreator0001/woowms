@@ -242,7 +242,7 @@ export default function PackingStation({ standalone = false }: PackingStationPro
                         <span className={cn(
                           'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                           isActive ? 'bg-white/20 text-amber-300' : 'bg-amber-500/10 text-amber-600'
-                        )}>COD</span>
+                        )}>Unpaid</span>
                       )}
                       <span className={cn(
                         'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
@@ -297,7 +297,7 @@ export default function PackingStation({ standalone = false }: PackingStationPro
 
               {activeOrder.isPaid === false && (
                 <span className="flex items-center gap-1 rounded-md bg-red-500/10 px-2 py-1 text-[10px] font-bold uppercase text-red-600">
-                  <Warning size={11} weight="fill" /> Cash on Delivery
+                  <Warning size={11} weight="fill" /> Unpaid
                 </span>
               )}
 

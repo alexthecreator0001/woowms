@@ -116,13 +116,36 @@ export default function Orders() {
             <li>Shipping address with an embedded Google Maps preview and "Open in Google Maps" link</li>
             <li>Billing address (shown only when different from shipping)</li>
             <li>Visual timeline with colored dots — emerald for completed steps, blue for current, gray/dashed for pending (Order Placed &rarr; Synced &rarr; Shipped &rarr; Delivered)</li>
-            <li>Payment summary with method, subtotal, total, and Paid/COD badge</li>
+            <li>Payment summary with method, subtotal, total, and Paid/Unpaid badge (based on payment rules configured in Settings)</li>
           </ul>
         </li>
       </ul>
       <p>
         You can change the order status directly from the detail page using the status dropdown.
+        If <strong>Status Push</strong> is enabled in Settings &rarr; Order Workflow, the status
+        change is also pushed back to WooCommerce automatically.
       </p>
+
+      <h3>Status Push</h3>
+      <p>
+        Configure which WMS statuses push back to WooCommerce in <strong>Settings &rarr; Order
+        Workflow &rarr; Status Push</strong>. For example, map <em>Shipped</em> &rarr; <em>Completed</em> so
+        when you mark an order as shipped in PickNPack, it automatically updates to &ldquo;Completed&rdquo;
+        in WooCommerce.
+      </p>
+
+      <h3>Payment Rules</h3>
+      <p>
+        By default, all payment methods except Cash on Delivery (COD) are considered &ldquo;paid.&rdquo;
+        You can configure more granular rules in <strong>Settings &rarr; Order Workflow &rarr;
+        Payment Rules</strong>. For each payment method, choose which WooCommerce statuses mean the
+        order is paid. For example:
+      </p>
+      <ul>
+        <li><strong>COD</strong> &mdash; Paid only when WooCommerce status is &ldquo;Completed&rdquo;</li>
+        <li><strong>Bank Transfer</strong> &mdash; Paid when status is &ldquo;Processing&rdquo; or &ldquo;Completed&rdquo; (not when &ldquo;On Hold&rdquo;)</li>
+        <li><strong>Stripe / PayPal</strong> &mdash; Always paid (prepaid gateways)</li>
+      </ul>
 
       <h3>Order Tags</h3>
       <p>
