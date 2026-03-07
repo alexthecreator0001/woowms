@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import {
@@ -20,9 +20,6 @@ import {
   CaretLineRight,
   Plug,
   MagnifyingGlass,
-  Sun,
-  Moon,
-  Monitor,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
 import { LogoMark } from './Logo';
@@ -31,7 +28,6 @@ import GlobalSearch from './GlobalSearch';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import NotificationCenter from './NotificationCenter';
 import { SidebarContext } from '../contexts/SidebarContext';
-import { useTheme, type Theme } from '../contexts/ThemeContext';
 import { useHotkeys } from '../hooks/useHotkeys';
 
 interface NavItem {
@@ -80,10 +76,6 @@ const navSections: NavSection[] = [
   },
 ];
 
-const themeOrder: Theme[] = ['light', 'dark', 'system'];
-const themeIcons = { light: Sun, dark: Moon, system: Monitor } as const;
-const themeLabels = { light: 'Light', dark: 'Dark', system: 'System' } as const;
-
 export default function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
@@ -91,12 +83,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [logoUrl, setLogoUrl] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
-
-  const cycleTheme = () => {
-    const idx = themeOrder.indexOf(theme);
-    setTheme(themeOrder[(idx + 1) % themeOrder.length]);
-  };
 
   useEffect(() => {
     api.get('/auth/me')
@@ -176,23 +162,26 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           )}
         </div>
 
-        {/* Search trigger */}
-        <button
-          onClick={() => setSearchOpen(true)}
-          title={collapsed ? 'Search (⌘K)' : undefined}
-          className={cn(
-            'flex items-center mx-2.5 mt-3 mb-1 rounded-lg border border-border/50 bg-muted/30 text-[13px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground',
-            collapsed ? 'justify-center p-2' : 'gap-2.5 px-2.5 py-[7px]'
-          )}
-        >
-          <MagnifyingGlass size={collapsed ? 18 : 15} className="flex-shrink-0" />
-          {!collapsed && (
-            <>
-              <span className="flex-1 text-left text-muted-foreground/60">Search...</span>
-              <kbd className="hidden sm:inline-flex h-5 items-center rounded border border-border/40 bg-background px-1.5 text-[10px] font-medium text-muted-foreground/40">⌘K</kbd>
-            </>
-          )}
-        </button>
+        {/* Search + Notifications row */}
+        <div className={cn('flex items-center mx-2.5 mt-3 mb-1 gap-1.5', collapsed && 'flex-col')}>
+          <button
+            onClick={() => setSearchOpen(true)}
+            title={collapsed ? 'Search (⌘K)' : undefined}
+            className={cn(
+              'flex items-center rounded-lg border border-border/50 bg-muted/30 text-[13px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground',
+              collapsed ? 'justify-center p-2' : 'flex-1 gap-2.5 px-2.5 py-[7px]'
+            )}
+          >
+            <MagnifyingGlass size={collapsed ? 18 : 15} className="flex-shrink-0" />
+            {!collapsed && (
+              <>
+                <span className="flex-1 text-left text-muted-foreground/60">Search...</span>
+                <kbd className="hidden sm:inline-flex h-5 items-center rounded border border-border/40 bg-background px-1.5 text-[10px] font-medium text-muted-foreground/40">⌘K</kbd>
+              </>
+            )}
+          </button>
+          <NotificationCenter collapsed={collapsed} position="top" />
+        </div>
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2.5 pt-3">
@@ -244,7 +233,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Footer */}
         <div className="border-t border-border p-2.5 space-y-px">
-          <NotificationCenter collapsed={collapsed} />
           <a
             href="https://docs.picknpack.io"
             target="_blank"
@@ -292,39 +280,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {!collapsed && <span>Log out</span>}
           </button>
 
-          {(() => {
-            const ThemeIcon = themeIcons[theme];
-            return (
-              <button
-                onClick={cycleTheme}
-                title={collapsed ? `Theme: ${themeLabels[theme]}` : undefined}
-                className={cn(
-                  'flex w-full items-center rounded-md text-[13px] font-medium text-muted-foreground/60 transition-colors duration-150 hover:bg-muted hover:text-muted-foreground',
-                  collapsed ? 'justify-center p-2.5' : 'gap-2.5 px-2.5 py-[7px]'
-                )}
-              >
-                <ThemeIcon size={collapsed ? 20 : 18} className="flex-shrink-0" />
-                {!collapsed && <span>{themeLabels[theme]}</span>}
-              </button>
-            );
-          })()}
-
           <button
             onClick={() => setCollapsed(!collapsed)}
-            title={collapsed ? 'Expand' : 'Collapse'}
-            className={cn(
-              'flex w-full items-center rounded-md text-[13px] font-medium text-muted-foreground/60 transition-colors duration-150 hover:bg-muted hover:text-muted-foreground',
-              collapsed ? 'justify-center p-2.5' : 'gap-2.5 px-2.5 py-[7px]'
-            )}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="flex w-full items-center justify-center rounded-md p-1.5 text-muted-foreground/40 transition-colors duration-150 hover:bg-muted hover:text-muted-foreground"
           >
-            {collapsed ? (
-              <CaretLineRight size={18} className="flex-shrink-0" />
-            ) : (
-              <>
-                <CaretLineLeft size={18} className="flex-shrink-0" />
-                <span>Collapse</span>
-              </>
-            )}
+            {collapsed ? <CaretLineRight size={16} /> : <CaretLineLeft size={16} />}
           </button>
         </div>
       </aside>

@@ -42,9 +42,10 @@ function timeAgo(dateStr: string): string {
 
 interface Props {
   collapsed: boolean;
+  position?: 'bottom' | 'top';
 }
 
-export default function NotificationCenter({ collapsed }: Props) {
+export default function NotificationCenter({ collapsed, position = 'bottom' }: Props) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -117,29 +118,26 @@ export default function NotificationCenter({ collapsed }: Props) {
     <div className="relative" ref={panelRef}>
       <button
         onClick={() => setOpen(!open)}
-        title={collapsed ? `Notifications${unreadCount ? ` (${unreadCount})` : ''}` : undefined}
-        className={cn(
-          'flex w-full items-center rounded-md text-[13px] font-medium transition-colors duration-150',
-          collapsed ? 'justify-center p-2.5' : 'gap-2.5 px-2.5 py-[7px]',
-          'text-muted-foreground hover:bg-muted hover:text-foreground'
-        )}
+        title={`Notifications${unreadCount ? ` (${unreadCount})` : ''}`}
+        className="flex items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
       >
         <div className="relative flex-shrink-0">
-          <BellSimple size={collapsed ? 20 : 18} weight="regular" />
+          <BellSimple size={18} weight="regular" />
           {unreadCount > 0 && (
             <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
         </div>
-        {!collapsed && <span>Notifications</span>}
       </button>
 
       {open && (
         <div
           className={cn(
-            'absolute bottom-0 z-[60] w-[360px] rounded-xl border border-border bg-card shadow-2xl',
-            collapsed ? 'left-[64px]' : 'left-[240px]'
+            'absolute z-[60] w-[360px] rounded-xl border border-border bg-card shadow-2xl',
+            position === 'top'
+              ? 'top-full mt-1 right-0'
+              : collapsed ? 'bottom-0 left-[64px]' : 'bottom-0 left-[240px]'
           )}
         >
           {/* Header */}

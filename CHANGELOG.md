@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.64.1] - 2026-03-07
+
+### Changed
+- **Sidebar cleanup** — Moved notifications to the search bar area, removed theme toggle from sidebar (accessible via Settings → Appearance), simplified collapse to a minimal chevron icon. Sidebar footer now has only Help, Settings, and Log out.
+
 ## [3.64.0 / 2.49.0] - 2026-03-07
 
 ### Added
