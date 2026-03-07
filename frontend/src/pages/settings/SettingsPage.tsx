@@ -19,6 +19,7 @@ import {
   DeviceMobile,
   Barcode,
   PaintBrush,
+  ListMagnifyingGlass,
 } from '@phosphor-icons/react';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import { cn } from '../../lib/utils';
@@ -40,6 +41,7 @@ import RulesSection from './RulesSection';
 import MobileAppSection from './MobileAppSection';
 import BinsSection from './BinsSection';
 import AppearanceSection from './AppearanceSection';
+import CycleCountSection from './CycleCountSection';
 
 function getTokenPayload(): TokenPayload | null {
   const token = localStorage.getItem('token');
@@ -78,6 +80,7 @@ const cards: SettingsCard[] = [
   { slug: 'documents', title: 'Documents', description: 'Document templates, branding colors, and stamps.', icon: FileText, group: 'Warehouse settings', adminOnly: true, component: DocumentsSection },
   { slug: 'rules', title: 'Rules', description: 'Automate order actions, customer tags, and free gifts.', icon: Lightning, group: 'Warehouse settings', adminOnly: true, component: RulesSection },
   { slug: 'mobile-app', title: 'Mobile App', description: 'Picking mode, barcode rules, and mobile modules.', icon: DeviceMobile, group: 'Warehouse settings', adminOnly: true, component: MobileAppSection },
+  { slug: 'cycle-counts', title: 'Cycle Counts', description: 'Default blind count and count type preferences.', icon: ListMagnifyingGlass, group: 'Warehouse settings', adminOnly: true, component: CycleCountSection },
   { slug: 'shipping', title: 'Shipping & Labels', description: 'Shipping provider, carrier mapping, and label printing.', icon: TruckTrailer, group: 'Integrations', adminOnly: true, component: ShippingSection },
   { slug: 'woocommerce', title: 'WooCommerce', description: 'Store connections and sync settings.', icon: Storefront, group: 'Integrations', component: WooCommerceSection },
 ];

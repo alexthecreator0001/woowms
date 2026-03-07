@@ -25,6 +25,7 @@ model Tenant {
   plugins        TenantPlugin[]
   notifications  Notification[]
   auditLogs      AuditLog[]
+  cycleCounts    CycleCount[]
 
   @@map("tenants")
 }
@@ -547,6 +548,78 @@ model AuditLog {
   @@index([tenantId, createdAt])
   @@index([resource, resourceId])
   @@map("audit_logs")
+}
+
+// ─── Cycle Counting ───────────────────────────────
+
+enum CycleCountStatus {
+  PLANNED
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+  CANCELLED
+}
+
+enum CycleCountType {
+  ZONE
+  LOCATION
+  PRODUCT
+}
+
+enum CycleCountItemResolution {
+  PENDING
+  ACCEPTED
+  DISMISSED
+}
+
+model CycleCount {
+  id             Int              @id @default(autoincrement())
+  tenantId       Int              @map("tenant_id")
+  tenant         Tenant           @relation(fields: [tenantId], references: [id])
+  ccNumber       String           @unique @map("cc_number")
+  type           CycleCountType
+  status         CycleCountStatus @default(PLANNED)
+  warehouseId    Int              @map("warehouse_id")
+  zoneId         Int?             @map("zone_id")
+  blindCount     Boolean          @default(false) @map("blind_count")
+  assignedToId   Int?             @map("assigned_to_id")
+  assignedToName String?          @map("assigned_to_name")
+  plannedDate    DateTime?        @map("planned_date")
+  startedAt      DateTime?        @map("started_at")
+  completedAt    DateTime?        @map("completed_at")
+  notes          String?
+  createdById    Int?             @map("created_by_id")
+  createdByName  String?          @map("created_by_name")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  items CycleCountItem[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("cycle_counts")
+}
+
+model CycleCountItem {
+  id            Int                      @id @default(autoincrement())
+  cycleCountId  Int                      @map("cycle_count_id")
+  cycleCount    CycleCount               @relation(fields: [cycleCountId], references: [id], onDelete: Cascade)
+  productId     Int                      @map("product_id")
+  binId         Int                      @map("bin_id")
+  productName   String                   @map("product_name")
+  sku           String?
+  binLabel      String                   @map("bin_label")
+  expectedQty   Int                      @map("expected_qty")
+  countedQty    Int?                     @map("counted_qty")
+  variance      Int?
+  resolution    CycleCountItemResolution @default(PENDING)
+  countedAt     DateTime?                @map("counted_at")
+  countedById   Int?                     @map("counted_by_id")
+  countedByName String?                  @map("counted_by_name")
+  notes         String?
+
+  @@index([cycleCountId])
+  @@map("cycle_count_items")
 }
 
 // ─── Plugins ───────────────────────────────────────

@@ -7,13 +7,13 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const q = ((req.query.q as string) || '').trim();
     if (!q || q.length < 2) {
-      return res.json({ data: { orders: [], products: [], purchaseOrders: [], suppliers: [] } });
+      return res.json({ data: { orders: [], products: [], purchaseOrders: [], suppliers: [], cycleCounts: [] } });
     }
 
     const tenantId = req.tenantId;
     const prisma = req.prisma!;
 
-    const [orders, products, purchaseOrders, suppliers] = await Promise.all([
+    const [orders, products, purchaseOrders, suppliers, cycleCounts] = await Promise.all([
       prisma.order.findMany({
         where: {
           store: { tenantId },
@@ -67,9 +67,21 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         take: 25,
         orderBy: { name: 'asc' },
       }),
+      prisma.cycleCount.findMany({
+        where: {
+          tenantId,
+          OR: [
+            { ccNumber: { contains: q, mode: 'insensitive' } },
+            { assignedToName: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        include: { _count: { select: { items: true } } },
+        take: 25,
+        orderBy: { createdAt: 'desc' },
+      }),
     ]);
 
-    res.json({ data: { orders, products, purchaseOrders, suppliers } });
+    res.json({ data: { orders, products, purchaseOrders, suppliers, cycleCounts } });
   } catch (err) {
     next(err);
   }

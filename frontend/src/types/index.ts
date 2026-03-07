@@ -368,6 +368,50 @@ export interface BundleItem {
   bundleProduct?: Product;
 }
 
+// ─── Cycle Counting ────────────────────────────────
+
+export type CycleCountStatus = 'PLANNED' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED' | 'CANCELLED';
+export type CycleCountType = 'ZONE' | 'LOCATION' | 'PRODUCT';
+export type CycleCountItemResolution = 'PENDING' | 'ACCEPTED' | 'DISMISSED';
+
+export interface CycleCountItem {
+  id: number;
+  productId: number;
+  binId: number;
+  productName: string;
+  sku: string | null;
+  binLabel: string;
+  expectedQty: number;
+  countedQty: number | null;
+  variance: number | null;
+  resolution: CycleCountItemResolution;
+  countedAt: string | null;
+  countedById: number | null;
+  countedByName: string | null;
+  notes: string | null;
+}
+
+export interface CycleCount {
+  id: number;
+  ccNumber: string;
+  type: CycleCountType;
+  status: CycleCountStatus;
+  warehouseId: number;
+  zoneId: number | null;
+  blindCount: boolean;
+  assignedToId: number | null;
+  assignedToName: string | null;
+  plannedDate: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  notes: string | null;
+  createdById: number | null;
+  createdByName: string | null;
+  createdAt: string;
+  items?: CycleCountItem[];
+  _count?: { items: number };
+}
+
 // ─── Plugins ───────────────────────────────────────
 
 export interface PluginCatalogItem {

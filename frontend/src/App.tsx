@@ -28,6 +28,9 @@ import Analytics from './pages/Analytics';
 import AuditLog from './pages/AuditLog';
 import Settings from './pages/settings/SettingsPage';
 import Plugins from './pages/Plugins';
+import CycleCounts from './pages/CycleCounts';
+import CycleCountCreate from './pages/CycleCountCreate';
+import CycleCountDetail from './pages/CycleCountDetail';
 import type { TokenPayload } from './types';
 
 function getTokenPayload(): TokenPayload | null {
@@ -157,6 +160,9 @@ export default function App() {
                 <Route path="/receiving/:id" element={<PODetail />} />
                 <Route path="/suppliers" element={<Suppliers />} />
                 <Route path="/suppliers/:id" element={<SupplierDetail />} />
+                <Route path="/cycle-counts" element={<CycleCounts />} />
+                <Route path="/cycle-counts/new" element={<CycleCountCreate />} />
+                <Route path="/cycle-counts/:id" element={<CycleCountDetail />} />
                 <Route path="/plugins" element={<Plugins />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/settings/:section" element={<Settings />} />

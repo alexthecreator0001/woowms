@@ -9,6 +9,7 @@ import {
   Cube,
   Buildings,
   ListChecks,
+  ListMagnifyingGlass,
   TruckTrailer,
   Package,
   UsersThree,
@@ -60,6 +61,7 @@ const navSections: NavSection[] = [
       { path: '/inventory', label: 'Inventory', icon: Cube },
       { path: '/warehouse', label: 'Locations', icon: Buildings },
       { path: '/picking', label: 'Picking', icon: ListChecks },
+      { path: '/cycle-counts', label: 'Cycle Counts', icon: ListMagnifyingGlass },
     ],
   },
   {
@@ -117,6 +119,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { chord: 'g', key: 'h', handler: () => navigate('/shipping') },
     { chord: 'g', key: 'w', handler: () => navigate('/warehouse') },
     { chord: 'g', key: 'k', handler: () => navigate('/picking') },
+    { chord: 'g', key: 'c', handler: () => navigate('/cycle-counts') },
     { chord: 'g', key: 'x', handler: () => navigate('/settings') },
   ]);
 

@@ -26,6 +26,7 @@ const NAV_SECTIONS = [
       { to: '/warehouse/floor-plan', label: 'Floor Plan' },
       { to: '/warehouse/bins', label: 'Bins & Stock' },
       { to: '/warehouse/labels', label: 'Labels' },
+      { to: '/cycle-counts', label: 'Cycle Counts' },
     ],
   },
   {

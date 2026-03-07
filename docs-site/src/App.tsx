@@ -19,6 +19,7 @@ import Search from './pages/Search';
 import DarkMode from './pages/DarkMode';
 import KeyboardShortcuts from './pages/KeyboardShortcuts';
 import ActivityLog from './pages/ActivityLog';
+import CycleCounts from './pages/CycleCounts';
 import MobileApp from './pages/MobileApp';
 
 export default function App() {
@@ -45,6 +46,7 @@ export default function App() {
         <Route path="/dark-mode" element={<DarkMode />} />
         <Route path="/keyboard-shortcuts" element={<KeyboardShortcuts />} />
         <Route path="/activity-log" element={<ActivityLog />} />
+        <Route path="/cycle-counts" element={<CycleCounts />} />
         <Route path="/mobile-app" element={<MobileApp />} />
       </Route>
     </Routes>

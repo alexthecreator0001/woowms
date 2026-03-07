@@ -5,6 +5,7 @@ import {
   ShoppingBag,
   Cube,
   ClipboardText,
+  ListMagnifyingGlass,
   UsersThree,
   X,
   CircleNotch,
@@ -59,6 +60,14 @@ interface SearchResults {
     name: string;
     email: string | null;
   }>;
+  cycleCounts: Array<{
+    id: number;
+    ccNumber: string;
+    status: string;
+    type: string;
+    assignedToName: string | null;
+    _count?: { items: number };
+  }>;
 }
 
 const RECENT_KEY = 'pickNPack_recentSearches';
@@ -111,6 +120,8 @@ const APP_PAGES: PageEntry[] = [
   { path: '/receiving', label: 'Purchase Orders', description: 'Inbound stock & POs', keywords: ['purchase orders', 'receiving', 'po', 'inbound', 'purchase'], icon: Package },
   { path: '/receiving/new', label: 'Create Purchase Order', description: 'New PO', keywords: ['new po', 'create po', 'new purchase order', 'create purchase order', 'add po'], icon: Package },
   { path: '/suppliers', label: 'Suppliers', description: 'Manage suppliers', keywords: ['suppliers', 'vendors'], icon: UsersThree },
+  { path: '/cycle-counts', label: 'Cycle Counts', description: 'Inventory accuracy counts', keywords: ['cycle count', 'counting', 'inventory accuracy', 'audit', 'variance'], icon: ListMagnifyingGlass },
+  { path: '/cycle-counts/new', label: 'New Cycle Count', description: 'Create a new count', keywords: ['new cycle count', 'create cycle count', 'count inventory'], icon: ListMagnifyingGlass },
   { path: '/plugins', label: 'Plugins', description: 'Integrations & extensions', keywords: ['plugins', 'integrations', 'extensions', 'woocommerce', 'connect'], icon: Plug },
   { path: '/settings', label: 'Settings', description: 'App configuration', keywords: ['settings', 'config', 'configuration', 'preferences', 'branding', 'account'], icon: GearSix },
 ];
@@ -174,6 +185,7 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
         data.data.products?.forEach((p: { id: number; sku?: string }) => items.push({ type: 'product', slug: p.sku || String(p.id) }));
         data.data.purchaseOrders?.forEach((po: { poNumber: string }) => items.push({ type: 'po', slug: po.poNumber }));
         data.data.suppliers?.forEach((s: { id: number }) => items.push({ type: 'supplier', slug: String(s.id) }));
+        data.data.cycleCounts?.forEach((cc: { id: number }) => items.push({ type: 'cycleCount', slug: String(cc.id) }));
         resultItemsRef.current = items;
       } catch {
         setResults(null);
@@ -197,6 +209,7 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
       product: `/inventory/${slug}`,
       po: `/receiving/${slug}`,
       supplier: `/suppliers/${slug}`,
+      cycleCount: `/cycle-counts/${slug}`,
     };
     navigate(paths[type] || '/');
   }, [navigate, onClose, query]);
@@ -229,7 +242,7 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
 
   if (!open) return null;
 
-  const hasApiResults = results && (results.orders.length > 0 || results.products.length > 0 || results.purchaseOrders.length > 0 || results.suppliers.length > 0);
+  const hasApiResults = results && (results.orders.length > 0 || results.products.length > 0 || results.purchaseOrders.length > 0 || results.suppliers.length > 0 || results.cycleCounts?.length > 0);
   const hasResults = hasApiResults || matchedPages.length > 0;
   const noResults = !hasResults && query.length >= 2;
 
@@ -431,6 +444,35 @@ export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
                         <span className="font-medium">{supplier.name}</span>
                         {supplier.email && <span className="text-muted-foreground">{supplier.email}</span>}
                         <ArrowRight size={12} className="ml-auto flex-shrink-0 text-muted-foreground/30" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Cycle Counts */}
+              {results?.cycleCounts && results.cycleCounts.length > 0 && (
+                <div className="mb-1">
+                  <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Cycle Counts</p>
+                  {results?.cycleCounts.map((cc) => {
+                    const idx = getItemIndex('cycleCount', String(cc.id));
+                    const badge = statusBadge[cc.status] || statusBadge.PLANNED;
+                    return (
+                      <button
+                        key={cc.id}
+                        onClick={() => navigateTo('cycleCount', String(cc.id))}
+                        className={cn(
+                          'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                          idx === activeIndex ? 'bg-primary/8' : 'hover:bg-muted/40'
+                        )}
+                      >
+                        <ListMagnifyingGlass size={16} weight="duotone" className="flex-shrink-0 text-muted-foreground/50" />
+                        <span className="font-semibold">{cc.ccNumber}</span>
+                        {cc.assignedToName && <span className="text-muted-foreground">{cc.assignedToName}</span>}
+                        <span className={cn('ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold uppercase', badge.bg, badge.text)}>
+                          {cc.status.replace(/_/g, ' ')}
+                        </span>
+                        <ArrowRight size={12} className="flex-shrink-0 text-muted-foreground/30" />
                       </button>
                     );
                   })}

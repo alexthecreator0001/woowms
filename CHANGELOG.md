@@ -3,6 +3,14 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.64.0 / 2.49.0] - 2026-03-07
+
+### Added
+- **Cycle Counting** — Full cycle count workflow for inventory accuracy verification. Create counts by zone, location, or product. Supports blind counting, team assignment, planned dates, and notes. Four-phase workflow: Plan → Count → Review Variances → Reconcile stock. Reconciliation adjusts StockLocation and Product quantities, creates stock movements, triggers low stock alerts, and pushes to WooCommerce. Includes variance review with accept/dismiss per item or bulk, progress tracking, and full audit trail integration.
+- **Cycle Count settings** — Default blind count and default count type preferences under Settings → Cycle Counts.
+- **Cycle Count in global search** — Search by CC# or assignee name from Cmd+K search.
+- **Keyboard shortcut G+C** — Navigate to Cycle Counts from anywhere.
+
 ## [3.63.2 / 2.48.0] - 2026-03-07
 
 ### Changed
