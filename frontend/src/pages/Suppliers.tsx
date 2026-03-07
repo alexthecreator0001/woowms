@@ -18,7 +18,8 @@ import {
   UploadSimple,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
-import api, { downloadCsv } from '../services/api';
+import api from '../services/api';
+import CsvExportModal from '../components/CsvExportModal';
 import { proxyUrl } from '../lib/image';
 import Pagination from '../components/Pagination';
 import TableConfigDropdown from '../components/TableConfigDropdown';
@@ -55,6 +56,7 @@ export default function Suppliers() {
   const [modalError, setModalError] = useState('');
   const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', website: '', notes: '' });
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const loadStats = useCallback(async () => {
     try {
@@ -132,7 +134,7 @@ export default function Suppliers() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => downloadCsv('/suppliers/export', 'suppliers-export.csv')}
+            onClick={() => setShowExportModal(true)}
             className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-card px-3.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
           >
             <DownloadSimple size={15} weight="bold" />
@@ -491,6 +493,23 @@ export default function Suppliers() {
         optionalColumns={['Email', 'Phone', 'Address', 'Website', 'Notes']}
         templateFilename="suppliers-import-template.csv"
         onSuccess={() => { loadSuppliers(); loadStats(); }}
+      />
+
+      <CsvExportModal
+        open={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Suppliers"
+        columns={[
+          { key: 'name', label: 'Name' },
+          { key: 'email', label: 'Email' },
+          { key: 'phone', label: 'Phone' },
+          { key: 'address', label: 'Address' },
+          { key: 'website', label: 'Website' },
+          { key: 'active', label: 'Active' },
+          { key: 'notes', label: 'Notes' },
+        ]}
+        endpoint="/suppliers/export"
+        filename="suppliers-export.csv"
       />
     </div>
   );

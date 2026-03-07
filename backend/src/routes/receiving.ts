@@ -8,7 +8,7 @@ import { dirname } from 'path';
 import { pushStockToWoo, shouldPushStock } from '../woocommerce/sync.js';
 import { sendPurchaseOrderEmail } from '../services/email.js';
 import prisma from '../lib/prisma.js';
-import { buildCsv, sendCsv } from '../lib/csv.js';
+import { buildCsv, sendCsv, resolveDelimiter, formatDate, filterColumns, type ColumnDef } from '../lib/csv.js';
 import { generatePoPdf, type PoTemplate } from '../lib/poPdf.js';
 import { notifyPOReceived } from '../services/slack.js';
 import sharp from 'sharp';
@@ -86,31 +86,33 @@ interface CreatePOItem {
 // GET /api/v1/receiving/export — CSV export
 router.get('/export', async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const { columns: colParam, delimiter: delimParam, dateFormat } = req.query as Record<string, string | undefined>;
+    const delim = resolveDelimiter(delimParam);
+    const dateFmt = dateFormat || 'YYYY-MM-DD';
+
     const purchaseOrders = await req.prisma!.purchaseOrder.findMany({
       where: { tenantId: req.tenantId },
       include: { items: true, supplierRef: true },
       orderBy: { createdAt: 'desc' },
     });
 
-    const headers = ['PO #', 'Status', 'Supplier', 'Items Count', 'Total Qty', 'Received Qty', 'Expected Date', 'Created At', 'Notes'];
-    const rows = purchaseOrders.map((po) => {
-      const items = po.items || [];
-      const totalQty = items.reduce((s, i) => s + i.orderedQty, 0);
-      const receivedQty = items.reduce((s, i) => s + i.receivedQty, 0);
-      return [
-        po.poNumber,
-        po.status,
-        po.supplierRef?.name || po.supplier || '',
-        items.length,
-        totalQty,
-        receivedQty,
-        po.expectedDate ? new Date(po.expectedDate).toISOString().split('T')[0] : '',
-        new Date(po.createdAt).toISOString().split('T')[0],
-        po.notes || '',
-      ];
-    });
+    const registry: ColumnDef<(typeof purchaseOrders)[0]>[] = [
+      { key: 'poNumber', header: 'PO #', accessor: (po) => po.poNumber },
+      { key: 'status', header: 'Status', accessor: (po) => po.status },
+      { key: 'supplier', header: 'Supplier', accessor: (po) => po.supplierRef?.name || po.supplier || '' },
+      { key: 'itemsCount', header: 'Items Count', accessor: (po) => po.items?.length || 0 },
+      { key: 'totalQty', header: 'Total Qty', accessor: (po) => (po.items || []).reduce((s, i) => s + i.orderedQty, 0) },
+      { key: 'receivedQty', header: 'Received Qty', accessor: (po) => (po.items || []).reduce((s, i) => s + i.receivedQty, 0) },
+      { key: 'expectedDate', header: 'Expected Date', accessor: (po) => formatDate(po.expectedDate, dateFmt) },
+      { key: 'createdAt', header: 'Created At', accessor: (po) => formatDate(po.createdAt, dateFmt) },
+      { key: 'notes', header: 'Notes', accessor: (po) => po.notes || '' },
+    ];
 
-    sendCsv(res, 'purchase-orders-export.csv', buildCsv(headers, rows));
+    const cols = filterColumns(registry, colParam);
+    const headers = cols.map((c) => c.header);
+    const rows = purchaseOrders.map((po) => cols.map((c) => c.accessor(po)));
+
+    sendCsv(res, 'purchase-orders-export.csv', buildCsv(headers, rows, delim));
   } catch (err) {
     next(err);
   }

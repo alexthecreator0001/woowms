@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.62.0 / 2.47.0] - 2026-03-07
+
+### Added
+- **CSV export modal** — Clicking "Export" on Inventory, Orders, Purchase Orders, or Suppliers now opens a modal where you can select which columns to include, choose a delimiter (comma, tab, or semicolon), and pick a date format (YYYY-MM-DD, MM/DD/YYYY, or DD/MM/YYYY) before downloading.
+
 ## [3.61.0 / 2.46.0] - 2026-03-07
 
 ### Added

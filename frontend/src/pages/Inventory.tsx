@@ -22,10 +22,11 @@ import {
 import { cn } from '../lib/utils';
 import { fmtMoney } from '../lib/currency';
 import { proxyUrl } from '../lib/image';
-import api, { downloadCsv } from '../services/api';
+import api from '../services/api';
 import Pagination from '../components/Pagination';
 import TableConfigDropdown from '../components/TableConfigDropdown';
 import CsvImportModal from '../components/CsvImportModal';
+import CsvExportModal from '../components/CsvExportModal';
 import { useTableConfig } from '../hooks/useTableConfig';
 import type { Product, PaginationMeta, TableColumnDef } from '../types';
 
@@ -82,6 +83,7 @@ export default function Inventory() {
   const [syncPhase, setSyncPhase] = useState('');
   const [syncBgNotice, setSyncBgNotice] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const loadFilterCounts = useCallback(async () => {
     try {
@@ -225,7 +227,7 @@ export default function Inventory() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => downloadCsv('/inventory/export', 'inventory-export.csv')}
+            onClick={() => setShowExportModal(true)}
             className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-card px-3.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
           >
             <DownloadSimple size={15} weight="bold" />
@@ -709,6 +711,26 @@ export default function Inventory() {
         optionalColumns={['Low Stock Threshold']}
         templateFilename="inventory-import-template.csv"
         onSuccess={() => { loadProducts(); loadFilterCounts(); }}
+      />
+
+      <CsvExportModal
+        open={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Inventory"
+        columns={[
+          { key: 'sku', label: 'SKU' },
+          { key: 'name', label: 'Product Name' },
+          { key: 'type', label: 'Type' },
+          { key: 'stockQty', label: 'Stock Qty' },
+          { key: 'reserved', label: 'Reserved' },
+          { key: 'freeToSell', label: 'Free to Sell' },
+          { key: 'lowStockThreshold', label: 'Low Stock Threshold' },
+          { key: 'bin', label: 'Bin Location' },
+          { key: 'zone', label: 'Zone' },
+          { key: 'warehouse', label: 'Warehouse' },
+        ]}
+        endpoint="/inventory/export"
+        filename="inventory-export.csv"
       />
     </div>
   );

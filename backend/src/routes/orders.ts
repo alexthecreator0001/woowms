@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { pushOrderStatus } from '../woocommerce/fetch.js';
-import { buildCsv, sendCsv } from '../lib/csv.js';
+import { buildCsv, sendCsv, resolveDelimiter, formatDate, filterColumns, type ColumnDef } from '../lib/csv.js';
 
 const router = Router();
 
@@ -8,7 +8,9 @@ const router = Router();
 router.get('/export', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const prisma = req.prisma!;
-    const { status } = req.query as Record<string, string | undefined>;
+    const { status, columns: colParam, delimiter: delimParam, dateFormat } = req.query as Record<string, string | undefined>;
+    const delim = resolveDelimiter(delimParam);
+    const dateFmt = dateFormat || 'YYYY-MM-DD';
 
     const where: any = { store: { tenantId: req.tenantId } };
     if (status) where.status = status;
@@ -19,22 +21,25 @@ router.get('/export', async (req: Request, res: Response, next: NextFunction) =>
       orderBy: { wooCreatedAt: 'desc' },
     });
 
-    const headers = ['Order #', 'Status', 'Customer Name', 'Customer Email', 'Total', 'Currency', 'Payment Method', 'Shipping Method', 'Items Count', 'Created At', 'Store'];
-    const rows = orders.map((o) => [
-      o.orderNumber,
-      o.status,
-      o.customerName || '',
-      o.customerEmail || '',
-      o.total ? String(o.total) : '',
-      o.currency || '',
-      o.paymentMethodTitle || o.paymentMethod || '',
-      o.shippingMethodTitle || o.shippingMethod || '',
-      o.items?.length || 0,
-      o.wooCreatedAt ? new Date(o.wooCreatedAt).toISOString() : '',
-      (o.store as any)?.name || '',
-    ]);
+    const registry: ColumnDef<(typeof orders)[0]>[] = [
+      { key: 'orderNumber', header: 'Order #', accessor: (o) => o.orderNumber },
+      { key: 'status', header: 'Status', accessor: (o) => o.status },
+      { key: 'customerName', header: 'Customer Name', accessor: (o) => o.customerName || '' },
+      { key: 'customerEmail', header: 'Customer Email', accessor: (o) => o.customerEmail || '' },
+      { key: 'total', header: 'Total', accessor: (o) => o.total ? String(o.total) : '' },
+      { key: 'currency', header: 'Currency', accessor: (o) => o.currency || '' },
+      { key: 'paymentMethod', header: 'Payment Method', accessor: (o) => o.paymentMethodTitle || o.paymentMethod || '' },
+      { key: 'shippingMethod', header: 'Shipping Method', accessor: (o) => o.shippingMethodTitle || o.shippingMethod || '' },
+      { key: 'itemsCount', header: 'Items Count', accessor: (o) => o.items?.length || 0 },
+      { key: 'createdAt', header: 'Created At', accessor: (o) => formatDate(o.wooCreatedAt, dateFmt) },
+      { key: 'store', header: 'Store', accessor: (o) => (o.store as any)?.name || '' },
+    ];
 
-    sendCsv(res, 'orders-export.csv', buildCsv(headers, rows));
+    const cols = filterColumns(registry, colParam);
+    const headers = cols.map((c) => c.header);
+    const rows = orders.map((o) => cols.map((c) => c.accessor(o)));
+
+    sendCsv(res, 'orders-export.csv', buildCsv(headers, rows, delim));
   } catch (err) {
     next(err);
   }

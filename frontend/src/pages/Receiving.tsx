@@ -12,7 +12,8 @@ import {
   UploadSimple,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/utils';
-import api, { downloadCsv } from '../services/api';
+import api from '../services/api';
+import CsvExportModal from '../components/CsvExportModal';
 import { proxyUrl } from '../lib/image';
 import Pagination from '../components/Pagination';
 import CsvImportModal from '../components/CsvImportModal';
@@ -50,6 +51,7 @@ export default function Receiving() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
     setPage(1);
@@ -92,7 +94,7 @@ export default function Receiving() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => downloadCsv('/receiving/export', 'purchase-orders-export.csv')}
+            onClick={() => setShowExportModal(true)}
             className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-card px-3.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
           >
             <DownloadSimple size={15} weight="bold" />
@@ -266,6 +268,25 @@ export default function Receiving() {
         optionalColumns={['Expected Date', 'Notes']}
         templateFilename="purchase-orders-import-template.csv"
         onSuccess={loadPOs}
+      />
+
+      <CsvExportModal
+        open={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Purchase Orders"
+        columns={[
+          { key: 'poNumber', label: 'PO #' },
+          { key: 'status', label: 'Status' },
+          { key: 'supplier', label: 'Supplier' },
+          { key: 'itemsCount', label: 'Items Count' },
+          { key: 'totalQty', label: 'Total Qty' },
+          { key: 'receivedQty', label: 'Received Qty' },
+          { key: 'expectedDate', label: 'Expected Date' },
+          { key: 'createdAt', label: 'Created At' },
+          { key: 'notes', label: 'Notes' },
+        ]}
+        endpoint="/receiving/export"
+        filename="purchase-orders-export.csv"
       />
     </div>
   );

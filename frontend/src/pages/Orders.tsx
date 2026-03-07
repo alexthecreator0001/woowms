@@ -17,7 +17,8 @@ import { cn } from '../lib/utils';
 import { proxyUrl } from '../lib/image';
 import { fmtMoney } from '../lib/currency';
 import { getStatusStyle, fetchAllStatuses, type StatusDef } from '../lib/statuses';
-import api, { downloadCsv } from '../services/api';
+import api from '../services/api';
+import CsvExportModal from '../components/CsvExportModal';
 import Pagination from '../components/Pagination';
 import TableConfigDropdown from '../components/TableConfigDropdown';
 import { useTableConfig } from '../hooks/useTableConfig';
@@ -51,6 +52,7 @@ export default function Orders() {
   const [loading, setLoading] = useState(true);
   const [allStatuses, setAllStatuses] = useState<StatusDef[]>([]);
   const [orderStats, setOrderStats] = useState<OrderStats | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
   const { visibleIds, toggleColumn, isVisible } = useTableConfig('orderColumns', orderColumnDefs);
 
   const loadStats = useCallback(async () => {
@@ -113,7 +115,7 @@ export default function Orders() {
           </div>
         </div>
         <button
-          onClick={() => downloadCsv(`/orders/export${filter ? `?status=${filter}` : ''}`, 'orders-export.csv')}
+          onClick={() => setShowExportModal(true)}
           className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-card px-3.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted/60"
         >
           <DownloadSimple size={15} weight="bold" />
@@ -304,6 +306,28 @@ export default function Orders() {
 
       {/* Pagination */}
       {meta && <Pagination meta={meta} onPageChange={setPage} />}
+
+      <CsvExportModal
+        open={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Orders"
+        columns={[
+          { key: 'orderNumber', label: 'Order #' },
+          { key: 'status', label: 'Status' },
+          { key: 'customerName', label: 'Customer Name' },
+          { key: 'customerEmail', label: 'Customer Email' },
+          { key: 'total', label: 'Total' },
+          { key: 'currency', label: 'Currency' },
+          { key: 'paymentMethod', label: 'Payment Method' },
+          { key: 'shippingMethod', label: 'Shipping Method' },
+          { key: 'itemsCount', label: 'Items Count' },
+          { key: 'createdAt', label: 'Created At' },
+          { key: 'store', label: 'Store' },
+        ]}
+        endpoint="/orders/export"
+        filename="orders-export.csv"
+        extraParams={filter ? { status: filter } : undefined}
+      />
     </div>
   );
 }

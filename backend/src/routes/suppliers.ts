@@ -3,7 +3,7 @@ import multer from 'multer';
 import { parse } from 'csv-parse/sync';
 import { authorize } from '../middleware/auth.js';
 import prisma from '../lib/prisma.js';
-import { buildCsv, sendCsv } from '../lib/csv.js';
+import { buildCsv, sendCsv, resolveDelimiter, filterColumns, type ColumnDef } from '../lib/csv.js';
 
 const router = Router();
 const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -11,23 +11,29 @@ const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 
 // GET /api/v1/suppliers/export — CSV export
 router.get('/export', async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const { columns: colParam, delimiter: delimParam } = req.query as Record<string, string | undefined>;
+    const delim = resolveDelimiter(delimParam);
+
     const suppliers = await req.prisma!.supplier.findMany({
       where: { tenantId: req.tenantId },
       orderBy: { name: 'asc' },
     });
 
-    const headers = ['Name', 'Email', 'Phone', 'Address', 'Website', 'Active', 'Notes'];
-    const rows = suppliers.map((s) => [
-      s.name,
-      s.email || '',
-      s.phone || '',
-      s.address || '',
-      s.website || '',
-      s.isActive ? 'Yes' : 'No',
-      s.notes || '',
-    ]);
+    const registry: ColumnDef<(typeof suppliers)[0]>[] = [
+      { key: 'name', header: 'Name', accessor: (s) => s.name },
+      { key: 'email', header: 'Email', accessor: (s) => s.email || '' },
+      { key: 'phone', header: 'Phone', accessor: (s) => s.phone || '' },
+      { key: 'address', header: 'Address', accessor: (s) => s.address || '' },
+      { key: 'website', header: 'Website', accessor: (s) => s.website || '' },
+      { key: 'active', header: 'Active', accessor: (s) => s.isActive ? 'Yes' : 'No' },
+      { key: 'notes', header: 'Notes', accessor: (s) => s.notes || '' },
+    ];
 
-    sendCsv(res, 'suppliers-export.csv', buildCsv(headers, rows));
+    const cols = filterColumns(registry, colParam);
+    const headers = cols.map((c) => c.header);
+    const rows = suppliers.map((s) => cols.map((c) => c.accessor(s)));
+
+    sendCsv(res, 'suppliers-export.csv', buildCsv(headers, rows, delim));
   } catch (err) {
     next(err);
   }

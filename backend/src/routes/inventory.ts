@@ -4,7 +4,7 @@ import { parse } from 'csv-parse/sync';
 import { authorize } from '../middleware/auth.js';
 import { syncProducts, pushStockToWoo, pushProductToWoo, shouldPushStock } from '../woocommerce/sync.js';
 import prisma from '../lib/prisma.js';
-import { buildCsv, sendCsv } from '../lib/csv.js';
+import { buildCsv, sendCsv, resolveDelimiter, formatDate, filterColumns, type ColumnDef } from '../lib/csv.js';
 import { notifyLowStock } from '../services/slack.js';
 
 const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -203,6 +203,9 @@ router.get('/filter-counts', async (req: Request, res: Response, next: NextFunct
 router.get('/export', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const prismaClient = req.prisma!;
+    const { columns: colParam, delimiter: delimParam, dateFormat } = req.query as Record<string, string | undefined>;
+    const delim = resolveDelimiter(delimParam);
+
     const products = await prismaClient.product.findMany({
       where: { store: { tenantId: req.tenantId } },
       include: {
@@ -211,27 +214,24 @@ router.get('/export', async (req: Request, res: Response, next: NextFunction) =>
       orderBy: { name: 'asc' },
     });
 
-    const headers = ['SKU', 'Product Name', 'Type', 'Stock Qty', 'Reserved', 'Free to Sell', 'Low Stock Threshold', 'Bin Location', 'Zone', 'Warehouse'];
-    const rows = products.map((p) => {
-      const bins = p.stockLocations?.map((sl: any) => sl.bin?.label).filter(Boolean) || [];
-      const zones = p.stockLocations?.map((sl: any) => sl.bin?.zone?.name).filter(Boolean) || [];
-      const warehouses = p.stockLocations?.map((sl: any) => sl.bin?.zone?.warehouse?.name).filter(Boolean) || [];
-      const type = p.isBundle ? 'Bundle' : p.isDigital ? 'Digital' : 'Simple';
-      return [
-        p.sku || '',
-        p.name,
-        type,
-        p.stockQty,
-        p.reservedQty,
-        p.stockQty - p.reservedQty,
-        p.lowStockThreshold,
-        [...new Set(bins)].join(', '),
-        [...new Set(zones)].join(', '),
-        [...new Set(warehouses)].join(', '),
-      ];
-    });
+    const registry: ColumnDef<(typeof products)[0]>[] = [
+      { key: 'sku', header: 'SKU', accessor: (p) => p.sku || '' },
+      { key: 'name', header: 'Product Name', accessor: (p) => p.name },
+      { key: 'type', header: 'Type', accessor: (p) => p.isBundle ? 'Bundle' : (p as any).isDigital ? 'Digital' : 'Simple' },
+      { key: 'stockQty', header: 'Stock Qty', accessor: (p) => p.stockQty },
+      { key: 'reserved', header: 'Reserved', accessor: (p) => p.reservedQty },
+      { key: 'freeToSell', header: 'Free to Sell', accessor: (p) => p.stockQty - p.reservedQty },
+      { key: 'lowStockThreshold', header: 'Low Stock Threshold', accessor: (p) => p.lowStockThreshold },
+      { key: 'bin', header: 'Bin Location', accessor: (p) => [...new Set((p.stockLocations?.map((sl: any) => sl.bin?.label).filter(Boolean)) || [])].join(', ') },
+      { key: 'zone', header: 'Zone', accessor: (p) => [...new Set((p.stockLocations?.map((sl: any) => sl.bin?.zone?.name).filter(Boolean)) || [])].join(', ') },
+      { key: 'warehouse', header: 'Warehouse', accessor: (p) => [...new Set((p.stockLocations?.map((sl: any) => sl.bin?.zone?.warehouse?.name).filter(Boolean)) || [])].join(', ') },
+    ];
 
-    sendCsv(res, 'inventory-export.csv', buildCsv(headers, rows));
+    const cols = filterColumns(registry, colParam);
+    const headers = cols.map((c) => c.header);
+    const rows = products.map((p) => cols.map((c) => c.accessor(p)));
+
+    sendCsv(res, 'inventory-export.csv', buildCsv(headers, rows, delim));
   } catch (err) {
     next(err);
   }

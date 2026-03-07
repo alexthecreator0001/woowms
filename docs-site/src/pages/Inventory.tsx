@@ -149,8 +149,15 @@ export default function Inventory() {
 
       <h3>Export CSV</h3>
       <p>
-        Click the <strong>Export</strong> button to download a CSV file containing your
-        entire inventory with stock data, bin locations, and thresholds.
+        Click the <strong>Export</strong> button to open the export modal. From here you can:
+      </p>
+      <ul>
+        <li><strong>Select columns</strong> — choose which columns to include using the checkbox list. Use "Select All / Deselect All" to quickly toggle all columns.</li>
+        <li><strong>Delimiter</strong> — choose between Comma (default), Tab, or Semicolon separators.</li>
+        <li><strong>Date format</strong> — choose between YYYY-MM-DD (default), MM/DD/YYYY, or DD/MM/YYYY.</li>
+      </ul>
+      <p>
+        The same column selection and format options are available on all export pages (Inventory, Orders, Purchase Orders, and Suppliers).
       </p>
 
       <h3>Import CSV</h3>

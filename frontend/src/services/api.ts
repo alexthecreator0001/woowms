@@ -26,8 +26,8 @@ api.interceptors.response.use(
   }
 );
 
-export async function downloadCsv(url: string, defaultFilename: string): Promise<void> {
-  const response = await api.get(url, { responseType: 'blob' });
+export async function downloadCsv(url: string, defaultFilename: string, params?: Record<string, string>): Promise<void> {
+  const response = await api.get(url, { responseType: 'blob', params });
   const blob = new Blob([response.data], { type: 'text/csv' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
