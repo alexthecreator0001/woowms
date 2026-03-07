@@ -34,6 +34,7 @@ interface NavItem {
   path: string;
   label: string;
   icon: PhosphorIcon;
+  shortcut?: string;
 }
 
 interface NavSection {
@@ -45,27 +46,27 @@ const navSections: NavSection[] = [
   {
     label: 'Overview',
     items: [
-      { path: '/', label: 'Dashboard', icon: SquaresFour },
+      { path: '/', label: 'Dashboard', icon: SquaresFour, shortcut: 'G D' },
       { path: '/analytics', label: 'Analytics', icon: ChartLineUp },
       { path: '/activity', label: 'Activity', icon: ClockCounterClockwise },
-      { path: '/orders', label: 'Orders', icon: ShoppingBag },
+      { path: '/orders', label: 'Orders', icon: ShoppingBag, shortcut: 'G O' },
     ],
   },
   {
     label: 'Warehouse',
     items: [
-      { path: '/inventory', label: 'Inventory', icon: Cube },
-      { path: '/warehouse', label: 'Locations', icon: Buildings },
-      { path: '/picking', label: 'Picking', icon: ListChecks },
-      { path: '/cycle-counts', label: 'Cycle Counts', icon: ListMagnifyingGlass },
+      { path: '/inventory', label: 'Inventory', icon: Cube, shortcut: 'G I' },
+      { path: '/warehouse', label: 'Locations', icon: Buildings, shortcut: 'G W' },
+      { path: '/picking', label: 'Picking', icon: ListChecks, shortcut: 'G K' },
+      { path: '/cycle-counts', label: 'Cycle Counts', icon: ListMagnifyingGlass, shortcut: 'G C' },
     ],
   },
   {
     label: 'Logistics',
     items: [
-      { path: '/shipping', label: 'Shipping', icon: TruckTrailer },
-      { path: '/receiving', label: 'Purchase Orders', icon: Package },
-      { path: '/suppliers', label: 'Suppliers', icon: UsersThree },
+      { path: '/shipping', label: 'Shipping', icon: TruckTrailer, shortcut: 'G H' },
+      { path: '/receiving', label: 'Purchase Orders', icon: Package, shortcut: 'G P' },
+      { path: '/suppliers', label: 'Suppliers', icon: UsersThree, shortcut: 'G S' },
     ],
   },
   {
@@ -139,13 +140,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           )}
         >
           {collapsed ? (
-            logoUrl ? (
-              <img src={logoUrl} alt="" className="h-8 w-8 rounded-md object-contain" />
-            ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-[13px] font-bold text-primary">
-                {initial}
-              </div>
-            )
+            <button
+              onClick={() => setCollapsed(false)}
+              title="Expand sidebar"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <CaretLineRight size={16} />
+            </button>
           ) : (
             <>
               {logoUrl ? (
@@ -155,9 +156,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   {initial}
                 </div>
               )}
-              <span className="truncate text-[13px] font-semibold text-foreground">
+              <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground">
                 {companyName || 'PickNPack'}
               </span>
+              <button
+                onClick={() => setCollapsed(true)}
+                title="Collapse sidebar"
+                className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground/40 transition-colors hover:bg-muted hover:text-muted-foreground"
+              >
+                <CaretLineLeft size={14} />
+              </button>
             </>
           )}
         </div>
@@ -220,7 +228,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                             weight={isActive ? 'fill' : 'regular'}
                             className="flex-shrink-0"
                           />
-                          {!collapsed && <span>{item.label}</span>}
+                          {!collapsed && (
+                            <>
+                              <span className="flex-1">{item.label}</span>
+                              {item.shortcut && (
+                                <kbd className="hidden lg:inline text-[10px] font-medium text-muted-foreground/30 group-hover:text-muted-foreground/50 transition-colors">
+                                  {item.shortcut}
+                                </kbd>
+                              )}
+                            </>
+                          )}
                         </>
                       )}
                     </NavLink>
@@ -280,13 +297,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {!collapsed && <span>Log out</span>}
           </button>
 
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="flex w-full items-center justify-center rounded-md p-1.5 text-muted-foreground/40 transition-colors duration-150 hover:bg-muted hover:text-muted-foreground"
-          >
-            {collapsed ? <CaretLineRight size={16} /> : <CaretLineLeft size={16} />}
-          </button>
         </div>
       </aside>
 

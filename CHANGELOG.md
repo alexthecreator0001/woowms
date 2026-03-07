@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.64.2] - 2026-03-07
+
+### Changed
+- **Sidebar polish** — Collapse/expand button moved to header next to company name. Keyboard shortcut hints (G D, G O, etc.) shown on nav items. Fixed notification panel positioning overflow.
+
 ## [3.64.1] - 2026-03-07
 
 ### Changed

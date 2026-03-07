@@ -136,7 +136,7 @@ export default function NotificationCenter({ collapsed, position = 'bottom' }: P
           className={cn(
             'absolute z-[60] w-[360px] rounded-xl border border-border bg-card shadow-2xl',
             position === 'top'
-              ? 'top-full mt-1 right-0'
+              ? 'top-full mt-1 left-0'
               : collapsed ? 'bottom-0 left-[64px]' : 'bottom-0 left-[240px]'
           )}
         >
