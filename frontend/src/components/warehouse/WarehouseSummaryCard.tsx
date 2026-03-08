@@ -21,9 +21,9 @@ export default function WarehouseSummaryCard({ warehouse, onEdit, onDelete }: Wa
   const navigate = useNavigate();
 
   const zones = warehouse.zones || [];
-  const totalBins = zones.reduce((acc, z) => acc + (z.bins?.length || 0), 0);
+  const totalBins = zones.reduce((acc, z) => acc + (z.racks?.reduce((rs, r) => rs + (r.bins?.length || 0), 0) || 0), 0);
   const occupiedBins = zones.reduce(
-    (acc, z) => acc + (z.bins?.filter((b) => (b._stockCount ?? 0) > 0).length || 0),
+    (acc, z) => acc + (z.racks?.reduce((rs, r) => rs + (r.bins?.filter((b) => (b._stockCount ?? 0) > 0).length || 0), 0) || 0),
     0,
   );
   const utilPct = totalBins > 0 ? Math.round((occupiedBins / totalBins) * 100) : 0;

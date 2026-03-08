@@ -115,7 +115,8 @@ export default function ZoneDetail() {
     fetchData();
   }, [fetchData]);
 
-  const bins = zone?.bins || [];
+  const bins = zone?.racks?.flatMap((r) => r.bins || []) || [];
+  const firstRack = zone?.racks?.[0] || null;
 
   // Aisle options
   const aisleOptions = useMemo(() => {
@@ -219,7 +220,7 @@ export default function ZoneDetail() {
     if (!addLabel.trim() || !zone) return;
     setAddSaving(true);
     try {
-      await api.post(`/warehouse/zones/${zone.id}/bins`, {
+      await api.post(`/warehouse/racks/${firstRack?.id || 0}/bins`, {
         label: addLabel.trim(),
         row: addRow.trim() || undefined,
         shelf: addShelf.trim() || undefined,
@@ -789,7 +790,7 @@ export default function ZoneDetail() {
         open={generateOpen}
         onClose={() => setGenerateOpen(false)}
         onSaved={() => { setGenerateOpen(false); fetchData(); }}
-        zoneId={zone.id}
+        rackId={firstRack?.id || 0}
       />
 
       {/* Print Labels Modal */}

@@ -78,14 +78,16 @@ export default function CycleCountCreate() {
       .then(({ data }) => {
         const allBins: BinOption[] = [];
         for (const zone of (data.data?.zones || [])) {
-          for (const bin of (zone.bins || [])) {
-            allBins.push({
-              id: bin.id,
-              label: bin.label,
-              zoneId: zone.id,
-              zoneName: zone.name,
-              stockCount: bin._stockCount ?? bin.stockLocations?.length ?? 0,
-            });
+          for (const rack of (zone.racks || [])) {
+            for (const bin of (rack.bins || [])) {
+              allBins.push({
+                id: bin.id,
+                label: bin.label,
+                zoneId: zone.id,
+                zoneName: zone.name,
+                stockCount: bin._stockCount ?? bin.stockLocations?.length ?? 0,
+              });
+            }
           }
         }
         setBins(allBins);

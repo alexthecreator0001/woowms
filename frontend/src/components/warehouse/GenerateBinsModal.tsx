@@ -9,7 +9,7 @@ interface GenerateBinsModalProps {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
-  zoneId: number;
+  rackId: number;
 }
 
 type AisleNaming = 'letters' | 'numbers';
@@ -18,7 +18,7 @@ export default function GenerateBinsModal({
   open,
   onClose,
   onSaved,
-  zoneId,
+  rackId,
 }: GenerateBinsModalProps) {
   const [aisles, setAisles] = useState(3);
   const [aisleNaming, setAisleNaming] = useState<AisleNaming>('letters');
@@ -98,7 +98,7 @@ export default function GenerateBinsModal({
     setError(null);
 
     try {
-      await api.post(`/warehouse/zones/${zoneId}/bins/generate`, {
+      await api.post(`/warehouse/racks/${rackId}/bins/generate`, {
         aisles,
         aisleNaming,
         racksPerAisle: racks,

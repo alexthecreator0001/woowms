@@ -213,7 +213,7 @@ export default function ElementProperties({
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{linkedZone.name}</p>
                   <p className="text-[11px] text-muted-foreground">
-                    {linkedZone.type} — {linkedZone.bins?.length || 0} locations
+                    {linkedZone.type} — {linkedZone.racks?.reduce((s, r) => s + (r.bins?.length || 0), 0) || 0} locations
                   </p>
                 </div>
                 <button

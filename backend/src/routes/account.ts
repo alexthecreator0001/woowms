@@ -463,13 +463,18 @@ router.delete('/', authorize('ADMIN'), async (req: Request, res: Response, next:
         const zones = await tx.zone.findMany({ where: { warehouseId: { in: warehouseIds } }, select: { id: true } });
         const zoneIds = zones.map((z) => z.id);
         if (zoneIds.length > 0) {
-          // Delete stock locations tied to bins in these zones
-          const bins = await tx.bin.findMany({ where: { zoneId: { in: zoneIds } }, select: { id: true } });
-          const binIds = bins.map((b) => b.id);
-          if (binIds.length > 0) {
-            await tx.stockLocation.deleteMany({ where: { binId: { in: binIds } } });
+          // Delete stock locations tied to bins in racks in these zones
+          const racks = await tx.rack.findMany({ where: { zoneId: { in: zoneIds } }, select: { id: true } });
+          const rackIds = racks.map((r) => r.id);
+          if (rackIds.length > 0) {
+            const bins = await tx.bin.findMany({ where: { rackId: { in: rackIds } }, select: { id: true } });
+            const binIds = bins.map((b) => b.id);
+            if (binIds.length > 0) {
+              await tx.stockLocation.deleteMany({ where: { binId: { in: binIds } } });
+            }
+            await tx.bin.deleteMany({ where: { rackId: { in: rackIds } } });
+            await tx.rack.deleteMany({ where: { id: { in: rackIds } } });
           }
-          await tx.bin.deleteMany({ where: { zoneId: { in: zoneIds } } });
         }
         await tx.zone.deleteMany({ where: { warehouseId: { in: warehouseIds } } });
         await tx.warehouse.deleteMany({ where: { tenantId } });

@@ -223,9 +223,28 @@ model Zone {
   type        ZoneType @default(STORAGE)
   description String?
 
-  bins Bin[]
+  racks Rack[]
 
   @@map("zones")
+}
+
+enum RackType {
+  SHELVING
+  PALLET
+}
+
+model Rack {
+  id          Int      @id @default(autoincrement())
+  zoneId      Int      @map("zone_id")
+  zone        Zone     @relation(fields: [zoneId], references: [id])
+  name        String
+  type        RackType @default(SHELVING)
+  prefix      String?
+  description String?
+
+  bins Bin[]
+
+  @@map("racks")
 }
 
 enum ZoneType {
@@ -254,8 +273,8 @@ enum ProductSize {
 
 model Bin {
   id        Int      @id @default(autoincrement())
-  zoneId    Int      @map("zone_id")
-  zone      Zone     @relation(fields: [zoneId], references: [id])
+  rackId    Int      @map("rack_id")
+  rack      Rack     @relation(fields: [rackId], references: [id])
   label     String   @unique
   row       String?
   shelf     String?

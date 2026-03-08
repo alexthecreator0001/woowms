@@ -3,13 +3,29 @@ export default function WarehouseZones() {
     <article className="doc-prose">
       <h1 className="doc-heading text-4xl mb-2">Zones & Racks</h1>
       <p className="text-lg text-surface-400 mb-8">
-        Add storage racks and organize your warehouse into typed zones.
+        Organize your warehouse with a four-level hierarchy: Warehouse &rarr; Zone &rarr; Rack &rarr; Bin.
       </p>
+
+      <h2>Data Model</h2>
+      <p>
+        Every warehouse uses a four-level hierarchy:
+      </p>
+      <ul>
+        <li><strong>Warehouse</strong> &mdash; The physical building</li>
+        <li><strong>Zone</strong> &mdash; A functional area (Storage, Picking, Receiving, etc.)</li>
+        <li><strong>Rack</strong> &mdash; A shelving or pallet rack inside a zone. Two types:
+          <ul>
+            <li><strong>Shelving Rack</strong> &mdash; For picking. Each bin = one product location.</li>
+            <li><strong>Pallet Rack</strong> &mdash; For bulk storage. Positions can hold multiple SKUs.</li>
+          </ul>
+        </li>
+        <li><strong>Bin</strong> &mdash; An individual storage location on a rack (e.g., SHE-01-03)</li>
+      </ul>
 
       <h2>Adding Racks &amp; Zones</h2>
       <p>
         There are two ways to set up your warehouse. Both create the same underlying data
-        (zones + bins), they're just different interfaces:
+        (zones + racks + bins), they're just different interfaces:
       </p>
 
       <h3>Option A: Zones Tab (Quick Setup)</h3>
@@ -42,8 +58,8 @@ export default function WarehouseZones() {
       <h3>Two Views, One Data Model</h3>
       <p>
         The Zones tab and Floor Plan tab show the <strong>same data</strong>. Creating a rack
-        from either tab creates it in both. Zone cards in the list view show the linked element
-        name and type. Floor plan elements show their zone's bin count and utilization.
+        from either tab creates a Zone + Rack + Bins in one step. Zone cards in the list view
+        show rack count and location count. Floor plan elements show their zone's bin count and utilization.
       </p>
       <ul>
         <li>

@@ -42,12 +42,12 @@ export default function WarehouseOverview() {
 
   // Aggregate stats
   const totalLocations = warehouses.reduce(
-    (sum, wh) => sum + (wh.zones?.reduce((zs, z) => zs + (z.bins?.length || 0), 0) || 0),
+    (sum, wh) => sum + (wh.zones?.reduce((zs, z) => zs + (z.racks?.reduce((rs, r) => rs + (r.bins?.length || 0), 0) || 0), 0) || 0),
     0,
   );
   const occupiedLocations = warehouses.reduce(
     (sum, wh) =>
-      sum + (wh.zones?.reduce((zs, z) => zs + (z.bins?.filter((b) => (b._stockCount ?? 0) > 0).length || 0), 0) || 0),
+      sum + (wh.zones?.reduce((zs, z) => zs + (z.racks?.reduce((rs, r) => rs + (r.bins?.filter((b) => (b._stockCount ?? 0) > 0).length || 0), 0) || 0), 0) || 0),
     0,
   );
   const emptyLocations = totalLocations - occupiedLocations;
@@ -89,12 +89,12 @@ export default function WarehouseOverview() {
 
   const handleDelete = async (warehouse: Warehouse) => {
     const zones = warehouse.zones || [];
-    const hasStock = zones.some((z) => z.bins?.some((b) => (b._stockCount ?? 0) > 0));
+    const hasStock = zones.some((z) => z.racks?.some((r) => r.bins?.some((b) => (b._stockCount ?? 0) > 0)));
     if (hasStock) {
       alert('Cannot delete warehouse with stocked bins. Move or clear all inventory first.');
       return;
     }
-    const totalBins = zones.reduce((acc, z) => acc + (z.bins?.length || 0), 0);
+    const totalBins = zones.reduce((acc, z) => acc + (z.racks?.reduce((rs, r) => rs + (r.bins?.length || 0), 0) || 0), 0);
     if (!confirm(`Delete "${warehouse.name}" and all its ${zones.length} zones and ${totalBins} locations? This cannot be undone.`)) return;
     try {
       await api.delete(`/warehouse/${warehouse.id}`);

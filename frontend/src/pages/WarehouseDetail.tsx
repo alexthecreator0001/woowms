@@ -14,7 +14,7 @@ import {
 import { cn } from '../lib/utils';
 import api from '../services/api';
 import { useSidebar } from '../contexts/SidebarContext';
-import type { Warehouse, Zone, ZoneType, FloorPlanElement, BinSize } from '../types';
+import type { Warehouse, Zone, ZoneType, FloorPlanElement, BinSize, Bin, Rack } from '../types';
 import { BIN_SIZE_LABELS, BIN_SIZE_CAPACITY } from '../types';
 import ZoneSummaryCard from '../components/warehouse/ZoneSummaryCard';
 import UtilizationBar from '../components/warehouse/UtilizationBar';
@@ -35,6 +35,11 @@ const zoneBarColor: Record<string, string> = {
   RETURNS: 'bg-red-500',
 };
 
+// Helper: extract all bins from a zone's racks
+function zoneBins(zone: Zone): Bin[] {
+  return zone.racks?.flatMap((r) => r.bins || []) || [];
+}
+
 export default function WarehouseDetail() {
   const { warehouseId } = useParams<{ warehouseId: string }>();
   const navigate = useNavigate();
@@ -53,6 +58,7 @@ export default function WarehouseDetail() {
   const [editZoneSlideOpen, setEditZoneSlideOpen] = useState(false);
   const [editingZone, setEditingZone] = useState<Zone | null>(null);
   const [editingElement, setEditingElement] = useState<FloorPlanElement | null>(null);
+  const [editingRack, setEditingRack] = useState<Rack | null>(null);
   const [editZoneName, setEditZoneName] = useState('');
   const [editPrefix, setEditPrefix] = useState('');
   const [editShelves, setEditShelves] = useState(4);
@@ -115,20 +121,20 @@ export default function WarehouseDetail() {
   const filteredZones = typeFilter === 'ALL' ? zones : zones.filter((z) => z.type === typeFilter);
 
   // Aggregate utilization — capacity-based
-  const totalBins = zones.reduce((sum, z) => sum + (z.bins?.length || 0), 0);
+  const totalBins = zones.reduce((sum, z) => sum + zoneBins(z).length, 0);
   const totalCapacity = zones.reduce(
-    (sum, z) => sum + (z.bins?.reduce((s, b) => s + (b.capacity ?? BIN_SIZE_CAPACITY[b.binSize as BinSize] ?? 50), 0) || 0),
+    (sum, z) => sum + zoneBins(z).reduce((s, b) => s + (b.capacity ?? BIN_SIZE_CAPACITY[b.binSize as BinSize] ?? 50), 0),
     0,
   );
   const totalStored = zones.reduce(
-    (sum, z) => sum + (z.bins?.reduce((s, b) => s + (b._stockCount ?? 0), 0) || 0),
+    (sum, z) => sum + zoneBins(z).reduce((s, b) => s + (b._stockCount ?? 0), 0),
     0,
   );
 
   // Utilization segments per zone type (capacity-based)
   const utilizationSegments = useMemo(() => {
     return zones.reduce<{ type: string; stored: number }[]>((acc, z) => {
-      const stored = z.bins?.reduce((s, b) => s + (b._stockCount ?? 0), 0) || 0;
+      const stored = zoneBins(z).reduce((s, b) => s + (b._stockCount ?? 0), 0);
       if (stored > 0) {
         const existing = acc.find((s) => s.type === z.type);
         if (existing) existing.stored += stored;
@@ -198,7 +204,7 @@ export default function WarehouseDetail() {
 
   const handleDeleteWarehouse = async () => {
     if (!warehouse) return;
-    const hasStock = zones.some((z) => z.bins?.some((b) => (b._stockCount ?? 0) > 0));
+    const hasStock = zones.some((z) => zoneBins(z).some((b) => (b._stockCount ?? 0) > 0));
     if (hasStock) {
       alert('Cannot delete warehouse with stocked bins. Move or clear all inventory first.');
       return;
@@ -215,10 +221,12 @@ export default function WarehouseDetail() {
   // Element edit handlers
   const handleEditZone = (zone: Zone) => {
     const el = floorPlanZoneMap.get(zone.id) || null;
+    const firstRack = zone.racks?.[0] || null;
     setEditingZone(zone);
     setEditingElement(el);
+    setEditingRack(firstRack);
     setEditZoneName(zone.name);
-    setEditPrefix(el?.prefix ?? '');
+    setEditPrefix(el?.prefix ?? firstRack?.prefix ?? '');
     setEditShelves(el?.shelvesCount ?? 4);
     setEditPositions(el?.positionsPerShelf ?? 3);
     setEditBinSize(el?.binSize ?? 'MEDIUM');
@@ -253,12 +261,12 @@ export default function WarehouseDetail() {
         });
       }
 
-      // Regenerate bins if shelves/positions changed
+      // Regenerate bins if shelves/positions changed — now uses rack endpoint
       const oldShelves = editingElement?.shelvesCount ?? 4;
       const oldPositions = editingElement?.positionsPerShelf ?? 3;
-      if (editShelves !== oldShelves || editPositions !== oldPositions) {
+      if (editingRack && (editShelves !== oldShelves || editPositions !== oldPositions)) {
         try {
-          await api.post(`/warehouse/zones/${editingZone.id}/regenerate-bins`, {
+          await api.post(`/warehouse/racks/${editingRack.id}/regenerate-bins`, {
             shelvesCount: editShelves,
             positionsPerShelf: editPositions,
             prefix: editPrefix.trim() || undefined,
@@ -285,7 +293,7 @@ export default function WarehouseDetail() {
   };
 
   const handleDeleteZone = async (zone: Zone) => {
-    const bins = zone.bins || [];
+    const bins = zoneBins(zone);
     const hasStock = bins.some((b) => (b._stockCount ?? 0) > 0);
     if (hasStock) {
       alert('Cannot delete zone with stocked bins. Move or clear all inventory first.');
@@ -733,11 +741,17 @@ export default function WarehouseDetail() {
           </div>
 
           {/* Current locations info */}
-          {editingZone?.bins && editingZone.bins.length > 0 && editingZone.bins.length !== editShelves * editPositions && (
-            <p className="text-[11px] text-amber-600">
-              Currently has {editingZone.bins.length} locations — saving will delete and recreate all {editShelves * editPositions} locations (only if none have stock).
-            </p>
-          )}
+          {editingRack && (() => {
+            const currentBins = editingRack.bins?.length || 0;
+            if (currentBins > 0 && currentBins !== editShelves * editPositions) {
+              return (
+                <p className="text-[11px] text-amber-600">
+                  Currently has {currentBins} locations — saving will delete and recreate all {editShelves * editPositions} locations (only if none have stock).
+                </p>
+              );
+            }
+            return null;
+          })()}
 
           {editZoneError && <p className="text-sm text-destructive">{editZoneError}</p>}
         </form>
@@ -747,7 +761,7 @@ export default function WarehouseDetail() {
       <PrintLabelsModal
         open={!!printZone}
         onClose={() => setPrintZone(null)}
-        bins={printZone?.bins || []}
+        bins={printZone ? zoneBins(printZone) : []}
         zoneName={printZone?.name || ''}
         warehouseName={warehouse.name}
         zoneType={printZone ? (zones.find((z) => z.id === printZone.id)?.type || '') : ''}
@@ -757,7 +771,7 @@ export default function WarehouseDetail() {
       <PrintLabelsModal
         open={printAll}
         onClose={() => setPrintAll(false)}
-        bins={zones.flatMap((z) => z.bins || [])}
+        bins={zones.flatMap((z) => zoneBins(z))}
         zoneName="All Zones"
         warehouseName={warehouse.name}
       />

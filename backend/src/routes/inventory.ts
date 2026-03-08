@@ -212,7 +212,7 @@ router.get('/export', async (req: Request, res: Response, next: NextFunction) =>
     const products = await prismaClient.product.findMany({
       where: { store: { tenantId: req.tenantId } },
       include: {
-        stockLocations: { include: { bin: { include: { zone: { include: { warehouse: true } } } } } },
+        stockLocations: { include: { bin: { include: { rack: { include: { zone: { include: { warehouse: true } } } } } } } },
       },
       orderBy: { name: 'asc' },
     });
@@ -226,8 +226,8 @@ router.get('/export', async (req: Request, res: Response, next: NextFunction) =>
       { key: 'freeToSell', header: 'Free to Sell', accessor: (p) => p.stockQty - p.reservedQty },
       { key: 'lowStockThreshold', header: 'Low Stock Threshold', accessor: (p) => p.lowStockThreshold },
       { key: 'bin', header: 'Bin Location', accessor: (p) => [...new Set((p.stockLocations?.map((sl: any) => sl.bin?.label).filter(Boolean)) || [])].join(', ') },
-      { key: 'zone', header: 'Zone', accessor: (p) => [...new Set((p.stockLocations?.map((sl: any) => sl.bin?.zone?.name).filter(Boolean)) || [])].join(', ') },
-      { key: 'warehouse', header: 'Warehouse', accessor: (p) => [...new Set((p.stockLocations?.map((sl: any) => sl.bin?.zone?.warehouse?.name).filter(Boolean)) || [])].join(', ') },
+      { key: 'zone', header: 'Zone', accessor: (p) => [...new Set((p.stockLocations?.map((sl: any) => sl.bin?.rack?.zone?.name).filter(Boolean)) || [])].join(', ') },
+      { key: 'warehouse', header: 'Warehouse', accessor: (p) => [...new Set((p.stockLocations?.map((sl: any) => sl.bin?.rack?.zone?.warehouse?.name).filter(Boolean)) || [])].join(', ') },
     ];
 
     const cols = filterColumns(registry, colParam);
@@ -339,7 +339,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       prisma.product.findMany({
         where,
         include: {
-          stockLocations: { include: { bin: { include: { zone: true } } } },
+          stockLocations: { include: { bin: { include: { rack: { include: { zone: true } } } } } },
           bundleComponents: {
             include: { componentProduct: { select: { stockQty: true, reservedQty: true } } },
           },
@@ -404,7 +404,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
       where: { id: productId },
       include: {
         store: true,
-        stockLocations: { include: { bin: { include: { zone: true } } } },
+        stockLocations: { include: { bin: { include: { rack: { include: { zone: true } } } } } },
         stockMovements: { orderBy: { createdAt: 'desc' }, take: 20 },
         barcodes: true,
         supplierProducts: { include: { supplier: true } },
@@ -685,7 +685,7 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
       data,
       include: {
         store: true,
-        stockLocations: { include: { bin: { include: { zone: true } } } },
+        stockLocations: { include: { bin: { include: { rack: { include: { zone: true } } } } } },
         stockMovements: { orderBy: { createdAt: 'desc' }, take: 20 },
         barcodes: true,
         supplierProducts: { include: { supplier: true } },

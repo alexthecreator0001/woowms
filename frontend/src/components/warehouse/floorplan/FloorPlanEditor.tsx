@@ -263,10 +263,11 @@ export default function FloorPlanEditor({ warehouse, onSaved, highlightZoneId, o
         positionsPerShelf: element.positionsPerShelf ?? 3,
       });
       const zone = data.data.zone;
+      const rack = data.data.rack;
 
-      // Update element with zone link and auto-save floor plan so link persists
+      // Update element with zone + rack link and auto-save floor plan so link persists
       const updatedElements = floorPlan.elements.map((e) =>
-        e.id === element.id ? { ...e, zoneId: zone.id } : e,
+        e.id === element.id ? { ...e, zoneId: zone.id, rackId: rack?.id ?? null } : e,
       );
       const updatedPlan = { ...floorPlan, elements: updatedElements };
       await api.put(`/warehouse/${warehouse.id}/floor-plan`, updatedPlan);
@@ -302,8 +303,9 @@ export default function FloorPlanEditor({ warehouse, onSaved, highlightZoneId, o
             positionsPerShelf: element.positionsPerShelf ?? 3,
           });
           const zone = data.data.zone;
+          const rack = data.data.rack;
           updatedElements = updatedElements.map((e) =>
-            e.id === element.id ? { ...e, zoneId: zone.id } : e,
+            e.id === element.id ? { ...e, zoneId: zone.id, rackId: rack?.id ?? null } : e,
           );
         } catch {
           // skip this element if zone creation fails, save the rest

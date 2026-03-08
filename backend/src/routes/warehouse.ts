@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authorize } from '../middleware/auth.js';
-import type { ZoneType, BinSize } from '@prisma/client';
+import type { ZoneType, BinSize, RackType } from '@prisma/client';
 
 const router = Router();
 
@@ -24,21 +24,19 @@ export function getCapacityUnits(product: { length?: number | null; width?: numb
   return multipliers[product.sizeCategory || ''] || 1;
 }
 
-// GET /api/v1/warehouse — list all warehouses with zones, bins, and stock counts
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const warehouses = await req.prisma!.warehouse.findMany({
-      include: {
-        zones: {
-          include: {
-            bins: {
-              include: {
-                stockLocations: {
-                  select: {
-                    quantity: true,
-                    product: {
-                      select: { id: true, name: true, sku: true, imageUrl: true, sizeCategory: true, length: true, width: true, height: true },
-                    },
+// Shared include chain: zones → racks → bins → stockLocations
+const warehouseInclude = {
+  zones: {
+    include: {
+      racks: {
+        include: {
+          bins: {
+            include: {
+              stockLocations: {
+                select: {
+                  quantity: true,
+                  product: {
+                    select: { id: true, name: true, sku: true, imageUrl: true, sizeCategory: true, length: true, width: true, height: true },
                   },
                 },
               },
@@ -46,20 +44,30 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
           },
         },
       },
-    });
+    },
+  },
+};
+
+// GET /api/v1/warehouse — list all warehouses with zones, racks, bins, and stock counts
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const warehouses = await req.prisma!.warehouse.findMany({ include: warehouseInclude });
 
     // Add _stockCount (item count) and _capacityUsed (volume-weighted) to each bin
     const data = warehouses.map((wh) => ({
       ...wh,
       zones: wh.zones.map((zone) => ({
         ...zone,
-        bins: zone.bins.map((bin) => ({
-          ...bin,
-          _stockCount: bin.stockLocations.reduce((sum, sl) => sum + sl.quantity, 0),
-          _capacityUsed: bin.stockLocations.reduce((sum, sl) => {
-            const units = sl.product ? getCapacityUnits(sl.product) : 1;
-            return sum + sl.quantity * units;
-          }, 0),
+        racks: zone.racks.map((rack) => ({
+          ...rack,
+          bins: rack.bins.map((bin) => ({
+            ...bin,
+            _stockCount: bin.stockLocations.reduce((sum, sl) => sum + sl.quantity, 0),
+            _capacityUsed: bin.stockLocations.reduce((sum, sl) => {
+              const units = sl.product ? getCapacityUnits(sl.product) : 1;
+              return sum + sl.quantity * units;
+            }, 0),
+          })),
         })),
       })),
     }));
@@ -128,8 +136,12 @@ router.delete('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: R
       include: {
         zones: {
           include: {
-            bins: {
-              include: { stockLocations: { where: { quantity: { gt: 0 } } } },
+            racks: {
+              include: {
+                bins: {
+                  include: { stockLocations: { where: { quantity: { gt: 0 } } } },
+                },
+              },
             },
           },
         },
@@ -141,18 +153,24 @@ router.delete('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: R
     }
 
     // Check for any stock
-    const hasStock = warehouse.zones.some((z) => z.bins.some((b) => b.stockLocations.length > 0));
+    const hasStock = warehouse.zones.some((z) =>
+      z.racks.some((r) => r.bins.some((b) => b.stockLocations.length > 0)),
+    );
     if (hasStock) {
       return res.status(409).json({ error: true, message: 'Cannot delete warehouse with stocked bins. Move or clear all inventory first.', code: 'HAS_STOCK' });
     }
 
-    // Cascade: delete bins, zones, then warehouse
-    const binIds = warehouse.zones.flatMap((z) => z.bins.map((b) => b.id));
+    // Cascade: delete bins, racks, zones, then warehouse
+    const binIds = warehouse.zones.flatMap((z) => z.racks.flatMap((r) => r.bins.map((b) => b.id)));
+    const rackIds = warehouse.zones.flatMap((z) => z.racks.map((r) => r.id));
     const zoneIds = warehouse.zones.map((z) => z.id);
 
     if (binIds.length > 0) {
       await req.prisma!.stockLocation.deleteMany({ where: { binId: { in: binIds } } });
       await req.prisma!.bin.deleteMany({ where: { id: { in: binIds } } });
+    }
+    if (rackIds.length > 0) {
+      await req.prisma!.rack.deleteMany({ where: { id: { in: rackIds } } });
     }
     if (zoneIds.length > 0) {
       await req.prisma!.zone.deleteMany({ where: { id: { in: zoneIds } } });
@@ -209,15 +227,19 @@ router.patch('/zones/:zoneId', authorize('ADMIN', 'MANAGER'), async (req: Reques
   }
 });
 
-// DELETE /api/v1/warehouse/zones/:zoneId — delete zone + cascade bins (only if no stock)
+// DELETE /api/v1/warehouse/zones/:zoneId — delete zone + cascade racks/bins (only if no stock)
 router.delete('/zones/:zoneId', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const zoneId = parseInt(req.params.zoneId);
     const zone = await req.prisma!.zone.findUnique({
       where: { id: zoneId },
       include: {
-        bins: {
-          include: { stockLocations: { where: { quantity: { gt: 0 } } } },
+        racks: {
+          include: {
+            bins: {
+              include: { stockLocations: { where: { quantity: { gt: 0 } } } },
+            },
+          },
         },
       },
     });
@@ -226,15 +248,19 @@ router.delete('/zones/:zoneId', authorize('ADMIN', 'MANAGER'), async (req: Reque
       return res.status(404).json({ error: true, message: 'Zone not found', code: 'NOT_FOUND' });
     }
 
-    const hasStock = zone.bins.some((b) => b.stockLocations.length > 0);
+    const hasStock = zone.racks.some((r) => r.bins.some((b) => b.stockLocations.length > 0));
     if (hasStock) {
       return res.status(409).json({ error: true, message: 'Cannot delete zone with stocked bins. Move or clear all inventory first.', code: 'HAS_STOCK' });
     }
 
-    const binIds = zone.bins.map((b) => b.id);
+    const binIds = zone.racks.flatMap((r) => r.bins.map((b) => b.id));
+    const rackIds = zone.racks.map((r) => r.id);
     if (binIds.length > 0) {
       await req.prisma!.stockLocation.deleteMany({ where: { binId: { in: binIds } } });
       await req.prisma!.bin.deleteMany({ where: { id: { in: binIds } } });
+    }
+    if (rackIds.length > 0) {
+      await req.prisma!.rack.deleteMany({ where: { id: { in: rackIds } } });
     }
     await req.prisma!.zone.delete({ where: { id: zoneId } });
 
@@ -244,9 +270,113 @@ router.delete('/zones/:zoneId', authorize('ADMIN', 'MANAGER'), async (req: Reque
   }
 });
 
-// POST /api/v1/warehouse/zones/:zoneId/bins — create single bin
-router.post('/zones/:zoneId/bins', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+// ─── Rack CRUD ──────────────────────────────────────────
+
+// POST /api/v1/warehouse/:warehouseId/zones/:zoneId/racks — create rack
+router.post('/:warehouseId/zones/:zoneId/racks', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const zoneId = parseInt(req.params.zoneId);
+    const { name, type, prefix, description } = req.body as {
+      name: string;
+      type?: RackType;
+      prefix?: string;
+      description?: string;
+    };
+
+    const zone = await req.prisma!.zone.findUnique({ where: { id: zoneId } });
+    if (!zone) {
+      return res.status(404).json({ error: true, message: 'Zone not found', code: 'NOT_FOUND' });
+    }
+
+    const rack = await req.prisma!.rack.create({
+      data: {
+        zoneId,
+        name,
+        type: type || 'SHELVING',
+        prefix: prefix || null,
+        description: description || null,
+      },
+      include: { bins: true },
+    });
+    res.status(201).json({ data: rack });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/v1/warehouse/racks/:rackId — update rack
+router.patch('/racks/:rackId', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const rackId = parseInt(req.params.rackId);
+    const { name, type, prefix, description } = req.body as {
+      name?: string;
+      type?: RackType;
+      prefix?: string;
+      description?: string;
+    };
+
+    const rack = await req.prisma!.rack.findUnique({ where: { id: rackId } });
+    if (!rack) {
+      return res.status(404).json({ error: true, message: 'Rack not found', code: 'NOT_FOUND' });
+    }
+
+    const updated = await req.prisma!.rack.update({
+      where: { id: rackId },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(type !== undefined && { type }),
+        ...(prefix !== undefined && { prefix }),
+        ...(description !== undefined && { description }),
+      },
+      include: { bins: true },
+    });
+    res.json({ data: updated });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/v1/warehouse/racks/:rackId — delete rack (only if all bins empty)
+router.delete('/racks/:rackId', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const rackId = parseInt(req.params.rackId);
+    const rack = await req.prisma!.rack.findUnique({
+      where: { id: rackId },
+      include: {
+        bins: {
+          include: { stockLocations: { where: { quantity: { gt: 0 } } } },
+        },
+      },
+    });
+
+    if (!rack) {
+      return res.status(404).json({ error: true, message: 'Rack not found', code: 'NOT_FOUND' });
+    }
+
+    const hasStock = rack.bins.some((b) => b.stockLocations.length > 0);
+    if (hasStock) {
+      return res.status(409).json({ error: true, message: 'Cannot delete rack with stocked bins. Move or clear all inventory first.', code: 'HAS_STOCK' });
+    }
+
+    const binIds = rack.bins.map((b) => b.id);
+    if (binIds.length > 0) {
+      await req.prisma!.stockLocation.deleteMany({ where: { binId: { in: binIds } } });
+      await req.prisma!.bin.deleteMany({ where: { id: { in: binIds } } });
+    }
+    await req.prisma!.rack.delete({ where: { id: rackId } });
+
+    res.json({ data: { deleted: true } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── Bin Creation (now under racks) ─────────────────────
+
+// POST /api/v1/warehouse/racks/:rackId/bins — create single bin
+router.post('/racks/:rackId/bins', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const rackId = parseInt(req.params.rackId);
     const { label, row, shelf, position, capacity, binSize } = req.body as {
       label: string;
       row?: string;
@@ -255,10 +385,16 @@ router.post('/zones/:zoneId/bins', authorize('ADMIN', 'MANAGER'), async (req: Re
       capacity?: number;
       binSize?: BinSize;
     };
+
+    const rack = await req.prisma!.rack.findUnique({ where: { id: rackId } });
+    if (!rack) {
+      return res.status(404).json({ error: true, message: 'Rack not found', code: 'NOT_FOUND' });
+    }
+
     const effectiveCapacity = capacity ?? (binSize ? BIN_SIZE_DEFAULTS[binSize] : BIN_SIZE_DEFAULTS.MEDIUM);
     const bin = await req.prisma!.bin.create({
       data: {
-        zoneId: parseInt(req.params.zoneId),
+        rackId,
         label, row, shelf, position,
         capacity: effectiveCapacity,
         binSize: binSize || 'MEDIUM',
@@ -270,12 +406,12 @@ router.post('/zones/:zoneId/bins', authorize('ADMIN', 'MANAGER'), async (req: Re
   }
 });
 
-// POST /api/v1/warehouse/zones/:zoneId/bins/generate — bulk generate locations
+// POST /api/v1/warehouse/racks/:rackId/bins/generate — bulk generate locations
 // ShipHero-style hierarchy: Aisle → Rack → Shelf → Position
 // Label format: {Aisle}-{Rack}-{Shelf}-{Position} e.g. A-01-03-02
-router.post('/zones/:zoneId/bins/generate', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+router.post('/racks/:rackId/bins/generate', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const zoneId = parseInt(req.params.zoneId);
+    const rackId = parseInt(req.params.rackId);
     const {
       aisles, aisleNaming, racksPerAisle, shelvesPerRack, positionsPerShelf,
       binSize,
@@ -293,15 +429,15 @@ router.post('/zones/:zoneId/bins/generate', authorize('ADMIN', 'MANAGER'), async
       positions?: number;
     };
 
-    const zone = await req.prisma!.zone.findUnique({ where: { id: zoneId } });
-    if (!zone) {
-      return res.status(404).json({ error: true, message: 'Zone not found', code: 'NOT_FOUND' });
+    const rack = await req.prisma!.rack.findUnique({ where: { id: rackId } });
+    if (!rack) {
+      return res.status(404).json({ error: true, message: 'Rack not found', code: 'NOT_FOUND' });
     }
 
     const pad = (n: number) => String(n).padStart(2, '0');
     const effectiveBinSize = binSize || 'MEDIUM';
     const effectiveCapacity = BIN_SIZE_DEFAULTS[effectiveBinSize] || 50;
-    const binsData: { zoneId: number; label: string; row: string; shelf: string; position: string; binSize: BinSize; capacity: number }[] = [];
+    const binsData: { rackId: number; label: string; row: string; shelf: string; position: string; binSize: BinSize; capacity: number }[] = [];
 
     if (aisles && racksPerAisle && shelvesPerRack && positionsPerShelf) {
       // New WMS-style generation: Aisle-Rack-Shelf-Position
@@ -321,7 +457,7 @@ router.post('/zones/:zoneId/bins/generate', authorize('ADMIN', 'MANAGER'), async
           for (let s = 1; s <= shelvesPerRack; s++) {
             for (let p = 1; p <= positionsPerShelf; p++) {
               binsData.push({
-                zoneId,
+                rackId,
                 label: `${aisleLabel}-${pad(r)}-${pad(s)}-${pad(p)}`,
                 row: aisleLabel,
                 shelf: pad(s),
@@ -344,7 +480,7 @@ router.post('/zones/:zoneId/bins/generate', authorize('ADMIN', 'MANAGER'), async
       for (let r = 1; r <= rows; r++) {
         for (let p = 1; p <= positions; p++) {
           binsData.push({
-            zoneId,
+            rackId,
             label: `${prefix}-${pad(r)}-${pad(p)}`,
             row: prefix,
             shelf: pad(r),
@@ -370,7 +506,7 @@ router.post('/zones/:zoneId/bins/generate', authorize('ADMIN', 'MANAGER'), async
     }
 
     const created = await req.prisma!.bin.createMany({ data: binsData });
-    const bins = await req.prisma!.bin.findMany({ where: { zoneId, label: { in: labels } } });
+    const bins = await req.prisma!.bin.findMany({ where: { rackId, label: { in: labels } } });
 
     res.status(201).json({ data: bins, meta: { count: created.count } });
   } catch (err) {
@@ -406,7 +542,7 @@ router.put('/:id/floor-plan', authorize('ADMIN', 'MANAGER'), async (req: Request
   }
 });
 
-// POST /api/v1/warehouse/:id/floor-plan/auto-zone — auto-create zone + bins for floor plan element
+// POST /api/v1/warehouse/:id/floor-plan/auto-zone — auto-create zone + rack + bins for floor plan element
 router.post('/:id/floor-plan/auto-zone', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const warehouseId = parseInt(req.params.id);
@@ -438,8 +574,26 @@ router.post('/:id/floor-plan/auto-zone', authorize('ADMIN', 'MANAGER'), async (r
     };
     const zoneType = typeMap[elementType]!;
 
+    // Derive rack type from element type
+    const rackTypeMap: Record<string, RackType> = {
+      shelf: 'SHELVING',
+      pallet_rack: 'PALLET',
+      pallet_storage: 'PALLET',
+    };
+    const rackType = rackTypeMap[elementType] || 'SHELVING';
+
     const zone = await req.prisma!.zone.create({
       data: { warehouseId, name: label, type: zoneType as any, description: `Auto-created from floor plan (${elementType})` },
+    });
+
+    // Create a rack inside the zone
+    const rack = await req.prisma!.rack.create({
+      data: {
+        zoneId: zone.id,
+        name: label,
+        type: rackType,
+        prefix: customPrefix || null,
+      },
     });
 
     let bins: any[] = [];
@@ -451,12 +605,12 @@ router.post('/:id/floor-plan/auto-zone', authorize('ADMIN', 'MANAGER'), async (r
     if (shelves > 0 && positions > 0) {
       const pad = (n: number) => String(n).padStart(2, '0');
       const prefix = customPrefix || label.replace(/[^A-Za-z0-9]/g, '').substring(0, 3).toUpperCase() || 'LOC';
-      const binsData: { zoneId: number; label: string; row: string; shelf: string; position: string; binSize: BinSize; capacity: number }[] = [];
+      const binsData: { rackId: number; label: string; row: string; shelf: string; position: string; binSize: BinSize; capacity: number }[] = [];
 
       for (let s = 1; s <= shelves; s++) {
         for (let p = 1; p <= positions; p++) {
           binsData.push({
-            zoneId: zone.id,
+            rackId: rack.id,
             label: `${prefix}-${pad(s)}-${pad(p)}`,
             row: prefix,
             shelf: pad(s),
@@ -471,26 +625,26 @@ router.post('/:id/floor-plan/auto-zone', authorize('ADMIN', 'MANAGER'), async (r
       const labels = binsData.map((b) => b.label);
       const existing = await req.prisma!.bin.findMany({ where: { label: { in: labels } }, select: { label: true } });
       if (existing.length > 0) {
-        // Add zone id suffix to avoid conflicts
+        // Add rack id suffix to avoid conflicts
         for (const bd of binsData) {
-          bd.label = `${bd.label}-Z${zone.id}`;
+          bd.label = `${bd.label}-R${rack.id}`;
         }
       }
 
       await req.prisma!.bin.createMany({ data: binsData });
-      bins = await req.prisma!.bin.findMany({ where: { zoneId: zone.id } });
+      bins = await req.prisma!.bin.findMany({ where: { rackId: rack.id } });
     }
 
-    res.status(201).json({ data: { zone, bins } });
+    res.status(201).json({ data: { zone, rack, bins } });
   } catch (err) {
     next(err);
   }
 });
 
-// POST /api/v1/warehouse/zones/:zoneId/regenerate-bins — delete old bins + create new ones from config
-router.post('/zones/:zoneId/regenerate-bins', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+// POST /api/v1/warehouse/racks/:rackId/regenerate-bins — delete old bins + create new ones from config
+router.post('/racks/:rackId/regenerate-bins', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const zoneId = parseInt(req.params.zoneId);
+    const rackId = parseInt(req.params.rackId);
     const { shelvesCount, positionsPerShelf, prefix: customPrefix, binSize: reqBinSize } = req.body as {
       shelvesCount: number;
       positionsPerShelf: number;
@@ -505,8 +659,8 @@ router.post('/zones/:zoneId/regenerate-bins', authorize('ADMIN', 'MANAGER'), asy
       return res.status(400).json({ error: true, message: 'Cannot generate more than 500 locations at once', code: 'VALIDATION_ERROR' });
     }
 
-    const zone = await req.prisma!.zone.findUnique({
-      where: { id: zoneId },
+    const rack = await req.prisma!.rack.findUnique({
+      where: { id: rackId },
       include: {
         bins: {
           include: { stockLocations: { where: { quantity: { gt: 0 } } } },
@@ -514,18 +668,18 @@ router.post('/zones/:zoneId/regenerate-bins', authorize('ADMIN', 'MANAGER'), asy
       },
     });
 
-    if (!zone) {
-      return res.status(404).json({ error: true, message: 'Zone not found', code: 'NOT_FOUND' });
+    if (!rack) {
+      return res.status(404).json({ error: true, message: 'Rack not found', code: 'NOT_FOUND' });
     }
 
     // Block if any bin has stock
-    const hasStock = zone.bins.some((b) => b.stockLocations.length > 0);
+    const hasStock = rack.bins.some((b) => b.stockLocations.length > 0);
     if (hasStock) {
       return res.status(409).json({ error: true, message: 'Cannot regenerate bins — some locations have stock. Move or clear inventory first.', code: 'HAS_STOCK' });
     }
 
     // Delete old bins
-    const oldBinIds = zone.bins.map((b) => b.id);
+    const oldBinIds = rack.bins.map((b) => b.id);
     if (oldBinIds.length > 0) {
       await req.prisma!.stockLocation.deleteMany({ where: { binId: { in: oldBinIds } } });
       await req.prisma!.bin.deleteMany({ where: { id: { in: oldBinIds } } });
@@ -533,15 +687,15 @@ router.post('/zones/:zoneId/regenerate-bins', authorize('ADMIN', 'MANAGER'), asy
 
     // Create new bins
     const pad = (n: number) => String(n).padStart(2, '0');
-    const prefix = customPrefix || zone.name.replace(/[^A-Za-z0-9]/g, '').substring(0, 3).toUpperCase() || 'LOC';
+    const prefix = customPrefix || rack.name.replace(/[^A-Za-z0-9]/g, '').substring(0, 3).toUpperCase() || 'LOC';
     const effectiveBinSize = reqBinSize || 'MEDIUM';
     const effectiveCapacity = BIN_SIZE_DEFAULTS[effectiveBinSize] || 50;
-    const binsData: { zoneId: number; label: string; row: string; shelf: string; position: string; binSize: BinSize; capacity: number }[] = [];
+    const binsData: { rackId: number; label: string; row: string; shelf: string; position: string; binSize: BinSize; capacity: number }[] = [];
 
     for (let s = 1; s <= shelvesCount; s++) {
       for (let p = 1; p <= positionsPerShelf; p++) {
         binsData.push({
-          zoneId,
+          rackId,
           label: `${prefix}-${pad(s)}-${pad(p)}`,
           row: prefix,
           shelf: pad(s),
@@ -552,19 +706,19 @@ router.post('/zones/:zoneId/regenerate-bins', authorize('ADMIN', 'MANAGER'), asy
       }
     }
 
-    // Check for label conflicts with OTHER zones
+    // Check for label conflicts with OTHER racks
     const labels = binsData.map((b) => b.label);
     const existing = await req.prisma!.bin.findMany({ where: { label: { in: labels } }, select: { label: true } });
     if (existing.length > 0) {
       for (const bd of binsData) {
-        bd.label = `${bd.label}-Z${zoneId}`;
+        bd.label = `${bd.label}-R${rackId}`;
       }
     }
 
     await req.prisma!.bin.createMany({ data: binsData });
-    const bins = await req.prisma!.bin.findMany({ where: { zoneId } });
+    const bins = await req.prisma!.bin.findMany({ where: { rackId } });
 
-    res.status(201).json({ data: { zone, bins }, meta: { count: bins.length } });
+    res.status(201).json({ data: { rack, bins }, meta: { count: bins.length } });
   } catch (err) {
     next(err);
   }

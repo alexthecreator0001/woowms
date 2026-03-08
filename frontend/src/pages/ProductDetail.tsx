@@ -444,8 +444,10 @@ export default function ProductDetail() {
         const bins: Array<{ id: number; label: string; zoneName: string }> = [];
         for (const wh of data.data || []) {
           for (const zone of wh.zones || []) {
-            for (const bin of zone.bins || []) {
-              bins.push({ id: bin.id, label: bin.label, zoneName: zone.name });
+            for (const rack of zone.racks || []) {
+              for (const bin of rack.bins || []) {
+                bins.push({ id: bin.id, label: bin.label, zoneName: zone.name });
+              }
             }
           }
         }
@@ -1041,8 +1043,8 @@ export default function ProductDetail() {
                           </div>
                           <div>
                             <p className="text-sm font-semibold">{sl.bin?.label}</p>
-                            {sl.bin?.zone && (
-                              <p className="text-[11px] text-muted-foreground">{sl.bin.zone.name} · {sl.bin.zone.type}</p>
+                            {sl.bin?.rack?.zone && (
+                              <p className="text-[11px] text-muted-foreground">{sl.bin.rack.zone.name} · {sl.bin.rack.zone.type}</p>
                             )}
                           </div>
                         </div>

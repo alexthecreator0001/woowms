@@ -3,6 +3,19 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.68.0 / 2.52.0] - 2026-03-08
+
+### Added
+- **Rack entity** — New hierarchy: Warehouse → Zone → Rack → Bin. Racks sit between zones and bins, supporting two types: **Shelving** (for picking, bins hold individual products) and **Pallet** (for bulk storage). Full CRUD API for racks with create, update, and delete (blocked if bins have stock).
+- **Rack CRUD API** — `POST /:warehouseId/zones/:zoneId/racks`, `PATCH /racks/:rackId`, `DELETE /racks/:rackId`. Bin creation endpoints moved from zone-level to rack-level (`/racks/:rackId/bins`, `/racks/:rackId/bins/generate`, `/racks/:rackId/regenerate-bins`).
+
+### Changed
+- **Database schema** — Bins now belong to racks instead of zones (`rack_id` replaces `zone_id`). Migration auto-creates one default SHELVING rack per zone for existing data.
+- **Floor plan auto-zone** — Now creates Zone + Rack + Bins. Rack type derived from element type (shelf → SHELVING, pallet_rack/pallet_storage → PALLET).
+- **All warehouse queries** — Include chain updated from `zones → bins` to `zones → racks → bins` across warehouse, inventory, cycle counts, and account routes.
+- **Zone summary cards** — Now display rack count alongside location count.
+- **Frontend data paths** — All components updated to traverse `zone.racks[].bins` instead of `zone.bins`.
+
 ## [3.67.1 / 2.51.1] - 2026-03-07
 
 ### Fixed

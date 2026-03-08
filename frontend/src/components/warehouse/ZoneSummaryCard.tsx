@@ -36,7 +36,8 @@ export default function ZoneSummaryCard({
   const badge = zoneTypeBadge[zone.type] || { bg: 'bg-gray-500/10', text: 'text-gray-500', accent: 'border-l-gray-500', barColor: 'bg-gray-500' };
   const elTemplate = elementType ? getTemplate(elementType) : null;
 
-  const bins = zone.bins || [];
+  const bins = zone.racks?.flatMap((r) => r.bins || []) || [];
+  const rackCount = zone.racks?.length || 0;
   const totalBins = bins.length;
   const totalCapacity = bins.reduce((sum, b) => sum + (b.capacity ?? BIN_SIZE_CAPACITY[b.binSize as BinSize] ?? 50), 0);
   const totalCapacityUsed = bins.reduce((sum, b) => sum + (b._capacityUsed ?? b._stockCount ?? 0), 0);
@@ -75,6 +76,11 @@ export default function ZoneSummaryCard({
 
             {/* Stats */}
             <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              {rackCount > 0 && (
+                <span>
+                  <span className="font-semibold text-foreground">{rackCount}</span> rack{rackCount !== 1 ? 's' : ''}
+                </span>
+              )}
               <span>
                 <span className="font-semibold text-foreground">{totalBins}</span> location{totalBins !== 1 ? 's' : ''}
               </span>

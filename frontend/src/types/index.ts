@@ -145,6 +145,22 @@ export interface StockLocation {
   bin?: Bin;
 }
 
+export type RackType = 'SHELVING' | 'PALLET';
+
+export interface Rack {
+  id: number;
+  name: string;
+  type: RackType;
+  prefix: string | null;
+  description: string | null;
+  bins?: Bin[];
+}
+
+export const RACK_TYPE_LABELS: Record<RackType, string> = {
+  SHELVING: 'Shelving Rack',
+  PALLET: 'Pallet Rack',
+};
+
 export interface Bin {
   id: number;
   label: string;
@@ -157,7 +173,7 @@ export interface Bin {
   pickable: boolean;
   sellable: boolean;
   isActive: boolean;
-  zone?: Zone;
+  rack?: Rack;
   stockLocations?: {
     quantity: number;
     product?: { id: number; name: string; sku: string | null; imageUrl: string | null; sizeCategory: string | null };
@@ -173,7 +189,7 @@ export interface Zone {
   name: string;
   type: ZoneType;
   description: string | null;
-  bins?: Bin[];
+  racks?: Rack[];
 }
 
 export type FloorPlanElementType = 'shelf' | 'pallet_rack' | 'packing_table' | 'receiving_area' | 'shipping_area' | 'wall' | 'pallet_storage' | 'dock_door' | 'staging_area';
@@ -188,6 +204,7 @@ export interface FloorPlanElement {
   h: number;
   rotation: 0 | 90;
   zoneId: number | null;
+  rackId?: number | null;
   color?: string;
   prefix?: string;
   shelvesCount?: number;

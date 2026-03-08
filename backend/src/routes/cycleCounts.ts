@@ -89,19 +89,19 @@ router.post('/', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Respon
     if (type === 'ZONE') {
       if (!zoneId) return res.status(400).json({ error: true, message: 'zoneId is required for ZONE type', code: 'VALIDATION' });
       stockLocations = await prisma.stockLocation.findMany({
-        where: { bin: { zone: { id: zoneId, warehouse: { id: warehouseId, tenantId } } } },
+        where: { bin: { rack: { zone: { id: zoneId, warehouse: { id: warehouseId, tenantId } } } } },
         include: { product: { select: { name: true, sku: true } }, bin: { select: { label: true } } },
       });
     } else if (type === 'LOCATION') {
       if (!binIds?.length) return res.status(400).json({ error: true, message: 'binIds are required for LOCATION type', code: 'VALIDATION' });
       stockLocations = await prisma.stockLocation.findMany({
-        where: { binId: { in: binIds }, bin: { zone: { warehouse: { id: warehouseId, tenantId } } } },
+        where: { binId: { in: binIds }, bin: { rack: { zone: { warehouse: { id: warehouseId, tenantId } } } } },
         include: { product: { select: { name: true, sku: true } }, bin: { select: { label: true } } },
       });
     } else if (type === 'PRODUCT') {
       if (!productIds?.length) return res.status(400).json({ error: true, message: 'productIds are required for PRODUCT type', code: 'VALIDATION' });
       stockLocations = await prisma.stockLocation.findMany({
-        where: { productId: { in: productIds }, bin: { zone: { warehouse: { id: warehouseId, tenantId } } } },
+        where: { productId: { in: productIds }, bin: { rack: { zone: { warehouse: { id: warehouseId, tenantId } } } } },
         include: { product: { select: { name: true, sku: true } }, bin: { select: { label: true } } },
       });
     }

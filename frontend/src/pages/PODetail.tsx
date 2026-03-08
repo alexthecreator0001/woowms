@@ -139,8 +139,10 @@ export default function PODetail() {
         const bins: Bin[] = [];
         for (const wh of data.data || []) {
           for (const zone of wh.zones || []) {
-            for (const bin of zone.bins || []) {
-              if (bin.isActive) bins.push(bin);
+            for (const rack of zone.racks || []) {
+              for (const bin of rack.bins || []) {
+                if (bin.isActive) bins.push(bin);
+              }
             }
           }
         }
