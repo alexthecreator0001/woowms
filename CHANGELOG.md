@@ -3,6 +3,12 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Docs 1.4.0] - 2026-03-08
+
+### Changed
+- **Warehouse docs redesign** — Complete visual overhaul of all 6 warehouse documentation pages (Overview, Zones & Racks, Floor Plan, Bins & Stock, Labels, Cycle Counts). Added feature cards, visual hierarchy diagrams, step indicators, zone type color swatches, bin sizing cards, keyboard shortcut tables, and richer content throughout.
+- **New CSS components** — Added `doc-card-grid`, `doc-steps`, `doc-hierarchy`, `doc-badge`, `doc-callout-amber`, `doc-callout-emerald`, and ordered list styling to the docs design system.
+
 ## [3.68.0 / 2.52.0] - 2026-03-08
 
 ### Added
