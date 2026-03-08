@@ -1067,11 +1067,11 @@ export default function ProductDetail() {
                   <FloorPlanMini
                     highlightZoneIds={[...new Set(
                       product.stockLocations
-                        .map((sl) => sl.bin?.zone?.id)
+                        .map((sl) => sl.bin?.rack?.zone?.id)
                         .filter((id): id is number => id != null)
                     )]}
                     zoneQty={product.stockLocations.reduce((acc, sl) => {
-                      const zId = sl.bin?.zone?.id;
+                      const zId = sl.bin?.rack?.zone?.id;
                       if (zId != null) acc[zId] = (acc[zId] || 0) + sl.quantity;
                       return acc;
                     }, {} as Record<number, number>)}

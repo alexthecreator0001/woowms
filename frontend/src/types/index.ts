@@ -154,6 +154,7 @@ export interface Rack {
   prefix: string | null;
   description: string | null;
   bins?: Bin[];
+  zone?: Zone;
 }
 
 export const RACK_TYPE_LABELS: Record<RackType, string> = {
