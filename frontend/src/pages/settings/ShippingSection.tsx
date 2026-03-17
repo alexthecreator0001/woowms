@@ -246,9 +246,20 @@ export default function ShippingSection() {
                         className="w-full rounded-md border border-border/60 bg-background px-2.5 py-1.5 text-sm"
                       >
                         <option value="">— Select carrier —</option>
-                        {carriers.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
+                        {carriers.some((c) => c.id.startsWith('wallet_')) && (
+                          <optgroup label="EasyPost Wallet Carriers">
+                            {carriers.filter((c) => c.id.startsWith('wallet_')).map((c) => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </optgroup>
+                        )}
+                        {carriers.some((c) => !c.id.startsWith('wallet_')) && (
+                          <optgroup label="My Carrier Accounts">
+                            {carriers.filter((c) => !c.id.startsWith('wallet_')).map((c) => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </optgroup>
+                        )}
                       </select>
                     ) : connected ? (
                       <span className="flex items-center gap-1.5 text-xs text-amber-600">
