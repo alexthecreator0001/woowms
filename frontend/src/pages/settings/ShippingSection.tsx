@@ -250,6 +250,11 @@ export default function ShippingSection() {
                           <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
+                    ) : connected ? (
+                      <span className="flex items-center gap-1.5 text-xs text-amber-600">
+                        <Warning className="h-3.5 w-3.5" />
+                        No carriers found — add a carrier in your {PROVIDER_LABELS[provider] || provider} dashboard
+                      </span>
                     ) : (
                       <span className="flex items-center gap-1.5 text-xs text-amber-600">
                         <Warning className="h-3.5 w-3.5" />
