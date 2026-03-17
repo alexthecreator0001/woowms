@@ -23,8 +23,17 @@ export const easypostProvider: ShippingProvider = {
 
   async validateCredentials(apiKey: string): Promise<boolean> {
     try {
-      await easypostFetch('/carrier_accounts', apiKey, { method: 'GET' });
-      return true;
+      // Use /addresses endpoint — lightweight, works for both test and production keys
+      const res = await fetch(`${EASYPOST_BASE}/addresses`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${Buffer.from(apiKey + ':').toString('base64')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ address: { street1: '1 Test St', city: 'Test', state: 'CA', zip: '90001', country: 'US' } }),
+      });
+      // 2xx or 422 (validation error) = key is valid; 401 = bad key
+      return res.status !== 401 && res.status !== 403;
     } catch {
       return false;
     }
