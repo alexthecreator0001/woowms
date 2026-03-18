@@ -125,13 +125,19 @@ export default function WooCommerceSection() {
     }
   };
 
-  const handleDisconnect = async (storeId: number) => {
-    if (!confirm('Disconnect this store? It will stop syncing.')) return;
+  const [showDisconnectModal, setShowDisconnectModal] = useState<number | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  const handleDisconnect = async (storeId: number, purge: boolean) => {
+    setDisconnecting(true);
     try {
-      await api.delete(`/stores/${storeId}`);
+      await api.delete(`/stores/${storeId}`, { params: { purge: purge ? '1' : '0' } });
+      setShowDisconnectModal(null);
       loadStores();
     } catch (err) {
       alert('Failed to disconnect: ' + ((err as AxiosError<{ message: string }>).response?.data?.message || (err as Error).message));
+    } finally {
+      setDisconnecting(false);
     }
   };
 
@@ -363,7 +369,7 @@ export default function WooCommerceSection() {
                         )}
                       </button>
                       <button
-                        onClick={() => handleDisconnect(store.id)}
+                        onClick={() => setShowDisconnectModal(store.id)}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-medium text-destructive shadow-sm transition-all hover:bg-destructive/10"
                       >
                         <PlugsConnected className="h-3 w-3" />
@@ -514,6 +520,57 @@ export default function WooCommerceSection() {
               )}
             </div>
           ))}
+        </div>
+      )}
+      {/* Disconnect Confirmation Modal */}
+      {showDisconnectModal !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-md overflow-hidden rounded-2xl border border-border/60 bg-card shadow-xl">
+            <div className="border-b border-border/50 px-6 py-4">
+              <h3 className="text-base font-semibold">Disconnect Store</h3>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Choose how you want to disconnect this store.
+              </p>
+            </div>
+            <div className="space-y-3 p-6">
+              <button
+                onClick={() => handleDisconnect(showDisconnectModal, false)}
+                disabled={disconnecting}
+                className="w-full rounded-xl border border-border/60 p-4 text-left transition-all hover:border-primary/30 hover:bg-primary/5"
+              >
+                <p className="text-sm font-semibold">Disconnect only</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Stop syncing but keep all products, orders, and inventory data.
+                  You can reconnect later.
+                </p>
+              </button>
+              <button
+                onClick={() => handleDisconnect(showDisconnectModal, true)}
+                disabled={disconnecting}
+                className="w-full rounded-xl border border-destructive/30 p-4 text-left transition-all hover:border-destructive/50 hover:bg-destructive/5"
+              >
+                <p className="text-sm font-semibold text-destructive">Disconnect &amp; delete data</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Stop syncing and permanently delete all products, orders, stock locations,
+                  and shipments from this store. This cannot be undone.
+                </p>
+              </button>
+            </div>
+            <div className="border-t border-border/50 px-6 py-3">
+              <button
+                onClick={() => setShowDisconnectModal(null)}
+                disabled={disconnecting}
+                className="w-full rounded-lg py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Cancel
+              </button>
+            </div>
+            {disconnecting && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-card/80 backdrop-blur-sm">
+                <CircleNotch className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

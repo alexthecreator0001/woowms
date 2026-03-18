@@ -33,9 +33,25 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       orderBy: { createdAt: 'desc' },
     });
     // Never expose the encrypted API key — only return a boolean indicator
+    // Also check TenantPlugin fallback for shipping provider (survives store reconnects)
+    let pluginProvider: string | null = null;
+    if (stores.some((s) => s.isActive && !s.shippingProvider)) {
+      const shippingPlugin = await req.prisma!.tenantPlugin.findFirst({
+        where: {
+          tenantId: req.tenantId,
+          isEnabled: true,
+          pluginKey: { in: ['shippo', 'easypost'] },
+        },
+      });
+      if (shippingPlugin) {
+        pluginProvider = shippingPlugin.pluginKey;
+      }
+    }
+
     const data = stores.map(({ shippingApiKey, ...store }) => ({
       ...store,
-      hasShippingApiKey: !!shippingApiKey,
+      shippingProvider: store.shippingProvider || (store.isActive ? pluginProvider : null),
+      hasShippingApiKey: !!shippingApiKey || (store.isActive && !!pluginProvider),
     }));
     res.json({ data });
   } catch (err) {
@@ -108,12 +124,46 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
 });
 
 // DELETE /api/v1/stores/:id — disconnect a store
+// ?purge=1 to also delete all products, orders, stock locations, shipments, etc.
 router.delete('/:id', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    await req.prisma!.store.update({
-      where: { id: parseInt(req.params.id) },
+    const prisma = req.prisma!;
+    const storeId = parseInt(req.params.id);
+    const purge = req.query.purge === '1';
+
+    // Always mark store as inactive
+    await prisma.store.update({
+      where: { id: storeId },
       data: { isActive: false },
     });
+
+    if (purge) {
+      // Delete in correct order to respect FK constraints
+      // 1. Stock movements (reference product + bins)
+      await prisma.stockMovement.deleteMany({ where: { product: { storeId } } });
+      // 2. Stock locations (reference product + bins)
+      await prisma.stockLocation.deleteMany({ where: { product: { storeId } } });
+      // 3. Pick list items → pick lists
+      await prisma.pickListItem.deleteMany({ where: { pickList: { order: { storeId } } } });
+      await prisma.pickList.deleteMany({ where: { order: { storeId } } });
+      // 4. Shipments
+      await prisma.shipment.deleteMany({ where: { order: { storeId } } });
+      // 5. Orders
+      await prisma.order.deleteMany({ where: { storeId } });
+      // 6. Supplier products
+      await prisma.supplierProduct.deleteMany({ where: { product: { storeId } } });
+      // 7. Product barcodes
+      await prisma.productBarcode.deleteMany({ where: { product: { storeId } } });
+      // 8. Bundle components
+      await prisma.bundleComponent.deleteMany({ where: { bundleProduct: { storeId } } });
+      // 9. Shipping mappings
+      await prisma.shippingMapping.deleteMany({ where: { storeId } });
+      // 10. Products
+      await prisma.product.deleteMany({ where: { storeId } });
+
+      return res.json({ data: { message: 'Store disconnected and all data deleted' } });
+    }
+
     res.json({ data: { message: 'Store disconnected' } });
   } catch (err) {
     next(err);

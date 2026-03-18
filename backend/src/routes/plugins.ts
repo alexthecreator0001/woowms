@@ -212,10 +212,30 @@ router.post('/:key/install', authorize('ADMIN', 'MANAGER'), async (req: Request,
         return res.status(400).json({ error: true, message: 'Invalid API key. Please check your key and try again.', code: 'INVALID_API_KEY' });
       }
 
+      const encryptedKey = encrypt(userApiKey);
+
       // Bridge: save to Store shipping fields
       await req.prisma!.store.updateMany({
         where: { tenantId: req.tenantId },
-        data: { shippingProvider: (catalogItem as any).providerName, shippingApiKey: encrypt(userApiKey) },
+        data: { shippingProvider: (catalogItem as any).providerName, shippingApiKey: encryptedKey },
+      });
+
+      // Also persist the encrypted key in the plugin settings so it survives store reconnects
+      const plugin = await req.prisma!.tenantPlugin.create({
+        data: {
+          pluginKey: key,
+          settings: { _encryptedApiKey: encryptedKey },
+        },
+      });
+
+      return res.status(201).json({
+        data: {
+          ...catalogItem,
+          installed: true,
+          isEnabled: true,
+          settings: {},
+          installedAt: (plugin as any).installedAt,
+        },
       });
     }
 
@@ -333,9 +353,18 @@ router.post('/:key/update-api-key', authorize('ADMIN', 'MANAGER'), async (req: R
       return res.status(400).json({ error: true, message: 'Invalid API key', code: 'INVALID_API_KEY' });
     }
 
+    const encryptedKey = encrypt(newApiKey);
+
     await req.prisma!.store.updateMany({
       where: { tenantId: req.tenantId },
-      data: { shippingApiKey: encrypt(newApiKey) },
+      data: { shippingApiKey: encryptedKey },
+    });
+
+    // Also update the plugin settings so it survives store reconnects
+    const existingSettings = ((existing as any).settings as Record<string, unknown>) || {};
+    await req.prisma!.tenantPlugin.update({
+      where: { id: (existing as any).id },
+      data: { settings: { ...existingSettings, _encryptedApiKey: encryptedKey } },
     });
 
     res.json({ data: { connected: true } });

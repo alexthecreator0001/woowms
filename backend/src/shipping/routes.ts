@@ -3,8 +3,61 @@ import { authorize } from '../middleware/auth.js';
 import { encrypt, decrypt } from '../lib/crypto.js';
 import { getProvider, listProviders } from './registry.js';
 import { fetchShippingMethods } from '../woocommerce/fetch.js';
+import type { PrismaClient } from '@prisma/client';
 
 const router = Router();
+
+// Helper: resolve shipping provider from Store or TenantPlugin fallback.
+// When a store is reconnected, the new Store may not have shippingProvider set,
+// but the TenantPlugin still exists. This syncs them and returns the resolved info.
+async function resolveShippingProvider(prisma: PrismaClient, tenantId: number) {
+  const store = await prisma.store.findFirst({
+    where: { tenantId, isActive: true },
+  });
+  if (!store) return null;
+
+  // If store already has provider, use it
+  if (store.shippingProvider && store.shippingApiKey) {
+    return { store, providerName: store.shippingProvider, apiKey: decrypt(store.shippingApiKey) };
+  }
+
+  // Fallback: check TenantPlugin for a shipping plugin
+  const shippingPlugin = await prisma.tenantPlugin.findFirst({
+    where: {
+      tenantId,
+      isEnabled: true,
+      pluginKey: { in: ['shippo', 'easypost'] },
+    },
+  });
+
+  if (shippingPlugin) {
+    const settings = (shippingPlugin as any).settings as Record<string, string> | null;
+    const providerName = shippingPlugin.pluginKey;
+    let encryptedKey = settings?._encryptedApiKey;
+
+    // Fallback: check if an older (inactive) store has the key
+    if (!encryptedKey) {
+      const oldStore = await prisma.store.findFirst({
+        where: { tenantId, shippingProvider: providerName, shippingApiKey: { not: null } },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (oldStore?.shippingApiKey) {
+        encryptedKey = oldStore.shippingApiKey;
+      }
+    }
+
+    if (providerName && encryptedKey) {
+      // Sync back to the store so future lookups are fast
+      await prisma.store.update({
+        where: { id: store.id },
+        data: { shippingProvider: providerName, shippingApiKey: encryptedKey },
+      });
+      return { store, providerName, apiKey: decrypt(encryptedKey) };
+    }
+  }
+
+  return null;
+}
 
 // GET /api/v1/shipping-config/providers — list available providers
 router.get('/providers', async (_req: Request, res: Response) => {
@@ -29,17 +82,13 @@ router.post('/validate', authorize('ADMIN', 'MANAGER'), async (req: Request, res
 // GET /api/v1/shipping-config/carriers — get carriers from connected provider
 router.get('/carriers', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const prisma = req.prisma!;
-    const store = await prisma.store.findFirst({
-      where: { tenantId: req.tenantId, isActive: true },
-    });
-    if (!store?.shippingProvider || !store?.shippingApiKey) {
-      return res.json({ data: [] });
-    }
-    const provider = getProvider(store.shippingProvider);
+    const resolved = await resolveShippingProvider(req.prisma!, req.tenantId);
+    if (!resolved) return res.json({ data: [] });
+
+    const provider = getProvider(resolved.providerName);
     if (!provider) return res.json({ data: [] });
 
-    const carriers = await provider.getCarriers(decrypt(store.shippingApiKey));
+    const carriers = await provider.getCarriers(resolved.apiKey);
     res.json({ data: carriers });
   } catch (err) {
     next(err);
@@ -49,17 +98,13 @@ router.get('/carriers', async (req: Request, res: Response, next: NextFunction) 
 // GET /api/v1/shipping-config/services/:carrier — get services for a carrier
 router.get('/services/:carrier', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const prisma = req.prisma!;
-    const store = await prisma.store.findFirst({
-      where: { tenantId: req.tenantId, isActive: true },
-    });
-    if (!store?.shippingProvider || !store?.shippingApiKey) {
-      return res.json({ data: [] });
-    }
-    const provider = getProvider(store.shippingProvider);
+    const resolved = await resolveShippingProvider(req.prisma!, req.tenantId);
+    if (!resolved) return res.json({ data: [] });
+
+    const provider = getProvider(resolved.providerName);
     if (!provider) return res.json({ data: [] });
 
-    const services = await provider.getServices(decrypt(store.shippingApiKey), req.params.carrier);
+    const services = await provider.getServices(resolved.apiKey, req.params.carrier);
     res.json({ data: services });
   } catch (err) {
     next(err);
@@ -189,11 +234,23 @@ router.post('/label', async (req: Request, res: Response, next: NextFunction) =>
       return res.status(404).json({ error: true, message: 'Order not found', code: 'NOT_FOUND' });
     }
 
-    if (!order.store.shippingProvider || !order.store.shippingApiKey) {
+    // Resolve provider — try store fields first, fall back to TenantPlugin
+    let providerName = order.store.shippingProvider;
+    let apiKey = order.store.shippingApiKey ? decrypt(order.store.shippingApiKey) : null;
+
+    if (!providerName || !apiKey) {
+      const resolved = await resolveShippingProvider(prisma, req.tenantId);
+      if (resolved) {
+        providerName = resolved.providerName;
+        apiKey = resolved.apiKey;
+      }
+    }
+
+    if (!providerName || !apiKey) {
       return res.status(400).json({ error: true, message: 'No shipping provider configured', code: 'NO_PROVIDER' });
     }
 
-    const provider = getProvider(order.store.shippingProvider);
+    const provider = getProvider(providerName);
     if (!provider) {
       return res.status(400).json({ error: true, message: 'Shipping provider not available', code: 'PROVIDER_ERROR' });
     }
@@ -244,7 +301,7 @@ router.post('/label', async (req: Request, res: Response, next: NextFunction) =>
       phone: returnAddress.phone || '',
     };
 
-    const result = await provider.createShipment(decrypt(order.store.shippingApiKey), {
+    const result = await provider.createShipment(apiKey, {
       fromAddress,
       toAddress,
       parcel: {

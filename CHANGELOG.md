@@ -3,6 +3,16 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.68.1 / 2.52.1] - 2026-03-18
+
+### Fixed
+- **Shipping provider survives store reconnect** — When disconnecting and reconnecting a WooCommerce store, the shipping provider (EasyPost/Shippo) API key is now persisted in the TenantPlugin settings. A new `resolveShippingProvider` fallback syncs the key to the new store automatically, so carriers and label generation work without reinstalling the plugin.
+- **Shipping carriers/services use provider fallback** — The `/carriers`, `/services/:carrier`, and `/label` endpoints now resolve the shipping provider from TenantPlugin when the Store record doesn't have it set.
+- **GET /stores returns plugin provider** — Store list API now returns the shipping provider from TenantPlugin fallback when the store itself doesn't have it, so the Shipping settings page correctly shows "Connected via plugin".
+
+### Added
+- **Disconnect confirmation modal** — Disconnecting a WooCommerce store now shows a modal with two options: "Disconnect only" (keeps data) or "Disconnect & delete data" (purges products, orders, stock, shipments). Replaces the old `confirm()` dialog.
+
 ## [Docs 1.4.0] - 2026-03-08
 
 ### Changed
