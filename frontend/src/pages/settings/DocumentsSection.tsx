@@ -237,7 +237,7 @@ export default function DocumentsSection() {
                       type="button"
                       onClick={removeStamp}
                       disabled={stampUploading}
-                      className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-200 bg-background px-3 text-sm font-medium text-red-600 shadow-sm transition-colors hover:bg-red-50 disabled:opacity-50"
+                      className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-500/20 bg-background px-3 text-sm font-medium text-red-600 shadow-sm transition-colors hover:bg-red-500/10 disabled:opacity-50"
                     >
                       <Trash size={14} />
                       Remove

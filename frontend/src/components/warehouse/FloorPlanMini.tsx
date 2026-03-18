@@ -59,10 +59,10 @@ export default function FloorPlanMini({ highlightZoneIds, zoneQty, className }: 
   const pxH = fp.height * scale;
 
   return (
-    <div className={cn('rounded-lg border border-border/30 bg-[#fafafa] p-3', className)}>
+    <div className={cn('rounded-lg border border-border/30 bg-muted/50 p-3', className)}>
       <div
-        className="relative mx-auto overflow-hidden rounded"
-        style={{ width: pxW, height: pxH, backgroundColor: '#f0f0f0' }}
+        className="relative mx-auto overflow-hidden rounded bg-muted"
+        style={{ width: pxW, height: pxH }}
       >
         {placed.map((el) => {
           const ew = el.rotation === 90 ? el.h : el.w;
@@ -103,11 +103,11 @@ export default function FloorPlanMini({ highlightZoneIds, zoneQty, className }: 
       {/* Legend */}
       <div className="mt-2 flex items-center justify-center gap-4">
         <div className="flex items-center gap-1.5">
-          <div className="h-2.5 w-2.5 rounded-[2px] bg-[#10b981]" />
+          <div className="h-2.5 w-2.5 rounded-[2px] bg-emerald-500" />
           <span className="text-[10px] text-muted-foreground">Product location</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="h-2.5 w-2.5 rounded-[2px] bg-[#d4d4d4]" />
+          <div className="h-2.5 w-2.5 rounded-[2px] bg-muted-foreground/30" />
           <span className="text-[10px] text-muted-foreground">Other zones</span>
         </div>
       </div>

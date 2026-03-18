@@ -395,7 +395,7 @@ export default function WarehouseDetail() {
           <button
             type="button"
             onClick={handleDeleteWarehouse}
-            className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors"
+            className="rounded-lg p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-600 transition-colors"
             title="Delete warehouse"
           >
             <Trash size={18} />

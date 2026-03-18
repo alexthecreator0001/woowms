@@ -192,8 +192,8 @@ export default function PackingStation({ standalone = false }: PackingStationPro
 
   if (loading) {
     return (
-      <div className={cn('flex items-center justify-center', standalone ? 'min-h-screen bg-[#f5f5f4]' : 'min-h-[60vh]')}>
-        <CircleNotch size={28} className="animate-spin text-[#a0a0a0]" />
+      <div className={cn('flex items-center justify-center', standalone ? 'min-h-screen bg-background' : 'min-h-[60vh]')}>
+        <CircleNotch size={28} className="animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -204,12 +204,12 @@ export default function PackingStation({ standalone = false }: PackingStationPro
   const content = (
     <div className="flex h-full">
       {/* ═══════ LEFT: Queue ═══════ */}
-      <div className="flex w-[280px] flex-shrink-0 flex-col border-r border-[#e5e5e5] bg-white">
+      <div className="flex w-[280px] flex-shrink-0 flex-col border-r border-border bg-card">
         <div className="flex items-center justify-between px-4 py-3">
-          <span className="text-[13px] font-bold text-[#1a1a1a]">Queue</span>
+          <span className="text-[13px] font-bold text-foreground">Queue</span>
           <span className={cn(
             'flex h-[22px] min-w-[22px] items-center justify-center rounded-md px-1.5 text-[11px] font-bold',
-            queue.length > 0 ? 'bg-[#1a1a1a] text-white' : 'bg-[#f0f0f0] text-[#a0a0a0]'
+            queue.length > 0 ? 'bg-foreground text-white' : 'bg-muted text-muted-foreground'
           )}>
             {queue.length}
           </span>
@@ -218,8 +218,8 @@ export default function PackingStation({ standalone = false }: PackingStationPro
         <div className="flex-1 overflow-y-auto">
           {queue.length === 0 ? (
             <div className="flex flex-col items-center px-6 py-16">
-              <Package size={36} weight="thin" className="mb-2 text-[#d5d5d5]" />
-              <p className="text-[12px] text-[#b0b0b0]">No orders to pack</p>
+              <Package size={36} weight="thin" className="mb-2 text-muted-foreground" />
+              <p className="text-[12px] text-muted-foreground">No orders to pack</p>
             </div>
           ) : (
             queue.map((order) => {
@@ -229,25 +229,25 @@ export default function PackingStation({ standalone = false }: PackingStationPro
                   key={order.id}
                   onClick={() => handleSelectOrder(order.id)}
                   className={cn(
-                    'w-full border-b border-[#f0f0f0] px-4 py-2.5 text-left transition-all',
-                    isActive ? 'bg-[#1a1a1a] text-white' : 'hover:bg-[#fafafa]'
+                    'w-full border-b border-border px-4 py-2.5 text-left transition-all',
+                    isActive ? 'bg-foreground text-white' : 'hover:bg-muted/50'
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className={cn('text-[13px] font-bold', isActive ? 'text-white' : 'text-[#1a1a1a]')}>
+                    <span className={cn('text-[13px] font-bold', isActive ? 'text-white' : 'text-foreground')}>
                       #{order.orderNumber}
                     </span>
                     <div className="flex items-center gap-1.5">
                       {order.isPaid === false && (
                         <span className={cn(
                           'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
-                          isActive ? 'bg-white/20 text-amber-300' : 'bg-amber-500/10 text-amber-600'
+                          isActive ? 'bg-card/20 text-amber-300' : 'bg-amber-500/10 text-amber-600'
                         )}>Unpaid</span>
                       )}
                       <span className={cn(
                         'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                         isActive
-                          ? 'bg-white/20 text-white/80'
+                          ? 'bg-card/20 text-white/80'
                           : order.status === 'PACKING'
                             ? 'bg-orange-500/10 text-orange-600'
                             : 'bg-violet-500/10 text-violet-600'
@@ -257,10 +257,10 @@ export default function PackingStation({ standalone = false }: PackingStationPro
                     </div>
                   </div>
                   <div className="mt-1 flex items-center justify-between">
-                    <span className={cn('text-[11px]', isActive ? 'text-white/60' : 'text-[#8a8a8a]')}>
+                    <span className={cn('text-[11px]', isActive ? 'text-white/60' : 'text-muted-foreground')}>
                       {order.customerName}
                     </span>
-                    <span className={cn('text-[11px] font-semibold', isActive ? 'text-white/50' : 'text-[#b0b0b0]')}>
+                    <span className={cn('text-[11px] font-semibold', isActive ? 'text-white/50' : 'text-muted-foreground')}>
                       {order.items?.length || 0} item{(order.items?.length || 0) !== 1 ? 's' : ''}
                     </span>
                   </div>
@@ -274,22 +274,22 @@ export default function PackingStation({ standalone = false }: PackingStationPro
       {/* ═══════ CENTER: Active Order ═══════ */}
       <div className="flex min-w-0 flex-1 flex-col">
         {!activeOrder ? (
-          <div className="flex flex-1 flex-col items-center justify-center bg-[#fafaf9]">
-            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-[#f0f0ef]">
-              <ShoppingBag size={36} weight="thin" className="text-[#c5c5c5]" />
+          <div className="flex flex-1 flex-col items-center justify-center bg-background">
+            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-muted">
+              <ShoppingBag size={36} weight="thin" className="text-muted-foreground" />
             </div>
-            <p className="text-[14px] font-semibold text-[#a0a0a0]">Select an order to start packing</p>
+            <p className="text-[14px] font-semibold text-muted-foreground">Select an order to start packing</p>
           </div>
         ) : (
           <>
             {/* ── Order header bar ── */}
-            <div className="flex items-center gap-4 border-b border-[#e5e5e5] bg-white px-5 py-2.5">
+            <div className="flex items-center gap-4 border-b border-border bg-card px-5 py-2.5">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500">
                   <Package size={16} weight="bold" className="text-white" />
                 </div>
                 <div>
-                  <span className="text-[16px] font-extrabold tracking-tight text-[#1a1a1a]">
+                  <span className="text-[16px] font-extrabold tracking-tight text-foreground">
                     #{activeOrder.orderNumber}
                   </span>
                 </div>
@@ -303,12 +303,12 @@ export default function PackingStation({ standalone = false }: PackingStationPro
 
               <div className="ml-auto flex items-center gap-3">
                 {activeOrder.shippingMethodTitle && (
-                  <span className="flex items-center gap-1.5 text-[12px] text-[#8a8a8a]">
-                    <Truck size={14} weight="bold" className="text-[#b0b0b0]" />
+                  <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                    <Truck size={14} weight="bold" className="text-muted-foreground" />
                     {activeOrder.shippingMethodTitle}
                   </span>
                 )}
-                <span className="text-[15px] font-extrabold text-[#1a1a1a]">
+                <span className="text-[15px] font-extrabold text-foreground">
                   {fmtMoney(activeOrder.total, activeOrder.currency)}
                 </span>
               </div>
@@ -319,9 +319,9 @@ export default function PackingStation({ standalone = false }: PackingStationPro
               {/* Items column */}
               <div className="flex flex-1 flex-col">
                 {/* Scan + progress row */}
-                <div className="flex items-center gap-3 border-b border-[#ebebeb] bg-[#fafaf9] px-5 py-2.5">
+                <div className="flex items-center gap-3 border-b border-border bg-background px-5 py-2.5">
                   <div className="relative flex-1">
-                    <Barcode size={15} weight="bold" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#c0c0c0]" />
+                    <Barcode size={15} weight="bold" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <input
                       ref={scanRef}
                       type="text"
@@ -329,11 +329,11 @@ export default function PackingStation({ standalone = false }: PackingStationPro
                       onChange={(e) => setScanInput(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter' && scanInput.trim()) handleScan(scanInput); }}
                       placeholder="Scan or type SKU..."
-                      className="h-8 w-full rounded-md border border-[#e0e0e0] bg-white pl-8 pr-3 text-[12px] text-[#1a1a1a] placeholder:text-[#c5c5c5] focus:border-[#1a1a1a] focus:outline-none focus:ring-1 focus:ring-[#1a1a1a]/10"
+                      className="h-8 w-full rounded-md border border-border bg-card pl-8 pr-3 text-[12px] text-foreground placeholder:text-muted-foreground focus:border-foreground focus:outline-none focus:ring-1 focus:ring-foreground/10"
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[#e8e8e8]">
+                    <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
                       <div
                         className={cn(
                           'h-full rounded-full transition-all duration-500',
@@ -344,7 +344,7 @@ export default function PackingStation({ standalone = false }: PackingStationPro
                     </div>
                     <span className={cn(
                       'text-[11px] font-bold tabular-nums',
-                      allChecked ? 'text-emerald-600' : 'text-[#8a8a8a]'
+                      allChecked ? 'text-emerald-600' : 'text-muted-foreground'
                     )}>
                       {checkedCount}/{totalItems}
                     </span>
@@ -352,7 +352,7 @@ export default function PackingStation({ standalone = false }: PackingStationPro
                 </div>
 
                 {/* Items */}
-                <div className="flex-1 overflow-y-auto bg-[#fafaf9] p-4">
+                <div className="flex-1 overflow-y-auto bg-background p-4">
                   <div className="space-y-1.5">
                     {activeOrder.items?.map((item, idx) => {
                       const isChecked = checkedItems[item.id] ?? true;
@@ -364,8 +364,8 @@ export default function PackingStation({ standalone = false }: PackingStationPro
                           className={cn(
                             'group flex cursor-pointer items-center gap-3 rounded-lg border p-2.5 transition-all',
                             isChecked
-                              ? 'border-emerald-300/60 bg-emerald-50/50'
-                              : 'border-[#e5e5e5] bg-white hover:border-orange-300 hover:shadow-sm'
+                              ? 'border-emerald-300/60 bg-emerald-500/5'
+                              : 'border-border bg-card hover:border-orange-300 hover:shadow-sm'
                           )}
                         >
                           {/* Check */}
@@ -376,19 +376,19 @@ export default function PackingStation({ standalone = false }: PackingStationPro
                               'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border-2 transition-all',
                               isChecked
                                 ? 'border-emerald-500 bg-emerald-500 text-white'
-                                : 'border-[#d5d5d5] bg-white group-hover:border-orange-400'
+                                : 'border-border bg-card group-hover:border-orange-400'
                             )}
                           >
                             {isChecked && <Check size={14} weight="bold" />}
                           </button>
 
                           {/* Image */}
-                          <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-md border border-[#e8e8e8] bg-[#f5f5f5]">
+                          <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-md border border-border bg-muted/50">
                             {item.product?.imageUrl ? (
                               <img src={proxyUrl(item.product.imageUrl, 112)!} alt="" className="h-full w-full object-cover" />
                             ) : (
                               <div className="flex h-full w-full items-center justify-center">
-                                <Package size={20} weight="thin" className="text-[#d5d5d5]" />
+                                <Package size={20} weight="thin" className="text-muted-foreground" />
                               </div>
                             )}
                           </div>
@@ -397,18 +397,18 @@ export default function PackingStation({ standalone = false }: PackingStationPro
                           <div className="min-w-0 flex-1">
                             <p className={cn(
                               'truncate text-[13px] font-semibold',
-                              isChecked ? 'text-emerald-800' : 'text-[#1a1a1a]'
+                              isChecked ? 'text-emerald-800' : 'text-foreground'
                             )}>{item.name}</p>
                             <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                               {item.sku && (
-                                <code className="text-[11px] text-[#8a8a8a]">{item.sku}</code>
+                                <code className="text-[11px] text-muted-foreground">{item.sku}</code>
                               )}
                               {binLabel && (
-                                <span className="flex items-center gap-0.5 rounded bg-[#f0f0f0] px-1.5 py-0.5 text-[10px] font-semibold text-[#6b6b6b]">
+                                <span className="flex items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
                                   <MapPin size={9} weight="bold" />{binLabel}
                                 </span>
                               )}
-                              <span className="text-[11px] text-[#b0b0b0]">
+                              <span className="text-[11px] text-muted-foreground">
                                 {fmtMoney(item.price, activeOrder.currency)} ea
                               </span>
                             </div>
@@ -419,7 +419,7 @@ export default function PackingStation({ standalone = false }: PackingStationPro
                             'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-[16px] font-extrabold',
                             isChecked
                               ? 'bg-emerald-500/10 text-emerald-700'
-                              : 'bg-[#f0f0f0] text-[#1a1a1a]'
+                              : 'bg-muted text-foreground'
                           )}>
                             {item.quantity}
                           </div>
@@ -431,13 +431,13 @@ export default function PackingStation({ standalone = false }: PackingStationPro
 
                 {/* ── Feedback ── */}
                 {error && (
-                  <div className="flex items-center gap-2 border-t border-red-200 bg-red-50 px-5 py-2.5">
+                  <div className="flex items-center gap-2 border-t border-red-500/30 bg-red-500/5 px-5 py-2.5">
                     <Warning size={15} weight="fill" className="flex-shrink-0 text-red-500" />
                     <p className="text-[12px] font-semibold text-red-700">{error}</p>
                   </div>
                 )}
                 {labelResult && !error && (
-                  <div className="flex items-center gap-2 border-t border-emerald-200 bg-emerald-50 px-5 py-2.5">
+                  <div className="flex items-center gap-2 border-t border-emerald-500/30 bg-emerald-500/5 px-5 py-2.5">
                     <CheckCircle size={15} weight="fill" className="flex-shrink-0 text-emerald-500" />
                     <p className="text-[12px] font-semibold text-emerald-700">
                       Shipped — {labelResult.trackingNumber}
@@ -452,11 +452,11 @@ export default function PackingStation({ standalone = false }: PackingStationPro
                 )}
 
                 {/* ── Actions ── */}
-                <div className="flex items-center gap-2 border-t border-[#e5e5e5] bg-white px-5 py-3">
+                <div className="flex items-center gap-2 border-t border-border bg-card px-5 py-3">
                   <button
                     onClick={handlePrintAndShip}
                     disabled={packing}
-                    className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[#1a1a1a] text-[13px] font-bold text-white transition-all hover:bg-[#333] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-foreground text-[13px] font-bold text-white transition-all hover:bg-foreground/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {packing ? <CircleNotch size={15} className="animate-spin" /> : <Printer size={15} weight="bold" />}
                     Print Label & Ship
@@ -464,7 +464,7 @@ export default function PackingStation({ standalone = false }: PackingStationPro
                   <button
                     onClick={handleSkip}
                     disabled={skipLoading}
-                    className="flex h-10 items-center gap-1.5 rounded-lg border border-[#e5e5e5] px-3.5 text-[12px] font-semibold text-[#8a8a8a] transition-all hover:border-[#c5c5c5] hover:text-[#1a1a1a] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 items-center gap-1.5 rounded-lg border border-border px-3.5 text-[12px] font-semibold text-muted-foreground transition-all hover:border-muted-foreground hover:text-foreground active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {skipLoading ? <CircleNotch size={13} className="animate-spin" /> : <SkipForward size={13} weight="bold" />}
                     Skip
@@ -473,56 +473,56 @@ export default function PackingStation({ standalone = false }: PackingStationPro
               </div>
 
               {/* ═══════ Right sidebar ═══════ */}
-              <div className="w-[260px] flex-shrink-0 overflow-y-auto border-l border-[#e5e5e5] bg-white">
+              <div className="w-[260px] flex-shrink-0 overflow-y-auto border-l border-border bg-card">
                 {/* Ship-to — the most important info */}
-                <div className="border-b border-[#f0f0f0] px-4 py-3.5">
+                <div className="border-b border-border px-4 py-3.5">
                   <div className="mb-2 flex items-center gap-1.5">
                     <NavigationArrow size={12} weight="fill" className="text-orange-500" />
                     <span className="text-[10px] font-bold uppercase tracking-widest text-orange-600">Ship to</span>
                   </div>
                   {shipTo.name || shipTo.lines.length > 0 ? (
-                    <div className="rounded-lg bg-[#fafaf9] p-3">
+                    <div className="rounded-lg bg-background p-3">
                       {shipTo.name && (
-                        <p className="text-[13px] font-bold text-[#1a1a1a]">{shipTo.name}</p>
+                        <p className="text-[13px] font-bold text-foreground">{shipTo.name}</p>
                       )}
                       {shipTo.lines.map((line, i) => (
-                        <p key={i} className="text-[12px] leading-relaxed text-[#6b6b6b]">{line}</p>
+                        <p key={i} className="text-[12px] leading-relaxed text-muted-foreground">{line}</p>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[11px] italic text-[#c5c5c5]">No address</p>
+                    <p className="text-[11px] italic text-muted-foreground">No address</p>
                   )}
                 </div>
 
                 {/* Customer */}
-                <div className="border-b border-[#f0f0f0] px-4 py-3">
+                <div className="border-b border-border px-4 py-3">
                   <div className="mb-1.5 flex items-center gap-1.5">
-                    <User size={12} weight="bold" className="text-[#b0b0b0]" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#a0a0a0]">Customer</span>
+                    <User size={12} weight="bold" className="text-muted-foreground" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Customer</span>
                   </div>
-                  <p className="text-[13px] font-semibold text-[#1a1a1a]">{activeOrder.customerName}</p>
-                  <p className="truncate text-[11px] text-[#8a8a8a]">{activeOrder.customerEmail}</p>
+                  <p className="text-[13px] font-semibold text-foreground">{activeOrder.customerName}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">{activeOrder.customerEmail}</p>
                 </div>
 
                 {/* Shipping */}
                 {activeOrder.shippingMethodTitle && (
-                  <div className="border-b border-[#f0f0f0] px-4 py-3">
+                  <div className="border-b border-border px-4 py-3">
                     <div className="mb-1.5 flex items-center gap-1.5">
-                      <Truck size={12} weight="bold" className="text-[#b0b0b0]" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#a0a0a0]">Shipping</span>
+                      <Truck size={12} weight="bold" className="text-muted-foreground" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Shipping</span>
                     </div>
-                    <p className="text-[13px] font-semibold text-[#1a1a1a]">{activeOrder.shippingMethodTitle}</p>
+                    <p className="text-[13px] font-semibold text-foreground">{activeOrder.shippingMethodTitle}</p>
                   </div>
                 )}
 
                 {/* Payment */}
-                <div className="border-b border-[#f0f0f0] px-4 py-3">
+                <div className="border-b border-border px-4 py-3">
                   <div className="mb-1.5 flex items-center gap-1.5">
-                    <CreditCard size={12} weight="bold" className="text-[#b0b0b0]" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#a0a0a0]">Payment</span>
+                    <CreditCard size={12} weight="bold" className="text-muted-foreground" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Payment</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <p className="text-[12px] font-semibold text-[#1a1a1a]">
+                    <p className="text-[12px] font-semibold text-foreground">
                       {activeOrder.paymentMethodTitle || activeOrder.paymentMethod || '—'}
                     </p>
                     <span className={cn(
@@ -538,25 +538,25 @@ export default function PackingStation({ standalone = false }: PackingStationPro
 
                 {/* Customer Notes — filtered */}
                 {customerNotes && (
-                  <div className="border-b border-[#f0f0f0] px-4 py-3">
+                  <div className="border-b border-border px-4 py-3">
                     <div className="mb-1.5 flex items-center gap-1.5">
-                      <ClipboardText size={12} weight="bold" className="text-[#b0b0b0]" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#a0a0a0]">Notes</span>
+                      <ClipboardText size={12} weight="bold" className="text-muted-foreground" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Notes</span>
                     </div>
-                    <p className="whitespace-pre-wrap text-[11px] leading-relaxed text-[#6b6b6b]">{customerNotes}</p>
+                    <p className="whitespace-pre-wrap text-[11px] leading-relaxed text-muted-foreground">{customerNotes}</p>
                   </div>
                 )}
 
                 {/* Total */}
                 <div className="px-4 py-3.5">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#a0a0a0]">Total</span>
-                    <span className="text-[22px] font-extrabold tracking-tight text-[#1a1a1a]">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Total</span>
+                    <span className="text-[22px] font-extrabold tracking-tight text-foreground">
                       {fmtMoney(activeOrder.total, activeOrder.currency)}
                     </span>
                   </div>
                   <div className="mt-0.5 text-right">
-                    <span className="text-[11px] text-[#b0b0b0]">
+                    <span className="text-[11px] text-muted-foreground">
                       {totalItems} item{totalItems !== 1 ? 's' : ''}
                     </span>
                   </div>
@@ -572,23 +572,23 @@ export default function PackingStation({ standalone = false }: PackingStationPro
   // Standalone: fullscreen with top bar
   if (standalone) {
     return (
-      <div className="flex h-screen flex-col bg-[#f5f5f4]">
-        <div className="flex h-11 flex-shrink-0 items-center justify-between border-b border-[#e5e5e5] bg-white px-4">
+      <div className="flex h-screen flex-col bg-background">
+        <div className="flex h-11 flex-shrink-0 items-center justify-between border-b border-border bg-card px-4">
           <div className="flex items-center gap-2.5">
             <div className="flex h-6 w-6 items-center justify-center rounded-md bg-orange-500">
               <Package size={13} weight="bold" className="text-white" />
             </div>
-            <span className="text-[13px] font-extrabold tracking-tight text-[#1a1a1a]">Packing</span>
+            <span className="text-[13px] font-extrabold tracking-tight text-foreground">Packing</span>
             <span className={cn(
               'flex h-[18px] min-w-[18px] items-center justify-center rounded px-1 text-[10px] font-bold',
-              queue.length > 0 ? 'bg-orange-500 text-white' : 'bg-[#f0f0f0] text-[#a0a0a0]'
+              queue.length > 0 ? 'bg-orange-500 text-white' : 'bg-muted text-muted-foreground'
             )}>
               {queue.length}
             </span>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-1 text-[11px] font-medium text-[#a0a0a0] transition-colors hover:text-red-600"
+            className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-red-600"
           >
             <SignOut size={13} />
             Log out

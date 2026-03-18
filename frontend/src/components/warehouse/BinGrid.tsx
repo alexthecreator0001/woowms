@@ -4,12 +4,12 @@ import { cn } from '../../lib/utils';
 import type { Bin, ZoneType } from '../../types';
 
 const zoneColorMap: Record<ZoneType, { bg: string; border: string; hoverBorder: string; text: string; shelfBg: string }> = {
-  STORAGE:   { bg: 'bg-blue-500/8',    border: 'border-blue-200/60',    hoverBorder: 'hover:border-blue-400',    text: 'text-blue-700',    shelfBg: 'bg-blue-500/5' },
+  STORAGE:   { bg: 'bg-blue-500/8',    border: 'border-blue-500/20',    hoverBorder: 'hover:border-blue-400',    text: 'text-blue-700',    shelfBg: 'bg-blue-500/5' },
   PICKING:   { bg: 'bg-violet-500/8',  border: 'border-violet-200/60',  hoverBorder: 'hover:border-violet-400',  text: 'text-violet-700',  shelfBg: 'bg-violet-500/5' },
-  RECEIVING: { bg: 'bg-amber-500/8',   border: 'border-amber-200/60',   hoverBorder: 'hover:border-amber-400',   text: 'text-amber-700',   shelfBg: 'bg-amber-500/5' },
+  RECEIVING: { bg: 'bg-amber-500/8',   border: 'border-amber-500/20',   hoverBorder: 'hover:border-amber-400',   text: 'text-amber-700',   shelfBg: 'bg-amber-500/5' },
   PACKING:   { bg: 'bg-orange-500/8',  border: 'border-orange-200/60',  hoverBorder: 'hover:border-orange-400',  text: 'text-orange-700',  shelfBg: 'bg-orange-500/5' },
-  SHIPPING:  { bg: 'bg-emerald-500/8', border: 'border-emerald-200/60', hoverBorder: 'hover:border-emerald-400', text: 'text-emerald-700', shelfBg: 'bg-emerald-500/5' },
-  RETURNS:   { bg: 'bg-red-500/8',     border: 'border-red-200/60',     hoverBorder: 'hover:border-red-400',     text: 'text-red-700',     shelfBg: 'bg-red-500/5' },
+  SHIPPING:  { bg: 'bg-emerald-500/8', border: 'border-emerald-500/20', hoverBorder: 'hover:border-emerald-400', text: 'text-emerald-700', shelfBg: 'bg-emerald-500/5' },
+  RETURNS:   { bg: 'bg-red-500/8',     border: 'border-red-500/20',     hoverBorder: 'hover:border-red-400',     text: 'text-red-700',     shelfBg: 'bg-red-500/5' },
 };
 
 interface BinGridProps {

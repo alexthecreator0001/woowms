@@ -194,7 +194,7 @@ export default function SettingsPage() {
                       to={`/settings/${card.slug}`}
                       className={cn(
                         'flex items-start gap-3.5 rounded-xl border bg-card p-4 text-left shadow-sm transition-all hover:border-border hover:bg-muted/30 hover:shadow-md',
-                        card.danger ? 'border-red-200/60' : 'border-border/60'
+                        card.danger ? 'border-red-500/20' : 'border-border/60'
                       )}
                     >
                       <div className={cn(

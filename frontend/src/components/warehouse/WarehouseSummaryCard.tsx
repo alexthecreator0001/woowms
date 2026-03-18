@@ -91,7 +91,7 @@ export default function WarehouseSummaryCard({ warehouse, onEdit, onDelete }: Wa
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onDelete(warehouse); }}
-              className="rounded-md p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors"
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-red-500/10 hover:text-red-600 transition-colors"
               title="Delete warehouse"
             >
               <Trash size={15} />

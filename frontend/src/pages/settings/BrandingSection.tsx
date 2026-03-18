@@ -149,7 +149,7 @@ export default function BrandingSection() {
         </div>
         <div className="px-6 py-4">
           {error && (
-            <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+            <div className="mb-4 rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {error}
             </div>
           )}
@@ -341,7 +341,7 @@ export default function BrandingSection() {
                     type="button"
                     onClick={removeLogo}
                     disabled={logoUploading}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-200 bg-background px-3 text-sm font-medium text-red-600 shadow-sm transition-colors hover:bg-red-50 disabled:opacity-50"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-destructive/20 bg-background px-3 text-sm font-medium text-destructive shadow-sm transition-colors hover:bg-destructive/10 disabled:opacity-50"
                   >
                     <Trash size={14} />
                     Remove
@@ -374,7 +374,7 @@ export default function BrandingSection() {
           </p>
         </div>
         <div className="px-6 py-5">
-          <div className="inline-flex items-center gap-2.5 rounded-lg border border-border/60 bg-[#fafafa] px-3 py-2.5">
+          <div className="inline-flex items-center gap-2.5 rounded-lg border border-border/60 bg-muted/50 px-3 py-2.5">
             {logoUrl ? (
               <img src={logoUrl} alt="" className="h-8 w-8 rounded-md object-contain" />
             ) : (
@@ -382,7 +382,7 @@ export default function BrandingSection() {
                 {initial}
               </div>
             )}
-            <span className="text-[13px] font-semibold text-[#0a0a0a]">{companyName || 'PickNPack'}</span>
+            <span className="text-[13px] font-semibold text-foreground">{companyName || 'PickNPack'}</span>
           </div>
         </div>
       </div>

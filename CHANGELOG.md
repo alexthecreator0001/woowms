@@ -3,6 +3,11 @@
 All notable changes to PickNPack will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.68.2] - 2026-03-19
+
+### Fixed
+- **Dark theme overhaul** — Fixed broken dark theme across 50+ files. Replaced all hardcoded hex colors (`#fafafa`, `#0a0a0a`, `#e5e5e5`, etc.) and shade-based Tailwind classes (`bg-red-50`, `border-blue-200`, `bg-amber-100`) with semantic tokens (`bg-background`, `bg-card`, `bg-muted`, `text-foreground`, `border-border`) and opacity-based variants (`bg-red-500/10`, `border-blue-500/20`). Covers Plugins, Packing Station, Inventory, Orders, Shipping, Receiving, Returns, Cycle Counts, Warehouse, Settings, and all onboarding pages.
+
 ## [3.68.1 / 2.52.1] - 2026-03-18
 
 ### Fixed

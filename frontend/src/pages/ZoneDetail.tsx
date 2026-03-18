@@ -368,7 +368,7 @@ export default function ZoneDetail() {
           <button
             type="button"
             onClick={handleDeleteZone}
-            className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors"
+            className="rounded-lg p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-600 transition-colors"
             title="Delete zone"
           >
             <Trash size={18} />
@@ -610,8 +610,8 @@ export default function ZoneDetail() {
                 onClick={handleDeleteBin}
                 disabled={editBinHasStock || editBinDeleting}
                 className={cn(
-                  'rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600',
-                  'hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed',
+                  'rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-600',
+                  'hover:bg-red-500/15 disabled:opacity-40 disabled:cursor-not-allowed',
                 )}
               >
                 {editBinDeleting ? 'Deleting...' : 'Delete'}

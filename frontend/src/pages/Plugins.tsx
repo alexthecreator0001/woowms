@@ -353,8 +353,8 @@ export default function Plugins() {
             </div>
           </div>
 
-          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
-            <p className="text-[12px] text-blue-800 leading-relaxed">
+          <div className="mb-4 rounded-lg border border-blue-500/20 bg-blue-500/10 p-3">
+            <p className="text-[12px] text-blue-800 dark:text-blue-300 leading-relaxed">
               Create an <strong>Incoming Webhook</strong> in your Slack workspace to receive PickNPack notifications.
               Go to <strong>api.slack.com/apps</strong> &rarr; create app &rarr; Incoming Webhooks &rarr; add to channel &rarr; copy the URL.
             </p>
@@ -374,9 +374,9 @@ export default function Plugins() {
           </div>
 
           {slackInstallError && (
-            <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
+            <div className="mb-4 flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10p-3">
               <XCircle size={16} weight="fill" className="mt-0.5 flex-shrink-0 text-red-500" />
-              <p className="text-[12px] text-red-700">{slackInstallError}</p>
+              <p className="text-[12px] text-red-600 dark:text-red-400">{slackInstallError}</p>
             </div>
           )}
 
@@ -430,8 +430,8 @@ export default function Plugins() {
             </div>
           </div>
 
-          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
-            <p className="text-[12px] text-blue-800 leading-relaxed">
+          <div className="mb-4 rounded-lg border border-blue-500/20 bg-blue-500/10 p-3">
+            <p className="text-[12px] text-blue-800 dark:text-blue-300 leading-relaxed">
               Enter your <strong>{shippingInstallModal.name}</strong> API key to enable shipping label generation.
               You can find this in your {shippingInstallModal.name} account settings.
             </p>
@@ -451,9 +451,9 @@ export default function Plugins() {
           </div>
 
           {shippingInstallError && (
-            <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
+            <div className="mb-4 flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10p-3">
               <XCircle size={16} weight="fill" className="mt-0.5 flex-shrink-0 text-red-500" />
-              <p className="text-[12px] text-red-700">{shippingInstallError}</p>
+              <p className="text-[12px] text-red-600 dark:text-red-400">{shippingInstallError}</p>
             </div>
           )}
 
@@ -511,11 +511,11 @@ export default function Plugins() {
           </div>
 
           {/* What is this key for */}
-          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
-            <p className="text-[12px] font-medium text-blue-900 mb-1">What is this key for?</p>
-            <p className="text-[12px] text-blue-800 leading-relaxed">
+          <div className="mb-4 rounded-lg border border-blue-500/20 bg-blue-500/10 p-3">
+            <p className="text-[12px] font-medium text-blue-900 dark:text-blue-200 mb-1">What is this key for?</p>
+            <p className="text-[12px] text-blue-800 dark:text-blue-300 leading-relaxed">
               This API key authenticates Zapier when it calls your PickNPack webhook.
-              Paste it into Zapier's webhook header as <code className="rounded bg-blue-100 px-1 py-0.5 text-[11px] font-mono">X-API-Key</code> so
+              Paste it into Zapier's webhook header as <code className="rounded bg-blue-500/15 dark:bg-blue-500/20 px-1 py-0.5 text-[11px] font-mono">X-API-Key</code> so
               Zapier can pull your orders, inventory, and alerts.
             </p>
           </div>
@@ -537,10 +537,10 @@ export default function Plugins() {
           </div>
 
           {/* Warning */}
-          <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-3">
+          <div className="mb-5 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3">
             <div className="flex items-start gap-2">
               <Warning size={16} weight="fill" className="mt-0.5 flex-shrink-0 text-amber-600" />
-              <p className="text-[12px] text-amber-800">
+              <p className="text-[12px] text-amber-800 dark:text-amber-300">
                 <strong>Copy this key now.</strong> For security, the full key is only shown once.
                 After you close this dialog, only the first few characters will be visible.
                 If you lose it, you can regenerate a new one (which invalidates the old one).
@@ -610,7 +610,7 @@ export default function Plugins() {
           <div className="flex-1">
             <div className="flex items-center gap-3">
               <h1 className="text-xl font-semibold text-foreground">{configuringPlugin.name}</h1>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                 <Check size={12} weight="bold" />
                 Installed
               </span>
@@ -628,12 +628,12 @@ export default function Plugins() {
                 <PlugsConnected size={18} weight="fill" className="text-emerald-600" />
                 <h2 className="text-[14px] font-semibold text-foreground">Connection Status</h2>
               </div>
-              <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <div className="flex items-center gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
                   <CheckCircle size={18} weight="fill" className="text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-[13px] font-semibold text-emerald-700">Connected to {configuringPlugin.name}</p>
+                  <p className="text-[13px] font-semibold text-emerald-600 dark:text-emerald-400">Connected to {configuringPlugin.name}</p>
                   <p className="text-[11px] text-emerald-600/70">Shipping labels can be generated from the packing station</p>
                 </div>
               </div>
@@ -726,16 +726,16 @@ export default function Plugins() {
             </div>
 
             {/* Danger zone */}
-            <div className="rounded-xl border border-red-200 bg-red-50/50 p-5">
-              <h2 className="mb-1 text-[14px] font-semibold text-red-700">Danger Zone</h2>
-              <p className="mb-4 text-[12px] text-red-600/70">
+            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-5">
+              <h2 className="mb-1 text-[14px] font-semibold text-red-600 dark:text-red-400">Danger Zone</h2>
+              <p className="mb-4 text-[12px] text-destructive/70">
                 Uninstalling disconnects {configuringPlugin.name} and removes your API key.
                 Shipping labels will no longer be generated until you connect a new provider.
               </p>
 
               {confirmUninstall ? (
                 <div className="flex items-center gap-3">
-                  <span className="text-[13px] text-red-700">Are you sure?</span>
+                  <span className="text-[13px] text-red-600 dark:text-red-400">Are you sure?</span>
                   <button
                     onClick={() => handleUninstall(configuringPlugin.key)}
                     disabled={actionLoading === configuringPlugin.key}
@@ -745,7 +745,7 @@ export default function Plugins() {
                   </button>
                   <button
                     onClick={() => setConfirmUninstall(false)}
-                    className="rounded-md border border-red-200 bg-card px-3 py-1.5 text-[12px] font-medium text-red-700 transition-colors hover:bg-red-50"
+                    className="rounded-md border border-destructive/20 bg-card px-3 py-1.5 text-[12px] font-medium text-red-600 dark:text-red-400 transition-colors hover:bg-destructive/10"
                   >
                     Cancel
                   </button>
@@ -753,7 +753,7 @@ export default function Plugins() {
               ) : (
                 <button
                   onClick={() => setConfirmUninstall(true)}
-                  className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-card px-3 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
+                  className="flex items-center gap-1.5 rounded-lg border border-destructive/20 bg-card px-3 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-destructive/10"
                 >
                   <Trash size={14} />
                   Uninstall {configuringPlugin.name}
@@ -772,12 +772,12 @@ export default function Plugins() {
                 <PlugsConnected size={18} weight="fill" className="text-emerald-600" />
                 <h2 className="text-[14px] font-semibold text-foreground">Connection Status</h2>
               </div>
-              <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <div className="flex items-center gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
                   <CheckCircle size={18} weight="fill" className="text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-[13px] font-semibold text-emerald-700">Connected to Slack</p>
+                  <p className="text-[13px] font-semibold text-emerald-600 dark:text-emerald-400">Connected to Slack</p>
                   <p className="text-[11px] text-emerald-600/70">Notifications are being sent to your Slack channel</p>
                 </div>
               </div>
@@ -880,13 +880,13 @@ export default function Plugins() {
                 )}
               </button>
               {slackTestResult && (
-                <div className={cn('mt-3 flex items-start gap-2 rounded-lg border p-3', slackTestResult.ok ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50')}>
+                <div className={cn('mt-3 flex items-start gap-2 rounded-lg border p-3', slackTestResult.ok ? 'border-emerald-500/20 bg-emerald-500/10' : 'border-red-500/20 bg-red-500/10')}>
                   {slackTestResult.ok ? (
                     <CheckCircle size={16} weight="fill" className="mt-0.5 flex-shrink-0 text-emerald-600" />
                   ) : (
                     <XCircle size={16} weight="fill" className="mt-0.5 flex-shrink-0 text-red-500" />
                   )}
-                  <p className={cn('text-[12px]', slackTestResult.ok ? 'text-emerald-700' : 'text-red-700')}>{slackTestResult.message}</p>
+                  <p className={cn('text-[12px]', slackTestResult.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>{slackTestResult.message}</p>
                 </div>
               )}
             </div>
@@ -975,14 +975,14 @@ export default function Plugins() {
             </div>
 
             {/* Danger zone */}
-            <div className="rounded-xl border border-red-200 bg-red-50/50 p-5">
-              <h2 className="mb-1 text-[14px] font-semibold text-red-700">Danger Zone</h2>
-              <p className="mb-4 text-[12px] text-red-600/70">
+            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-5">
+              <h2 className="mb-1 text-[14px] font-semibold text-red-600 dark:text-red-400">Danger Zone</h2>
+              <p className="mb-4 text-[12px] text-destructive/70">
                 Uninstalling removes the Slack webhook and stops all notifications.
               </p>
               {confirmUninstall ? (
                 <div className="flex items-center gap-3">
-                  <span className="text-[13px] text-red-700">Are you sure?</span>
+                  <span className="text-[13px] text-red-600 dark:text-red-400">Are you sure?</span>
                   <button
                     onClick={() => handleUninstall(configuringPlugin.key)}
                     disabled={actionLoading === configuringPlugin.key}
@@ -992,7 +992,7 @@ export default function Plugins() {
                   </button>
                   <button
                     onClick={() => setConfirmUninstall(false)}
-                    className="rounded-md border border-red-200 bg-card px-3 py-1.5 text-[12px] font-medium text-red-700 transition-colors hover:bg-red-50"
+                    className="rounded-md border border-destructive/20 bg-card px-3 py-1.5 text-[12px] font-medium text-red-600 dark:text-red-400 transition-colors hover:bg-destructive/10"
                   >
                     Cancel
                   </button>
@@ -1000,7 +1000,7 @@ export default function Plugins() {
               ) : (
                 <button
                   onClick={() => setConfirmUninstall(true)}
-                  className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-card px-3 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
+                  className="flex items-center gap-1.5 rounded-lg border border-destructive/20 bg-card px-3 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-destructive/10"
                 >
                   <Trash size={14} />
                   Uninstall Slack
@@ -1088,8 +1088,8 @@ export default function Plugins() {
                         The full key was shown when you installed the plugin. Only the prefix is stored for your security.
                       </p>
                       {confirmRegenerate ? (
-                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                          <p className="mb-3 text-[12px] text-amber-800">
+                        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3">
+                          <p className="mb-3 text-[12px] text-amber-800 dark:text-amber-300">
                             <strong>Warning:</strong> This creates a new key and permanently invalidates the old one.
                             Any Zapier Zaps using the old key will stop working until you update them.
                           </p>
@@ -1277,14 +1277,14 @@ export default function Plugins() {
             </div>
 
             {/* ── Danger zone ── */}
-            <div className="rounded-xl border border-red-200 bg-red-50/50 p-5">
-              <h2 className="mb-1 text-[14px] font-semibold text-red-700">Danger Zone</h2>
-              <p className="mb-4 text-[12px] text-red-600/70">
+            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-5">
+              <h2 className="mb-1 text-[14px] font-semibold text-red-600 dark:text-red-400">Danger Zone</h2>
+              <p className="mb-4 text-[12px] text-destructive/70">
                 Uninstalling removes the plugin, deletes the API key, and breaks any active Zaps using it.
               </p>
               {confirmUninstall ? (
                 <div className="flex items-center gap-3">
-                  <span className="text-[13px] text-red-700">Are you sure?</span>
+                  <span className="text-[13px] text-red-600 dark:text-red-400">Are you sure?</span>
                   <button
                     onClick={() => handleUninstall(configuringPlugin.key)}
                     disabled={actionLoading === configuringPlugin.key}
@@ -1294,7 +1294,7 @@ export default function Plugins() {
                   </button>
                   <button
                     onClick={() => setConfirmUninstall(false)}
-                    className="rounded-md border border-red-200 bg-card px-3 py-1.5 text-[12px] font-medium text-red-700 transition-colors hover:bg-red-50"
+                    className="rounded-md border border-destructive/20 bg-card px-3 py-1.5 text-[12px] font-medium text-red-600 dark:text-red-400 transition-colors hover:bg-destructive/10"
                   >
                     Cancel
                   </button>
@@ -1302,7 +1302,7 @@ export default function Plugins() {
               ) : (
                 <button
                   onClick={() => setConfirmUninstall(true)}
-                  className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-card px-3 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
+                  className="flex items-center gap-1.5 rounded-lg border border-destructive/20 bg-card px-3 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-destructive/10"
                 >
                   <Trash size={14} />
                   Uninstall Zapier
@@ -1387,7 +1387,7 @@ export default function Plugins() {
                     </span>
                   ) : plugin.installed ? (
                     <>
-                      <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                      <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                         <Check size={12} weight="bold" />
                         Installed
                       </span>

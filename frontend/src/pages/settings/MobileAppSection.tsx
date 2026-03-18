@@ -164,7 +164,7 @@ export default function MobileAppSection() {
   return (
     <div className="space-y-6">
       {/* Info banner */}
-      <div className="flex items-start gap-3 rounded-xl bg-blue-500/5 border border-blue-200/40 px-5 py-4">
+      <div className="flex items-start gap-3 rounded-xl bg-blue-500/5 border border-blue-500/20 px-5 py-4">
         <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-500" />
         <div>
           <p className="text-sm font-medium text-blue-700">These settings control the Android mobile app</p>

@@ -56,7 +56,7 @@ export default function Login() {
 
         {/* Error */}
         {error && (
-          <div className="mt-5 w-full rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-600">
+          <div className="mt-5 w-full rounded-lg border border-red-500/20 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-600">
             {error}
           </div>
         )}
